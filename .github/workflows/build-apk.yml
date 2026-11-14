@@ -68,6 +68,15 @@ jobs:
             APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
           else
             echo "Release signing secrets not configured; building debug APK..."
+            if [ ! -f debug.keystore ]; then
+              keytool -genkeypair -v \
+                -keystore debug.keystore \
+                -storepass android \
+                -alias androiddebugkey \
+                -keypass android \
+                -keyalg RSA -keysize 2048 -validity 10000 \
+                -dname "CN=Android Debug,O=Android,C=US"
+            fi
             ./gradlew assembleDebug --no-daemon
             APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
           fi
