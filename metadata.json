@@ -1,6 +1,6 @@
 {
-  "name": "AniCal",
-  "description": "Calendario y estrenos diarios y semanales de episodios de anime con sinopsis y carátulas.",
+  "name": "AniVexa",
+  "description": "Calendario de seguimiento de episodios de anime, programación por temporadas, watchlist y notificaciones con AniList API.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -2,46 +2,45 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// AniVexa - Anime Calendar Theme Colors
-val AniPrimary = Color(0xFF7C4DFF)       // Vibrant Purple
-val AniPrimaryVariant = Color(0xFF651FFF)
-val AniSecondary = Color(0xFFFF6584)     // Sakura Coral Accent
-val AniTertiary = Color(0xFF00E5FF)      // Cyan Accent
-val AniGold = Color(0xFFFFB800)          // Golden rating star
+// AniVexa Signature Palette (Deep Obsidian + Electric Azure Blue)
+val AniAzure = Color(0xFF1E88E5)
+val AniAzureBright = Color(0xFF2196F3)
+val AniAzureDark = Color(0xFF1565C0)
+val AniAzureSoft = Color(0xFF152943)
 
-// Dark Theme Backgrounds & Surfaces (Cyberpunk default)
-val AniDarkBackground = Color(0xFF0D0C1D)
-val AniDarkSurface = Color(0xFF16152B)
-val AniDarkSurfaceVariant = Color(0xFF22203D)
-val AniDarkCard = Color(0xFF1C1A36)
-val AniDarkCardBorder = Color(0xFF2E2B52)
+val AniPrimary = AniAzureBright
+val AniPrimaryVariant = AniAzureDark
+val AniSecondary = Color(0xFF38BDF8)
+val AniTertiary = Color(0xFF22C55E)
+val AniGold = Color(0xFFFFC107)
+val AniGoldBg = Color(0xFF2D2512)
+val AniAiringGreen = Color(0xFF16A34A)
+val AniAiringGreenBright = Color(0xFF22C55E)
+val AniNavyAction = Color(0xFF132238)
+
+// Default Dark Theme Surfaces
+val AniDarkBackground = Color(0xFF0B0D12)
+val AniDarkSurface = Color(0xFF14171F)
+val AniDarkSurfaceElevated = Color(0xFF1B1F2A)
+val AniDarkSurfaceVariant = Color(0xFF1E2330)
+val AniDarkCardBorder = Color(0xFF252A38)
+
+val AniTextPrimaryDark = Color(0xFFF3F5F9)
+val AniTextSecondaryDark = Color(0xFF94A3B8)
+val AniTextMutedDark = Color(0xFF64748B)
 
 // OLED Pure Black Theme
 val AniOledBackground = Color(0xFF000000)
-val AniOledSurface = Color(0xFF0A0A0A)
-val AniOledSurfaceVariant = Color(0xFF141414)
-val AniOledCard = Color(0xFF101010)
-val AniOledBorder = Color(0xFF222222)
-
-// Sakura Theme Colors
-val AniSakuraPrimary = Color(0xFFFF5277)
-val AniSakuraSecondary = Color(0xFFFF9AA2)
-val AniSakuraBackground = Color(0xFFFFF0F5)
-val AniSakuraSurface = Color(0xFFFFFFFF)
-val AniSakuraSurfaceVariant = Color(0xFFFFE4E1)
-val AniSakuraText = Color(0xFF4A1525)
-
-val AniTextPrimaryDark = Color(0xFFF1F1F8)
-val AniTextSecondaryDark = Color(0xFFA5A3C2)
-val AniTextMutedDark = Color(0xFF6F6D8A)
+val AniOledSurface = Color(0xFF0A0C10)
+val AniOledSurfaceVariant = Color(0xFF14171F)
+val AniOledBorder = Color(0xFF222633)
 
 // Light Theme
-val AniLightBackground = Color(0xFFF8F7FF)
+val AniLightBackground = Color(0xFFF4F6FA)
 val AniLightSurface = Color(0xFFFFFFFF)
-val AniLightSurfaceVariant = Color(0xFFEBE8FA)
-val AniLightCard = Color(0xFFFFFFFF)
-val AniLightCardBorder = Color(0xFFE0DCF7)
+val AniLightSurfaceVariant = Color(0xFFE6ECF5)
+val AniLightCardBorder = Color(0xFFD8E0EC)
 
-val AniTextPrimaryLight = Color(0xFF161426)
-val AniTextSecondaryLight = Color(0xFF5A5873)
-val AniTextMutedLight = Color(0xFF8B88A6)
+val AniTextPrimaryLight = Color(0xFF0F172A)
+val AniTextSecondaryLight = Color(0xFF475569)
+val AniTextMutedLight = Color(0xFF64748B)

@@ -72,13 +72,17 @@ class AnimeEpisodeReminderWorker(
         ) {
             val workManager = getWorkManagerSafe(context) ?: return
 
-            val triggerTimeMillis = (anime.airingAtSeconds * 1000) - (minutesBefore * 60 * 1000)
+            val effectiveAiringSec = anime.effectiveAiringSeconds()
+            val effectiveEp = anime.effectiveEpisodeNumber()
+            if (effectiveAiringSec <= 0L) return
+
+            val triggerTimeMillis = (effectiveAiringSec * 1000) - (minutesBefore * 60 * 1000)
             val nowMillis = System.currentTimeMillis()
 
             val delayMillis = if (triggerTimeMillis <= nowMillis) {
-                if (anime.airingAtSeconds * 1000 > nowMillis) {
+                if (effectiveAiringSec * 1000 > nowMillis) {
                     3000L // Episode is airing very soon (within notification window)
-                } else if (nowMillis - (anime.airingAtSeconds * 1000) < 15 * 60 * 1000) {
+                } else if (nowMillis - (effectiveAiringSec * 1000) < 15 * 60 * 1000) {
                     // Newly released in the last 15 minutes
                     1500L
                 } else {
@@ -91,7 +95,7 @@ class AnimeEpisodeReminderWorker(
             val inputData = Data.Builder()
                 .putInt(KEY_ANIME_ID, anime.id)
                 .putString(KEY_ANIME_TITLE, anime.displayTitle)
-                .putInt(KEY_EPISODE, anime.episode)
+                .putInt(KEY_EPISODE, effectiveEp)
                 .putString(KEY_AIRING_TIME, anime.getFormattedTime())
                 .putInt(KEY_MINUTES_BEFORE, minutesBefore)
                 .build()
@@ -118,7 +122,7 @@ class AnimeEpisodeReminderWorker(
             val inputData = Data.Builder()
                 .putInt(KEY_ANIME_ID, anime.id)
                 .putString(KEY_ANIME_TITLE, anime.displayTitle)
-                .putInt(KEY_EPISODE, anime.episode)
+                .putInt(KEY_EPISODE, anime.effectiveEpisodeNumber())
                 .putString(KEY_AIRING_TIME, anime.getFormattedTime())
                 .putInt(KEY_MINUTES_BEFORE, 0)
                 .build()

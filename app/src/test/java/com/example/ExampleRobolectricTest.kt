@@ -13,6 +13,7 @@ import com.example.model.SynopsisLanguage
 import com.example.notifications.AnimeNotificationHelper
 import cu.daniel.anical.R
 import kotlinx.coroutines.runBlocking
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -38,7 +39,14 @@ class ExampleRobolectricTest {
     db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
       .allowMainThreadQueries()
       .build()
-    repository = AnimeRepository(context, db.favoriteAnimeDao())
+    repository = AnimeRepository(
+      context = context,
+      favoriteAnimeDao = db.favoriteAnimeDao(),
+      watchedEpisodeDao = db.watchedEpisodeDao(),
+      watchlistDao = db.watchlistDao(),
+      cachedAnimeDao = db.cachedAnimeDao(),
+      userRatingDao = db.userRatingDao()
+    )
   }
 
   @After
@@ -299,5 +307,84 @@ class ExampleRobolectricTest {
     val removed = repository.toggleWatchlist(anime)
     assertFalse("Should be removed from watchlist", removed)
     assertFalse("Should not exist in watchlist", repository.isInWatchlist(anime.id))
+  }
+
+  @Test
+  fun `test dynamic seasonal calculation matches current date`() {
+    assertEquals(com.example.model.MediaSeason.WINTER, com.example.model.MediaSeason.fromDate(LocalDate.of(2026, 1, 15)))
+    assertEquals(com.example.model.MediaSeason.SPRING, com.example.model.MediaSeason.fromDate(LocalDate.of(2026, 4, 20)))
+    assertEquals(com.example.model.MediaSeason.SUMMER, com.example.model.MediaSeason.fromDate(LocalDate.of(2026, 8, 5)))
+    assertEquals(com.example.model.MediaSeason.FALL, com.example.model.MediaSeason.fromDate(LocalDate.of(2026, 11, 13)))
+
+    val currentSeason = com.example.model.MediaSeason.fromDate(LocalDate.now())
+    assertNotNull(currentSeason)
+  }
+
+  @Test
+  fun `test AniListClient parses seasonal and detail GraphQL responses`() {
+    val mockSeasonJson = """
+      {
+        "data": {
+          "Page": {
+            "media": [
+              {
+                "id": 21,
+                "title": { "romaji": "ONE PIECE", "english": "One Piece", "native": "ワンピース" },
+                "coverImage": { "extraLarge": "https://s4.anilist.co/cover.jpg", "large": "https://s4.anilist.co/cover.jpg", "medium": "https://s4.anilist.co/cover.jpg" },
+                "bannerImage": "https://s4.anilist.co/banner.jpg",
+                "description": "<b>Luffy</b> sails the Grand Line.<br>Adventure awaits!",
+                "genres": ["Action", "Adventure", "Fantasy"],
+                "averageScore": 88,
+                "popularity": 650000,
+                "episodes": null,
+                "format": "TV",
+                "status": "RELEASING",
+                "season": "FALL",
+                "seasonYear": 1999,
+                "startDate": { "year": 1999, "month": 10, "day": 20 },
+                "endDate": { "year": null, "month": null, "day": null },
+                "nextAiringEpisode": { "episode": 1125, "airingAt": 1794600000 },
+                "studios": { "nodes": [ { "name": "Toei Animation" } ] }
+              }
+            ]
+          }
+        }
+      }
+    """.trimIndent()
+
+    val mockClient = okhttp3.OkHttpClient.Builder()
+      .addInterceptor { chain ->
+        okhttp3.Response.Builder()
+          .request(chain.request())
+          .protocol(okhttp3.Protocol.HTTP_1_1)
+          .code(200)
+          .message("OK")
+          .body(mockSeasonJson.toResponseBody(null))
+          .build()
+      }
+      .build()
+
+    val client = com.example.data.AniListClient(mockClient)
+    val results = client.fetchSeasonalAnime(com.example.model.MediaSeason.FALL, 2026)
+
+    assertEquals(1, results.size)
+    val onePiece = results.first()
+    assertEquals(21, onePiece.id)
+    assertEquals("One Piece", onePiece.displayTitle)
+    assertEquals(8.8, onePiece.score!!, 0.01)
+    assertEquals(1125, onePiece.effectiveEpisodeNumber())
+    assertEquals("Toei Animation", onePiece.studio)
+    assertEquals("Oct 20, 1999 - ?", onePiece.broadcastPeriodDisplay)
+    assertFalse("HTML tags should be stripped", onePiece.synopsis.contains("<b>"))
+  }
+
+  @Test
+  fun `test format filters and Spanish to AniList API genre mapping`() {
+    assertEquals("Action", GenreHelper.toApiGenre("Acción"))
+    assertEquals("Sci-Fi", GenreHelper.toApiGenre("Sci-Fi"))
+    assertEquals("Slice of Life", GenreHelper.toApiGenre("Slice of Life"))
+    assertEquals("ONA", com.example.model.MediaFormatFilter.ONA.apiValue)
+    assertEquals("OVA", com.example.model.MediaFormatFilter.OVA.apiValue)
+    assertEquals("TV", com.example.model.MediaFormatFilter.TV.apiValue)
   }
 }

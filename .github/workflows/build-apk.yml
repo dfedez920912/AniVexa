@@ -1,11 +1,17 @@
-name: Build and publish Flutter APK
+name: Build and publish Android APK
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
       - "AniVexa*"
       - "AniVexa v*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,95 +25,79 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out tagged source
+      - name: Check out source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Java
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "25"
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
-          cache: true
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Build Flutter APK
-        run: |
-          set -euo pipefail
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-          TARGET_DIR="."
-          if [ -d "frontend-flutter" ]; then
-            TARGET_DIR="frontend-flutter"
-          fi
-          echo "Building Flutter project in: $TARGET_DIR"
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-          cd "$TARGET_DIR"
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon
 
-          # Clean any stale/partial android directory and generate pristine Flutter project
-          rm -rf android
-          echo "Generating modern Android platform configuration (v2 embedding)..."
-          flutter create . --platforms=android --org com.aistudio.anivexa --project-name anivexa
-
-          # Configure minSdkVersion to 24 (matching minSdk in app/build.gradle.kts)
-          if [ -f "android/app/build.gradle" ]; then
-            sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 24/' android/app/build.gradle 2>/dev/null || true
-          fi
-          if [ -f "android/app/build.gradle.kts" ]; then
-            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/' android/app/build.gradle.kts 2>/dev/null || true
-          fi
-
-          # Ensure AniVexa custom launcher icons are applied in all densities
-          echo "Applying AniVexa launcher icons..."
-          mkdir -p android/app/src/main/res
-          if [ -d "../app/src/main/res" ]; then
-            cp -r ../app/src/main/res/mipmap* android/app/src/main/res/
-            cp -r ../app/src/main/res/drawable android/app/src/main/res/
-          fi
-
-          # Ensure INTERNET permission and cleartext traffic are present in AndroidManifest.xml
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          if [ -f "$MANIFEST" ]; then
-            if ! grep -q "android.permission.INTERNET" "$MANIFEST"; then
-              sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"\/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"\/>' "$MANIFEST"
-            fi
-            if ! grep -q "usesCleartextTraffic" "$MANIFEST"; then
-              sed -i 's/<application/<application android:usesCleartextTraffic="true"/' "$MANIFEST"
-            fi
-            sed -i 's/android:icon="@mipmap\/[a-zA-Z0-9_]*"/android:icon="@mipmap\/ic_launcher" android:roundIcon="@mipmap\/ic_launcher_round"/' "$MANIFEST" || true
-          fi
-
-          flutter pub get
-          flutter build apk --release
-          cd -
-
-      - name: Prepare release assets
+      - name: Build Android APK
+        id: build_apk
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -euo pipefail
+          if [ -n "${KEYSTORE_BASE64:-}" ] && [ -n "${STORE_PASSWORD:-}" ] && [ -n "${KEY_PASSWORD:-}" ]; then
+            echo "Building signed release APK..."
+            echo "$KEYSTORE_BASE64" | base64 --decode > my-upload-key.jks
+            export KEYSTORE_PATH="$PWD/my-upload-key.jks"
+            ./gradlew assembleRelease --no-daemon
+            APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          else
+            echo "Release signing secrets not configured; building debug APK..."
+            ./gradlew assembleDebug --no-daemon
+            APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          fi
 
-          APK=$(find . -path "*/flutter-apk/*" -name "*release*.apk" -o -path "*/outputs/apk/*" -name "*release*.apk" | head -n 1)
           if [ -z "$APK" ] || [ ! -f "$APK" ]; then
-            echo "Error: No release APK found!"
+            echo "Error: No APK generated!"
             exit 1
           fi
           echo "Found generated APK: $APK"
+          echo "apk_path=$APK" >> "$GITHUB_OUTPUT"
 
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AniVexa-apk
+          path: ${{ steps.build_apk.outputs.apk_path }}
+
+      - name: Prepare release assets
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          APK: ${{ steps.build_apk.outputs.apk_path }}
+        run: |
+          set -euo pipefail
           test -s "release-notes.md" || {
             echo "The release-notes.md file is missing or empty."
             exit 1
           }
-
           CLEAN_TAG=$(echo "$RELEASE_TAG" | tr -s ' ' '_')
           cp "$APK" "AniVexa-${CLEAN_TAG}.apk"
           sha256sum "AniVexa-${CLEAN_TAG}.apk" > "AniVexa-${CLEAN_TAG}.apk.sha256"
 
       - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}

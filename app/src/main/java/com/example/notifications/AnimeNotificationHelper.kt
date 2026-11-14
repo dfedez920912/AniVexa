@@ -66,14 +66,18 @@ object AnimeNotificationHelper {
         // Secondary: AlarmManager exact alarm fallback
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
 
-        val triggerTimeMillis = (anime.airingAtSeconds * 1000) - (minutesBefore * 60 * 1000)
+        val effectiveAiringSec = anime.effectiveAiringSeconds()
+        val effectiveEp = anime.effectiveEpisodeNumber()
+        if (effectiveAiringSec <= 0L) return
+
+        val triggerTimeMillis = (effectiveAiringSec * 1000) - (minutesBefore * 60 * 1000)
         val nowMillis = System.currentTimeMillis()
 
         // If the episode is in the future, schedule the alarm. If it's very soon (e.g. today within window), schedule for immediate/soon.
         val targetMillis = if (triggerTimeMillis <= nowMillis) {
-            if (anime.airingAtSeconds * 1000 > nowMillis) {
+            if (effectiveAiringSec * 1000 > nowMillis) {
                 nowMillis + 5000
-            } else if (nowMillis - (anime.airingAtSeconds * 1000) < 15 * 60 * 1000) {
+            } else if (nowMillis - (effectiveAiringSec * 1000) < 15 * 60 * 1000) {
                 nowMillis + 2000
             } else {
                 return // Already aired
@@ -86,7 +90,7 @@ object AnimeNotificationHelper {
             `package` = context.packageName
             putExtra(EXTRA_ANIME_ID, anime.id)
             putExtra(EXTRA_ANIME_TITLE, anime.displayTitle)
-            putExtra(EXTRA_EPISODE, anime.episode)
+            putExtra(EXTRA_EPISODE, effectiveEp)
             putExtra(EXTRA_AIRING_TIME, anime.getFormattedTime())
             putExtra(EXTRA_MINUTES_BEFORE, minutesBefore)
         }
@@ -192,6 +196,11 @@ object AnimeNotificationHelper {
             "El episodio $episode se emitirá a las $airingTime (en $minutesBefore minutos). ¡Prepárate para verlo!"
         }
 
+        val prefs = context.getSharedPreferences("anivexa_prefs", Context.MODE_PRIVATE)
+        val quietHours = prefs.getBoolean("quiet_hours", false)
+        val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        val isQuietTime = quietHours && (currentHour >= 23 || currentHour < 7)
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(notificationTitle)
@@ -199,6 +208,7 @@ object AnimeNotificationHelper {
             .setStyle(NotificationCompat.BigTextStyle().bigText(notificationText))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setSilent(isQuietTime)
             .setAutoCancel(true)
             .setContentIntent(contentPendingIntent)
             .build()

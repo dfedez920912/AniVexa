@@ -2,7 +2,9 @@ package com.example.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +26,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,55 +40,60 @@ fun SplashScreen(
     var startAnimation by remember { mutableStateOf(false) }
     val alphaAnim by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 800),
+        animationSpec = tween(durationMillis = 550),
         label = "splash_alpha"
     )
 
     LaunchedEffect(Unit) {
         startAnimation = true
-        delay(1200)
+        delay(850)
         onSplashFinished()
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        Color(0xFF0E1525),
+                        MaterialTheme.colorScheme.background
+                    )
+                )
+            ),
+        contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(alphaAnim),
+            modifier = Modifier.alpha(alphaAnim),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(96.dp)
+                modifier = Modifier.size(88.dp)
             ) {
-                Column(
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = "Logo de AniVexa",
+                        contentDescription = "AniVexa",
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(46.dp)
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
             Text(
                 text = "AniVexa",
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Black,
-                fontSize = 36.sp,
-                color = MaterialTheme.colorScheme.primary
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 34.sp,
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Tu calendario de anime definitivo",
+                text = "Calendario y seguimiento de anime",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -15,6 +15,12 @@ interface CachedAnimeDao {
     @Query("SELECT * FROM cached_anime ORDER BY airingAtSeconds ASC")
     suspend fun getAllCachedAnimeList(): List<CachedAnimeEntity>
 
+    @Query("SELECT * FROM cached_anime WHERE categoryTag = :tag ORDER BY popularity DESC")
+    suspend fun getCachedByCategory(tag: String): List<CachedAnimeEntity>
+
+    @Query("SELECT COUNT(*) FROM cached_anime")
+    fun getCachedCountFlow(): Flow<Int>
+
     @Query("SELECT * FROM cached_anime WHERE id = :id LIMIT 1")
     suspend fun getCachedAnimeById(id: Int): CachedAnimeEntity?
 

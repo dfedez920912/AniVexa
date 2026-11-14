@@ -1,732 +1,916 @@
 package com.example.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.AnimeRepository
+import com.example.data.local.WatchlistEntity
+import com.example.data.local.WatchlistStatus
+import com.example.model.AnimeCharacter
 import com.example.model.AnimeRelease
-import com.example.model.AnimeSortOrder
+import com.example.model.AnimeReview
+import com.example.model.AppThemeMode
 import com.example.model.DayScheduleTab
-import com.example.model.EpisodeFilter
 import com.example.model.GenreHelper
+import com.example.model.MediaFormatFilter
+import com.example.model.MediaSeason
+import com.example.model.MediaStatusFilter
 import com.example.model.SynopsisLanguage
+import com.example.model.WatchlistSortOrder
+import com.example.notifications.AnimeEpisodeReminderWorker
 import com.example.notifications.AnimeNotificationHelper
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.TextStyle
+import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
 enum class MainNavScreen(val title: String) {
-    SCHEDULE("Calendario"),
-    WATCHLIST("Mi Watchlist")
+    HOME("Inicio"),
+    CALENDAR("Calendario"),
+    MY_LIST("Mi Lista"),
+    SEARCH("Buscar"),
+    SETTINGS("Ajustes")
+}
+
+enum class CalendarViewMode(val label: String) {
+    WEEK("Semana"),
+    MONTH("Mes"),
+    LIST("Lista")
+}
+
+enum class SeeAllMode(val title: String) {
+    NONE(""),
+    THIS_SEASON("Esta Temporada"),
+    POPULAR_RANKING("Ranking Popular")
+}
+
+enum class MyListFilterTab(val label: String) {
+    ALL("Todos"),
+    WATCHED("Vistos"),
+    UNWATCHED("Sin ver"),
+    WATCHING("Viendo"),
+    PLAN_TO_WATCH("Por ver")
 }
 
 data class AnimeUiState(
-    val allReleases: List<AnimeRelease> = emptyList(),
-    val filteredReleases: List<AnimeRelease> = emptyList(),
-    val dayTabs: List<DayScheduleTab> = emptyList(),
-    val selectedDate: LocalDate? = LocalDate.now(),
-    val searchQuery: String = "",
-    val availableGenres: List<String> = emptyList(),
-    val selectedGenres: Set<String> = emptySet(),
-    val sortOrder: AnimeSortOrder = AnimeSortOrder.AIRING_TIME,
-    val isCategorizedByGenre: Boolean = false,
-    val releasesByGenre: Map<String, List<AnimeRelease>> = emptyMap(),
-    val genreCounts: Map<String, Int> = emptyMap(),
-    val onlyFavorites: Boolean = false,
-    val episodeFilter: EpisodeFilter = EpisodeFilter.ALL,
-    val selectedPlatform: com.example.model.StreamingPlatform = com.example.model.StreamingPlatform.ALL,
-    val appThemeMode: com.example.model.AppThemeMode = com.example.model.AppThemeMode.CYBERPUNK,
-    val isJapanTimeZone: Boolean = false,
-    val quietHoursEnabled: Boolean = false,
-    val watchedEpisodeKeys: Set<String> = emptySet(),
-    val globalLanguage: SynopsisLanguage = SynopsisLanguage.SPANISH,
-    val isLoading: Boolean = true,
+    val currentNavScreen: MainNavScreen = MainNavScreen.HOME,
+    val seeAllMode: SeeAllMode = SeeAllMode.NONE,
+    val isOfflineMode: Boolean = false,
+    val isLoadingHome: Boolean = true,
+    val isLoadingSchedule: Boolean = true,
+    val isLoadingSearch: Boolean = false,
+    val isLoadingDetail: Boolean = false,
     val isRefreshing: Boolean = false,
     val errorMessage: String? = null,
     val notificationMessage: String? = null,
-    val selectedAnimeForDetail: AnimeRelease? = null,
-    val favoritesCount: Int = 0,
-    val watchedCount: Int = 0,
-    val todayPremieresCount: Int = 0,
-    val todayOngoingCount: Int = 0,
-    val currentNavScreen: MainNavScreen = MainNavScreen.SCHEDULE,
-    val watchlistItems: List<com.example.data.local.WatchlistEntity> = emptyList(),
-    val filteredWatchlistItems: List<com.example.data.local.WatchlistEntity> = emptyList(),
+
+    // Home Data (current season dynamically from LocalDate.now())
+    val currentSeason: MediaSeason = MediaSeason.fromDate(LocalDate.now()),
+    val currentSeasonYear: Int = LocalDate.now().year,
+    val selectedHomeSeason: MediaSeason = MediaSeason.fromDate(LocalDate.now()),
+    val selectedHomeYear: Int = LocalDate.now().year,
+    val seasonalAnime: List<AnimeRelease> = emptyList(),
+    val popularAnime: List<AnimeRelease> = emptyList(),
+
+    // Calendar & Schedule Data
+    val calendarViewMode: CalendarViewMode = CalendarViewMode.WEEK,
+    val weekStartDate: LocalDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)),
+    val selectedDate: LocalDate = LocalDate.now(),
+    val selectedMonth: YearMonth = YearMonth.now(),
+    val dayTabs: List<DayScheduleTab> = emptyList(),
+    val scheduleReleases: List<AnimeRelease> = emptyList(),
+    val filteredDayReleases: List<AnimeRelease> = emptyList(),
+    val monthReleases: List<AnimeRelease> = emptyList(),
+    val calendarFormatFilter: MediaFormatFilter = MediaFormatFilter.ALL,
+    val calendarGenreFilter: String? = null,
+    val calendarStudioFilter: String? = null,
+
+    // Search & Discover Data
+    val searchQuery: String = "",
+    val showSearchFilters: Boolean = false,
+    val searchSelectedGenres: Set<String> = emptySet(),
+    val searchSeason: MediaSeason? = null,
+    val searchYear: Int? = null,
+    val searchStatus: MediaStatusFilter = MediaStatusFilter.ALL,
+    val searchFormat: MediaFormatFilter = MediaFormatFilter.ALL,
+    val searchStudio: String? = null,
+    val searchResults: List<AnimeRelease> = emptyList(),
+
+    // My List (Watchlist + Watched tracking)
+    val myListFilterTab: MyListFilterTab = MyListFilterTab.ALL,
+    val myListSortOrder: WatchlistSortOrder = WatchlistSortOrder.RECENT,
+    val watchlistItems: List<WatchlistEntity> = emptyList(),
+    val filteredWatchlistItems: List<WatchlistEntity> = emptyList(),
     val watchlistIds: Set<Int> = emptySet(),
-    val watchlistFilterStatus: com.example.data.local.WatchlistStatus? = null,
-    val watchlistSearchQuery: String = "",
-    val watchlistCount: Int = 0
-)
+    val favoriteIds: Set<Int> = emptySet(),
+    val watchedEpisodeKeys: Set<String> = emptySet(),
+    val userRatings: Map<Int, Int> = emptyMap(),
+
+    // Detail View
+    val selectedAnimeForDetail: AnimeRelease? = null,
+    val detailReviews: List<AnimeReview> = emptyList(),
+    val detailCharacters: List<AnimeCharacter> = emptyList(),
+
+    // Settings & Preferences
+    val appThemeMode: AppThemeMode = AppThemeMode.ANIVEXA_DARK,
+    val isJapanTimeZone: Boolean = false,
+    val notificationsEnabled: Boolean = true,
+    val defaultReminderMinutes: Int = 15,
+    val quietHoursEnabled: Boolean = false,
+    val globalLanguage: SynopsisLanguage = SynopsisLanguage.SPANISH,
+    val cachedCount: Int = 0
+) {
+    val activeZoneId: ZoneId
+        get() = if (isJapanTimeZone) ZoneId.of("Asia/Tokyo") else ZoneId.systemDefault()
+}
 
 class AnimeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = AnimeRepository(application.applicationContext)
+    private val prefs = application.getSharedPreferences("anivexa_prefs", Context.MODE_PRIVATE)
 
-    private val _rawReleases = MutableStateFlow<List<AnimeRelease>>(emptyList())
-    private val _favoriteIds = MutableStateFlow<Set<Int>>(emptySet())
-    private val _watchedKeys = MutableStateFlow<Set<String>>(emptySet())
-    private val _userRatings = MutableStateFlow<Map<Int, Int>>(emptyMap())
-    private val _selectedDate = MutableStateFlow<LocalDate?>(LocalDate.now())
-    private val _searchQuery = MutableStateFlow("")
-    private val _selectedGenres = MutableStateFlow<Set<String>>(emptySet())
-    private val _sortOrder = MutableStateFlow(AnimeSortOrder.AIRING_TIME)
-    private val _isCategorizedByGenre = MutableStateFlow(false)
-    private val _onlyFavorites = MutableStateFlow(false)
-    private val _episodeFilter = MutableStateFlow(EpisodeFilter.ALL)
-    private val _selectedPlatform = MutableStateFlow(com.example.model.StreamingPlatform.ALL)
-    private val _appThemeMode = MutableStateFlow(com.example.model.AppThemeMode.CYBERPUNK)
-    private val _isJapanTimeZone = MutableStateFlow(false)
-    private val _quietHoursEnabled = MutableStateFlow(false)
-    private val _globalLanguage = MutableStateFlow(SynopsisLanguage.SPANISH)
-    private val _isLoading = MutableStateFlow(true)
-    private val _isRefreshing = MutableStateFlow(false)
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    private val _notificationMessage = MutableStateFlow<String?>(null)
-    private val _selectedAnimeForDetail = MutableStateFlow<AnimeRelease?>(null)
-    private val _watchlistItems = MutableStateFlow<List<com.example.data.local.WatchlistEntity>>(emptyList())
-    private val _watchlistIds = MutableStateFlow<Set<Int>>(emptySet())
-    private val _currentNavScreen = MutableStateFlow(MainNavScreen.SCHEDULE)
-    private val _watchlistFilterStatus = MutableStateFlow<com.example.data.local.WatchlistStatus?>(null)
-    private val _watchlistSearchQuery = MutableStateFlow("")
-
-    private data class WatchlistParams(
-        val items: List<com.example.data.local.WatchlistEntity>,
-        val ids: Set<Int>,
-        val screen: MainNavScreen,
-        val filter: com.example.data.local.WatchlistStatus?,
-        val query: String
-    )
-
-    private data class FilterParams(
-        val raw: List<AnimeRelease>,
-        val favIds: Set<Int>,
-        val watchedKeys: Set<String>,
-        val userRatings: Map<Int, Int>,
-        val selDate: LocalDate?,
-        val query: String,
-        val selGenres: Set<String>,
-        val sort: AnimeSortOrder,
-        val categorized: Boolean,
-        val onlyFavs: Boolean,
-        val platform: com.example.model.StreamingPlatform
-    )
-
-    private data class ControlParams(
-        val epFilter: EpisodeFilter,
-        val lang: SynopsisLanguage,
-        val themeMode: com.example.model.AppThemeMode,
-        val isJpZone: Boolean,
-        val quietHours: Boolean,
-        val loading: Boolean,
-        val refreshing: Boolean,
-        val error: String?
-    )
-
-    private val filterParamsFlow = combine(
-        combine(_rawReleases, _favoriteIds, _watchedKeys, _userRatings) { raw, favIds, watched, ratings ->
-            Quad(raw, favIds, watched, ratings)
-        },
-        _selectedDate,
-        _searchQuery,
-        combine(_selectedGenres, _sortOrder, _isCategorizedByGenre, _onlyFavorites, _selectedPlatform) { args: Array<Any> ->
-            @Suppress("UNCHECKED_CAST")
-            FilterOptions(
-                genres = args[0] as Set<String>,
-                sort = args[1] as AnimeSortOrder,
-                cat = args[2] as Boolean,
-                favs = args[3] as Boolean,
-                platform = args[4] as com.example.model.StreamingPlatform
-            )
-        }
-    ) { (raw, favIds, watched, ratings), selDate, query, opts ->
-        FilterParams(raw, favIds, watched, ratings, selDate, query, opts.genres, opts.sort, opts.cat, opts.favs, opts.platform)
-    }
-
-    private data class FilterOptions(
-        val genres: Set<String>,
-        val sort: AnimeSortOrder,
-        val cat: Boolean,
-        val favs: Boolean,
-        val platform: com.example.model.StreamingPlatform
-    )
-
-    private val controlParamsFlow = combine(
-        _episodeFilter,
-        _globalLanguage,
-        _appThemeMode,
-        _isJapanTimeZone,
-        _quietHoursEnabled
-    ) { epFilter, lang, theme, jpZone, quiet ->
-        ControlGroup(epFilter, lang, theme, jpZone, quiet)
-    }
-
-    private data class ControlGroup(
-        val epFilter: EpisodeFilter,
-        val lang: SynopsisLanguage,
-        val theme: com.example.model.AppThemeMode,
-        val jpZone: Boolean,
-        val quiet: Boolean
-    )
-
-    private val finalControlFlow = combine(
-        controlParamsFlow,
-        _isLoading,
-        _isRefreshing,
-        _errorMessage
-    ) { group, loading, refreshing, error ->
-        ControlParams(
-            epFilter = group.epFilter,
-            lang = group.lang,
-            themeMode = group.theme,
-            isJpZone = group.jpZone,
-            quietHours = group.quiet,
-            loading = loading,
-            refreshing = refreshing,
-            error = error
-        )
-    }
-
-    private val watchlistParamsFlow = combine(
-        _watchlistItems,
-        _watchlistIds,
-        _currentNavScreen,
-        _watchlistFilterStatus,
-        _watchlistSearchQuery
-    ) { items, ids, screen, filter, query ->
-        WatchlistParams(items, ids, screen, filter, query)
-    }
-
-    val uiState: StateFlow<AnimeUiState> = combine(
-        filterParamsFlow,
-        finalControlFlow,
-        _selectedAnimeForDetail,
-        watchlistParamsFlow
-    ) { filterParams, controlParams, detail, watchlistParams ->
-        val raw = filterParams.raw
-        val favIds = filterParams.favIds
-        val watchedKeys = filterParams.watchedKeys
-        val watchIds = watchlistParams.ids
-        val selDate = filterParams.selDate
-        val query = filterParams.query
-        val selGenres = filterParams.selGenres
-        val sort = filterParams.sort
-        val categorized = filterParams.categorized
-        val onlyFavs = filterParams.onlyFavs
-        val platform = filterParams.platform
-
-        val epFilter = controlParams.epFilter
-        val lang = controlParams.lang
-        val themeMode = controlParams.themeMode
-        val isJpZone = controlParams.isJpZone
-        val quietHours = controlParams.quietHours
-        val loading = controlParams.loading
-        val refreshing = controlParams.refreshing
-        val error = controlParams.error
-
-        val userRatings = filterParams.userRatings
-
-        val activeZone = if (isJpZone) java.time.ZoneId.of("Asia/Tokyo") else java.time.ZoneId.systemDefault()
-        val today = LocalDate.now(activeZone)
-
-        // Sync favorite, watched, watchlist, and user rating status with Room database
-        val syncedRaw = raw.map { item ->
-            val isFav = favIds.contains(item.id)
-            val isW = watchedKeys.contains("${item.id}_${item.episode}")
-            val isWatch = watchIds.contains(item.id)
-            val rating = userRatings[item.id] ?: item.userRating
-            item.copy(
-                isFavorite = isFav,
-                isWatched = isW,
-                isInWatchlist = isWatch,
-                hasReminder = isFav,
-                userRating = rating
-            )
-        }
-
-        // Build 7-day tabs with counts for premieres and ongoing episodes
-        val tabs = (0..6).map { offset ->
-            val date = today.plusDays(offset.toLong())
-            val isToday = offset == 0
-            val isTomorrow = offset == 1
-            val label = when {
-                isToday -> "Hoy"
-                isTomorrow -> "Mañana"
-                else -> date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("es")).replaceFirstChar { it.uppercase() }
-            }
-            val fullDayName = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale("es")).replaceFirstChar { it.uppercase() }
-            val monthName = date.month.getDisplayName(TextStyle.SHORT, Locale("es")).replaceFirstChar { it.uppercase() }
-
-            val dayReleases = syncedRaw.filter { it.getAiringLocalDate() == date }
-            val count = dayReleases.size
-            val premieres = dayReleases.count { it.isSeriesPremiere }
-            val ongoing = dayReleases.count { it.isOngoingEpisode }
-
-            DayScheduleTab(
-                date = date,
-                label = label,
-                dayOfMonth = date.dayOfMonth,
-                monthName = monthName,
-                fullDayName = fullDayName,
-                isToday = isToday,
-                isTomorrow = isTomorrow,
-                episodeCount = count,
-                premieresCount = premieres,
-                ongoingCount = ongoing
-            )
-        }
-
-        // Available genres normalized
-        val normalizedGenresList = GenreHelper.FEATURED_GENRES
-
-        // Filter releases (if search query is active, search across all days of the week)
-        val filtered = syncedRaw.filter { item ->
-            val matchesDate = if (selDate == null || query.isNotBlank()) true else item.getAiringLocalDate() == selDate
-            val matchesQuery = query.isBlank() ||
-                    item.titleRomaji.contains(query, ignoreCase = true) ||
-                    (item.titleEnglish?.contains(query, ignoreCase = true) == true) ||
-                    (item.studio?.contains(query, ignoreCase = true) == true) ||
-                    item.genres.any { it.contains(query, ignoreCase = true) }
-            val matchesGenre = GenreHelper.matchesAnyGenre(item.genres, selGenres)
-            val matchesFav = !onlyFavs || item.isFavorite
-            val matchesPlatform = platform == com.example.model.StreamingPlatform.ALL ||
-                    item.streamingPlatform.equals(platform.displayName, ignoreCase = true)
-            val matchesEpisodeType = when (epFilter) {
-                EpisodeFilter.ALL -> true
-                EpisodeFilter.ONGOING_EPISODES -> item.isOngoingEpisode
-                EpisodeFilter.PREMIERES -> item.isSeriesPremiere
-            }
-
-            matchesDate && matchesQuery && matchesGenre && matchesFav && matchesPlatform && matchesEpisodeType
-        }
-
-        // Apply Sorting
-        val sortedReleases = when (sort) {
-            AnimeSortOrder.AIRING_TIME -> filtered.sortedBy { it.airingAtSeconds }
-            AnimeSortOrder.SCORE -> filtered.sortedByDescending { it.score ?: 0.0 }
-            AnimeSortOrder.TITLE_AZ -> filtered.sortedBy { it.displayTitle.lowercase() }
-            AnimeSortOrder.EPISODE -> filtered.sortedByDescending { it.episode }
-        }
-
-        // Calculate counts for each genre within current date/filter scope
-        val dateFilteredRaw = if (selDate == null) syncedRaw else syncedRaw.filter { it.getAiringLocalDate(activeZone) == selDate }
-        val countsMap = mutableMapOf<String, Int>()
-        for (g in normalizedGenresList) {
-            countsMap[g] = dateFilteredRaw.count { item ->
-                GenreHelper.matchesAnyGenre(item.genres, setOf(g))
-            }
-        }
-
-        // Categorize by genre mapping
-        val categorizedMap = LinkedHashMap<String, List<AnimeRelease>>()
-        if (categorized) {
-            for (g in normalizedGenresList) {
-                val inGenre = sortedReleases.filter { item ->
-                    GenreHelper.matchesAnyGenre(item.genres, setOf(g))
-                }
-                if (inGenre.isNotEmpty()) {
-                    categorizedMap[g] = inGenre
-                }
-            }
-        }
-
-        val favCount = favIds.size
-        val watchedCount = watchedKeys.size
-
-        // Counts for current day (or selected date)
-        val targetDate = selDate ?: today
-        val dayItems = syncedRaw.filter { it.getAiringLocalDate(activeZone) == targetDate }
-        val dayPremieres = dayItems.count { it.isSeriesPremiere }
-        val dayOngoing = dayItems.count { it.isOngoingEpisode }
-
-        val syncedDetail = detail?.let { d ->
-            val isFav = favIds.contains(d.id)
-            val isW = watchedKeys.contains("${d.id}_${d.episode}")
-            val isWatch = watchIds.contains(d.id)
-            val rating = userRatings[d.id] ?: d.userRating
-            d.copy(
-                isFavorite = isFav,
-                isWatched = isW,
-                isInWatchlist = isWatch,
-                hasReminder = isFav,
-                userRating = rating
-            )
-        }
-
-        // Filter watchlist items by status and search query
-        val filteredWatchlist = watchlistParams.items.filter { item ->
-            val matchesStatus = watchlistParams.filter == null || item.status == watchlistParams.filter.name
-            val q = watchlistParams.query.trim()
-            val matchesQuery = q.isEmpty() ||
-                    item.titleRomaji.contains(q, ignoreCase = true) ||
-                    (item.titleEnglish?.contains(q, ignoreCase = true) == true) ||
-                    (item.studio?.contains(q, ignoreCase = true) == true) ||
-                    item.genres.contains(q, ignoreCase = true)
-            matchesStatus && matchesQuery
-        }
-
+    private val _uiState = MutableStateFlow(
         AnimeUiState(
-            allReleases = syncedRaw,
-            filteredReleases = sortedReleases,
-            dayTabs = tabs,
-            selectedDate = selDate,
-            searchQuery = query,
-            availableGenres = normalizedGenresList,
-            selectedGenres = selGenres,
-            sortOrder = sort,
-            isCategorizedByGenre = categorized,
-            releasesByGenre = categorizedMap,
-            genreCounts = countsMap,
-            onlyFavorites = onlyFavs,
-            episodeFilter = epFilter,
-            selectedPlatform = platform,
-            appThemeMode = themeMode,
-            isJapanTimeZone = isJpZone,
-            quietHoursEnabled = quietHours,
-            watchedEpisodeKeys = watchedKeys,
-            globalLanguage = lang,
-            isLoading = loading,
-            isRefreshing = refreshing,
-            errorMessage = error,
-            notificationMessage = _notificationMessage.value,
-            selectedAnimeForDetail = syncedDetail,
-            favoritesCount = favCount,
-            watchedCount = watchedCount,
-            todayPremieresCount = dayPremieres,
-            todayOngoingCount = dayOngoing,
-            currentNavScreen = watchlistParams.screen,
-            watchlistItems = watchlistParams.items,
-            filteredWatchlistItems = filteredWatchlist,
-            watchlistIds = watchlistParams.ids,
-            watchlistFilterStatus = watchlistParams.filter,
-            watchlistSearchQuery = watchlistParams.query,
-            watchlistCount = watchlistParams.items.size
+            appThemeMode = loadSavedTheme(),
+            isJapanTimeZone = prefs.getBoolean("jst_zone", false),
+            notificationsEnabled = prefs.getBoolean("notif_enabled", true),
+            defaultReminderMinutes = prefs.getInt("default_reminder_min", 15),
+            quietHoursEnabled = prefs.getBoolean("quiet_hours", false),
+            globalLanguage = if (prefs.getString("synopsis_lang", "es") == "en") {
+                SynopsisLanguage.ENGLISH
+            } else {
+                SynopsisLanguage.SPANISH
+            }
         )
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        AnimeUiState()
     )
+    val uiState: StateFlow<AnimeUiState> = _uiState.asStateFlow()
+
+    private var searchJob: Job? = null
 
     init {
         AnimeNotificationHelper.createNotificationChannel(application.applicationContext)
+        observeRoomStreams()
+        loadInitialData()
+    }
+
+    private fun loadSavedTheme(): AppThemeMode {
+        val raw = prefs.getString("theme_mode", AppThemeMode.ANIVEXA_DARK.name)
+        return try {
+            AppThemeMode.valueOf(raw ?: AppThemeMode.ANIVEXA_DARK.name)
+        } catch (_: Exception) {
+            AppThemeMode.ANIVEXA_DARK
+        }
+    }
+
+    private fun observeRoomStreams() {
         viewModelScope.launch {
-            repository.favoriteIdsFlow.collect { ids ->
-                _favoriteIds.value = ids
-                scheduleRemindersForFavorites(_rawReleases.value, ids)
+            repository.favoriteIdsFlow.collect { favIds ->
+                _uiState.update { state ->
+                    val updated = state.copy(favoriteIds = favIds)
+                    recomputeDerivedLists(updated)
+                }
             }
         }
         viewModelScope.launch {
             repository.watchedEpisodeKeysFlow.collect { keys ->
-                _watchedKeys.value = keys
+                _uiState.update { state ->
+                    val updated = state.copy(watchedEpisodeKeys = keys)
+                    recomputeDerivedLists(updated)
+                }
             }
         }
         viewModelScope.launch {
-            repository.allWatchlistFlow.collect { list ->
-                _watchlistItems.value = list
+            repository.allWatchlistFlow.collect { items ->
+                _uiState.update { state ->
+                    val updated = state.copy(watchlistItems = items)
+                    recomputeDerivedLists(updated)
+                }
             }
         }
         viewModelScope.launch {
             repository.watchlistIdsFlow.collect { ids ->
-                _watchlistIds.value = ids
+                _uiState.update { state ->
+                    val updated = state.copy(watchlistIds = ids)
+                    recomputeDerivedLists(updated)
+                }
             }
         }
         viewModelScope.launch {
             repository.userRatingsFlow.collect { ratings ->
-                _userRatings.value = ratings
+                _uiState.update { state ->
+                    val updated = state.copy(userRatings = ratings)
+                    recomputeDerivedLists(updated)
+                }
             }
         }
-        loadSchedule()
+        viewModelScope.launch {
+            repository.cachedCountFlow.collect { count ->
+                _uiState.update { it.copy(cachedCount = count) }
+            }
+        }
     }
 
-    fun setUserRating(animeId: Int, rating: Int) {
+    fun loadInitialData() {
+        loadHomeData()
+        loadWeekSchedule(_uiState.value.weekStartDate)
+        executeSearch()
+    }
+
+    fun refreshAll() {
+        _uiState.update { it.copy(isRefreshing = true) }
         viewModelScope.launch {
-            val targetRating = rating.coerceIn(0, 5)
-            repository.setUserRating(animeId, targetRating)
-            val current = _userRatings.value.toMutableMap()
-            if (targetRating <= 0) current.remove(animeId) else current[animeId] = targetRating
-            _userRatings.value = current
-            updateAnimeInState(animeId) { it.copy(userRating = targetRating) }
-            val msg = if (targetRating > 0) {
-                "✓ Puntuación de $targetRating ★ guardada en la base de datos."
-            } else {
-                "Puntuación eliminada."
+            loadHomeDataInternal()
+            loadWeekScheduleInternal(_uiState.value.weekStartDate)
+            _uiState.update { it.copy(isRefreshing = false) }
+        }
+    }
+
+    fun loadHomeData() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingHome = true) }
+            loadHomeDataInternal()
+            _uiState.update { it.copy(isLoadingHome = false) }
+        }
+    }
+
+    private suspend fun loadHomeDataInternal() {
+        val state = _uiState.value
+        val (seasonal, seasonOffline) = repository.getSeasonalAnime(
+            season = state.selectedHomeSeason,
+            year = state.selectedHomeYear,
+            page = 1,
+            perPage = 30
+        )
+        val (popular, popOffline) = repository.getPopularRanking(page = 1, perPage = 30)
+
+        _uiState.update { s ->
+            val updated = s.copy(
+                seasonalAnime = seasonal,
+                popularAnime = popular,
+                isOfflineMode = seasonOffline && popOffline
+            )
+            recomputeDerivedLists(updated)
+        }
+    }
+
+    fun selectHomeSeason(season: MediaSeason, year: Int) {
+        _uiState.update { it.copy(selectedHomeSeason = season, selectedHomeYear = year, isLoadingHome = true) }
+        viewModelScope.launch {
+            val (seasonal, offline) = repository.getSeasonalAnime(season = season, year = year, page = 1, perPage = 35)
+            _uiState.update { s ->
+                val updated = s.copy(seasonalAnime = seasonal, isLoadingHome = false, isOfflineMode = offline)
+                recomputeDerivedLists(updated)
             }
-            _notificationMessage.value = msg
+        }
+    }
+
+    fun loadWeekSchedule(weekStart: LocalDate = _uiState.value.weekStartDate) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingSchedule = true, weekStartDate = weekStart) }
+            loadWeekScheduleInternal(weekStart)
+            _uiState.update { it.copy(isLoadingSchedule = false) }
+        }
+    }
+
+    private suspend fun loadWeekScheduleInternal(weekStart: LocalDate) {
+        val zone = _uiState.value.activeZoneId
+        val result = repository.getSchedule(startDate = weekStart, daysCount = 7, zoneId = zone)
+        result.onSuccess { releases ->
+            _uiState.update { s ->
+                val updated = s.copy(scheduleReleases = releases, errorMessage = null)
+                recomputeDerivedLists(updated)
+            }
+            scheduleRemindersForFavorites(releases, _uiState.value.favoriteIds)
+        }.onFailure { err ->
+            _uiState.update { it.copy(errorMessage = err.message) }
+        }
+    }
+
+    fun shiftWeek(deltaWeeks: Long) {
+        val newStart = _uiState.value.weekStartDate.plusWeeks(deltaWeeks)
+        val newSelected = if (deltaWeeks == 0L) LocalDate.now(_uiState.value.activeZoneId) else newStart
+        _uiState.update { state ->
+            recomputeDerivedLists(state.copy(weekStartDate = newStart, selectedDate = newSelected))
+        }
+        loadWeekSchedule(newStart)
+    }
+
+    fun jumpToToday() {
+        val today = LocalDate.now(_uiState.value.activeZoneId)
+        val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        _uiState.update { state ->
+            recomputeDerivedLists(
+                state.copy(
+                    weekStartDate = weekStart,
+                    selectedDate = today,
+                    selectedMonth = YearMonth.from(today)
+                )
+            )
+        }
+        loadWeekSchedule(weekStart)
+    }
+
+    fun selectCalendarDate(date: LocalDate) {
+        val weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val weekChanged = weekStart != _uiState.value.weekStartDate
+        _uiState.update { state ->
+            val updated = state.copy(selectedDate = date, weekStartDate = weekStart)
+            recomputeDerivedLists(updated)
+        }
+        if (weekChanged) {
+            loadWeekSchedule(weekStart)
+        }
+    }
+
+    fun setCalendarViewMode(mode: CalendarViewMode) {
+        _uiState.update { it.copy(calendarViewMode = mode) }
+        if (mode == CalendarViewMode.MONTH && _uiState.value.monthReleases.isEmpty()) {
+            loadMonthSchedule(_uiState.value.selectedMonth)
+        }
+    }
+
+    fun shiftMonth(deltaMonths: Long) {
+        val newMonth = _uiState.value.selectedMonth.plusMonths(deltaMonths)
+        _uiState.update { it.copy(selectedMonth = newMonth) }
+        loadMonthSchedule(newMonth)
+    }
+
+    private fun loadMonthSchedule(month: YearMonth) {
+        viewModelScope.launch {
+            val start = month.atDay(1)
+            val days = month.lengthOfMonth()
+            val result = repository.getSchedule(startDate = start, daysCount = days, zoneId = _uiState.value.activeZoneId)
+            result.onSuccess { list ->
+                _uiState.update { state ->
+                    val updated = state.copy(monthReleases = list)
+                    recomputeDerivedLists(updated)
+                }
+            }
+        }
+    }
+
+    fun setCalendarFormatFilter(format: MediaFormatFilter) {
+        _uiState.update { state ->
+            recomputeDerivedLists(state.copy(calendarFormatFilter = format))
+        }
+    }
+
+    fun setCalendarGenreFilter(genre: String?) {
+        _uiState.update { state ->
+            recomputeDerivedLists(state.copy(calendarGenreFilter = genre))
+        }
+    }
+
+    fun setCalendarStudioFilter(studio: String?) {
+        _uiState.update { state ->
+            recomputeDerivedLists(state.copy(calendarStudioFilter = studio))
         }
     }
 
     fun setNavScreen(screen: MainNavScreen) {
-        _currentNavScreen.value = screen
+        _uiState.update { it.copy(currentNavScreen = screen, seeAllMode = SeeAllMode.NONE) }
     }
 
-    fun setWatchlistFilter(status: com.example.data.local.WatchlistStatus?) {
-        _watchlistFilterStatus.value = status
+    fun openSeeAll(mode: SeeAllMode) {
+        _uiState.update { it.copy(seeAllMode = mode) }
     }
 
-    fun setWatchlistSearchQuery(query: String) {
-        _watchlistSearchQuery.value = query
+    fun closeSeeAll() {
+        _uiState.update { it.copy(seeAllMode = SeeAllMode.NONE) }
     }
 
-    fun toggleWatchlist(
-        anime: AnimeRelease,
-        status: com.example.data.local.WatchlistStatus = com.example.data.local.WatchlistStatus.PLAN_TO_WATCH
-    ) {
-        viewModelScope.launch {
-            val wasAdded = repository.toggleWatchlist(anime, status)
-            val msg = if (wasAdded) {
-                "✓ '${anime.displayTitle}' guardado en tu Watchlist (${status.displayName})."
-            } else {
-                "'${anime.displayTitle}' eliminado de tu Watchlist."
-            }
-            _notificationMessage.value = msg
+    // Search & Discover
+    fun setSearchQuery(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+        triggerDebouncedSearch()
+    }
+
+    fun toggleShowSearchFilters() {
+        _uiState.update { it.copy(showSearchFilters = !it.showSearchFilters) }
+    }
+
+    fun toggleSearchGenre(genre: String) {
+        _uiState.update { state ->
+            val current = state.searchSelectedGenres.toMutableSet()
+            if (current.contains(genre)) current.remove(genre) else current.add(genre)
+            state.copy(searchSelectedGenres = current)
+        }
+        triggerDebouncedSearch(delayMs = 150)
+    }
+
+    fun setSearchSeason(season: MediaSeason?) {
+        _uiState.update { state ->
+            val year = if (season != null && state.searchYear == null) LocalDate.now().year else state.searchYear
+            state.copy(searchSeason = season, searchYear = year)
+        }
+        triggerDebouncedSearch(delayMs = 150)
+    }
+
+    fun setSearchYear(year: Int?) {
+        _uiState.update { it.copy(searchYear = year) }
+        triggerDebouncedSearch(delayMs = 150)
+    }
+
+    fun setSearchStatus(status: MediaStatusFilter) {
+        _uiState.update { it.copy(searchStatus = status) }
+        triggerDebouncedSearch(delayMs = 150)
+    }
+
+    fun setSearchFormat(format: MediaFormatFilter) {
+        _uiState.update { it.copy(searchFormat = format) }
+        triggerDebouncedSearch(delayMs = 150)
+    }
+
+    fun setSearchStudio(studio: String?) {
+        _uiState.update { it.copy(searchStudio = studio) }
+        triggerDebouncedSearch(delayMs = 150)
+    }
+
+    fun clearSearchFilters() {
+        _uiState.update {
+            it.copy(
+                searchQuery = "",
+                searchSelectedGenres = emptySet(),
+                searchSeason = null,
+                searchYear = null,
+                searchStatus = MediaStatusFilter.ALL,
+                searchFormat = MediaFormatFilter.ALL,
+                searchStudio = null
+            )
+        }
+        triggerDebouncedSearch(delayMs = 50)
+    }
+
+    private fun triggerDebouncedSearch(delayMs: Long = 380) {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(delayMs)
+            executeSearch()
         }
     }
 
-    fun updateWatchlistStatus(animeId: Int, status: com.example.data.local.WatchlistStatus) {
+    fun executeSearch() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingSearch = true) }
+            val s = _uiState.value
+            val (results, offline) = repository.searchAnime(
+                query = s.searchQuery,
+                selectedGenres = s.searchSelectedGenres,
+                season = s.searchSeason,
+                year = s.searchYear,
+                statusApi = s.searchStatus.apiValue,
+                formatApi = s.searchFormat.apiValue,
+                studioFilter = s.searchStudio
+            )
+            _uiState.update { state ->
+                val updated = state.copy(
+                    searchResults = results,
+                    isLoadingSearch = false,
+                    isOfflineMode = offline
+                )
+                recomputeDerivedLists(updated)
+            }
+        }
+    }
+
+    // Detail Screen
+    fun openDetail(anime: AnimeRelease) {
+        val preferredLang = _uiState.value.globalLanguage
+        val decorated = decorateItem(anime, _uiState.value).copy(activeLanguage = preferredLang)
+        _uiState.update {
+            it.copy(
+                selectedAnimeForDetail = decorated,
+                detailReviews = emptyList(),
+                detailCharacters = emptyList(),
+                isLoadingDetail = true
+            )
+        }
+        if (preferredLang == SynopsisLanguage.SPANISH && decorated.synopsisEs.isBlank() && decorated.synopsisEn.isNotBlank()) {
+            translateDetailSynopsisInBackground(decorated.id, decorated.synopsisEn)
+        }
+        viewModelScope.launch {
+            val bundle = repository.getAnimeDetailBundle(anime.id)
+            if (bundle != null) {
+                val mergedAnime = decorateItem(
+                    bundle.anime.copy(
+                        episode = if (anime.airingAtSeconds > 0L) anime.episode else bundle.anime.episode,
+                        airingAtSeconds = if (anime.airingAtSeconds > 0L) anime.airingAtSeconds else bundle.anime.airingAtSeconds,
+                        synopsisEs = bundle.anime.synopsisEs.ifBlank { anime.synopsisEs },
+                        activeLanguage = _uiState.value.globalLanguage
+                    ),
+                    _uiState.value
+                )
+                _uiState.update {
+                    it.copy(
+                        selectedAnimeForDetail = mergedAnime,
+                        detailReviews = bundle.reviews,
+                        detailCharacters = bundle.characters,
+                        isLoadingDetail = false
+                    )
+                }
+                if (_uiState.value.globalLanguage == SynopsisLanguage.SPANISH &&
+                    mergedAnime.synopsisEs.isBlank() &&
+                    mergedAnime.synopsisEn.isNotBlank()
+                ) {
+                    translateDetailSynopsisInBackground(mergedAnime.id, mergedAnime.synopsisEn)
+                }
+            } else {
+                _uiState.update { it.copy(isLoadingDetail = false) }
+            }
+        }
+    }
+
+    private fun translateDetailSynopsisInBackground(animeId: Int, englishSynopsis: String) {
+        viewModelScope.launch {
+            _uiState.update { state ->
+                val current = state.selectedAnimeForDetail
+                if (current?.id == animeId) {
+                    state.copy(selectedAnimeForDetail = current.copy(isTranslating = true))
+                } else state
+            }
+            val translated = repository.translateSynopsis(englishSynopsis, SynopsisLanguage.SPANISH)
+            _uiState.update { state ->
+                val latest = state.selectedAnimeForDetail
+                if (latest?.id == animeId) {
+                    state.copy(
+                        selectedAnimeForDetail = latest.copy(
+                            synopsisEs = translated,
+                            activeLanguage = SynopsisLanguage.SPANISH,
+                            isTranslating = false
+                        )
+                    )
+                } else state
+            }
+        }
+    }
+
+    fun closeDetail() {
+        _uiState.update { it.copy(selectedAnimeForDetail = null) }
+    }
+
+    // Watchlist & Watched Actions
+    fun setMyListFilterTab(tab: MyListFilterTab) {
+        _uiState.update { state ->
+            recomputeDerivedLists(state.copy(myListFilterTab = tab))
+        }
+    }
+
+    fun setMyListSortOrder(order: WatchlistSortOrder) {
+        _uiState.update { state ->
+            recomputeDerivedLists(state.copy(myListSortOrder = order))
+        }
+    }
+
+    fun toggleWatchlist(anime: AnimeRelease, status: WatchlistStatus = WatchlistStatus.PLAN_TO_WATCH) {
+        viewModelScope.launch {
+            val added = repository.toggleWatchlist(anime, status)
+            _uiState.update {
+                it.copy(
+                    notificationMessage = if (added) {
+                        "Añadido '${anime.displayTitle}' a Mi Lista"
+                    } else {
+                        "Eliminado '${anime.displayTitle}' de Mi Lista"
+                    }
+                )
+            }
+        }
+    }
+
+    fun updateWatchlistStatus(animeId: Int, status: WatchlistStatus) {
         viewModelScope.launch {
             repository.updateWatchlistStatus(animeId, status)
-            _notificationMessage.value = "Estado de Watchlist: '${status.displayName}'"
+            _uiState.update { it.copy(notificationMessage = "Estado actualizado: ${status.displayName}") }
         }
     }
 
     fun updateWatchlistEpisodes(animeId: Int, episodes: Int) {
         viewModelScope.launch {
-            repository.updateWatchlistEpisodes(animeId, episodes)
+            val item = _uiState.value.watchlistItems.firstOrNull { it.animeId == animeId }
+            val clamped = item?.totalEpisodes?.let { max -> episodes.coerceIn(0, max) } ?: episodes.coerceAtLeast(0)
+            repository.updateWatchlistEpisodes(animeId, clamped)
+            if (item != null && clamped > 0) {
+                val key = "${animeId}_$clamped"
+                if (!_uiState.value.watchedEpisodeKeys.contains(key)) {
+                    repository.toggleWatchedEpisode(animeId, clamped)
+                }
+                val nextStatus = if (item.totalEpisodes != null && clamped >= item.totalEpisodes) {
+                    WatchlistStatus.COMPLETED
+                } else {
+                    WatchlistStatus.WATCHING
+                }
+                if (item.statusEnum != nextStatus) {
+                    repository.updateWatchlistStatus(animeId, nextStatus)
+                }
+            }
+        }
+    }
+
+    fun toggleWatchlistItemWatched(item: WatchlistEntity) {
+        viewModelScope.launch {
+            val targetEp = item.watchedEpisodes.coerceAtLeast(1)
+            val key = "${item.animeId}_$targetEp"
+            val isCurrentlyWatched = _uiState.value.watchedEpisodeKeys.contains(key) ||
+                item.statusEnum == WatchlistStatus.COMPLETED ||
+                item.watchedEpisodes > 0
+            if (isCurrentlyWatched) {
+                if (_uiState.value.watchedEpisodeKeys.contains(key)) {
+                    repository.toggleWatchedEpisode(item.animeId, targetEp)
+                }
+                repository.updateWatchlistEpisodes(item.animeId, 0)
+                repository.updateWatchlistStatus(item.animeId, WatchlistStatus.PLAN_TO_WATCH)
+            } else {
+                if (!_uiState.value.watchedEpisodeKeys.contains(key)) {
+                    repository.toggleWatchedEpisode(item.animeId, targetEp)
+                }
+                val newWatched = (item.watchedEpisodes + 1).let { ep ->
+                    item.totalEpisodes?.let { max -> ep.coerceAtMost(max) } ?: ep
+                }
+                repository.updateWatchlistEpisodes(item.animeId, newWatched)
+                val newStatus = if (item.totalEpisodes != null && newWatched >= item.totalEpisodes) {
+                    WatchlistStatus.COMPLETED
+                } else {
+                    WatchlistStatus.WATCHING
+                }
+                repository.updateWatchlistStatus(item.animeId, newStatus)
+            }
         }
     }
 
     fun removeFromWatchlist(animeId: Int) {
         viewModelScope.launch {
             repository.removeFromWatchlist(animeId)
-            _notificationMessage.value = "Anime eliminado de tu Watchlist"
+            _uiState.update { it.copy(notificationMessage = "Anime eliminado de Mi Lista") }
         }
     }
 
     fun toggleWatchedEpisode(anime: AnimeRelease) {
         viewModelScope.launch {
-            val isNowWatched = repository.toggleWatchedEpisode(anime.id, anime.episode)
-            val msg = if (isNowWatched) {
-                "✓ Episodio ${anime.episode} de '${anime.displayTitle}' marcado como visto."
-            } else {
-                "Episodio ${anime.episode} de '${anime.displayTitle}' desmarcado."
+            val ep = anime.effectiveEpisodeNumber()
+            val nowWatched = repository.toggleWatchedEpisode(anime.id, ep)
+            _uiState.update {
+                it.copy(
+                    notificationMessage = if (nowWatched) {
+                        "Episodio $ep marcado como visto"
+                    } else {
+                        "Episodio $ep marcado como no visto"
+                    }
+                )
             }
-            _notificationMessage.value = msg
         }
     }
 
-    fun toggleWatchedEpisodeNum(animeId: Int, episodeNumber: Int, animeTitle: String) {
+    fun toggleWatchedEpisodeNum(animeId: Int, episodeNumber: Int) {
         viewModelScope.launch {
-            val isNowWatched = repository.toggleWatchedEpisode(animeId, episodeNumber)
-            val msg = if (isNowWatched) {
-                "✓ Episodio $episodeNumber de '$animeTitle' marcado como visto."
-            } else {
-                "Episodio $episodeNumber de '$animeTitle' desmarcado."
-            }
-            _notificationMessage.value = msg
+            repository.toggleWatchedEpisode(animeId, episodeNumber)
         }
     }
 
-    fun setPlatformFilter(platform: com.example.model.StreamingPlatform) {
-        _selectedPlatform.value = platform
-    }
-
-    fun setAppThemeMode(theme: com.example.model.AppThemeMode) {
-        _appThemeMode.value = theme
-    }
-
-    fun toggleJapanTimeZone() {
-        _isJapanTimeZone.value = !_isJapanTimeZone.value
-    }
-
-    fun toggleQuietHours() {
-        _quietHoursEnabled.value = !_quietHoursEnabled.value
-    }
-
-    fun loadSchedule(isRefresh: Boolean = false) {
+    fun toggleFavoriteReminder(anime: AnimeRelease) {
         viewModelScope.launch {
-            if (isRefresh) {
-                _isRefreshing.value = true
-            } else {
-                _isLoading.value = true
-            }
-            _errorMessage.value = null
-
-            val result = repository.getSchedule(LocalDate.now(), 7)
-            result.onSuccess { releases ->
-                _rawReleases.value = releases
-                scheduleRemindersForFavorites(releases, _favoriteIds.value)
-            }.onFailure { ex ->
-                _errorMessage.value = "No se pudo actualizar el calendario: ${ex.message}"
-            }
-
-            _isLoading.value = false
-            _isRefreshing.value = false
-        }
-    }
-
-    private fun scheduleRemindersForFavorites(releases: List<AnimeRelease>, favIds: Set<Int>) {
-        if (favIds.isEmpty() || releases.isEmpty()) return
-        val context = getApplication<Application>().applicationContext
-        val nowMillis = System.currentTimeMillis()
-        releases.filter { favIds.contains(it.id) }.forEach { anime ->
-            if (anime.airingAtSeconds * 1000 > nowMillis - (15 * 60 * 1000)) {
-                AnimeNotificationHelper.scheduleAnimeReminder(context, anime, anime.reminderMinutesBefore)
+            val defaultMins = _uiState.value.defaultReminderMinutes
+            val targetAnime = anime.copy(reminderMinutesBefore = defaultMins)
+            val added = repository.toggleFavorite(targetAnime)
+            _uiState.update {
+                it.copy(
+                    notificationMessage = if (added) {
+                        "Recordatorio activado para '${anime.displayTitle}' ($defaultMins min antes)"
+                    } else {
+                        "Recordatorio desactivado para '${anime.displayTitle}'"
+                    }
+                )
             }
         }
     }
 
-    fun selectDate(date: LocalDate?) {
-        _selectedDate.value = date
-    }
-
-    fun setSearchQuery(query: String) {
-        _searchQuery.value = query
-    }
-
-    fun toggleGenre(genre: String) {
-        val current = _selectedGenres.value.toMutableSet()
-        if (current.contains(genre)) {
-            current.remove(genre)
-        } else {
-            current.add(genre)
-        }
-        _selectedGenres.value = current
-    }
-
-    fun clearGenres() {
-        _selectedGenres.value = emptySet()
-    }
-
-    fun setSortOrder(order: AnimeSortOrder) {
-        _sortOrder.value = order
-    }
-
-    fun toggleCategorizedByGenre() {
-        _isCategorizedByGenre.value = !_isCategorizedByGenre.value
-    }
-
-    fun setEpisodeFilter(filter: EpisodeFilter) {
-        _episodeFilter.value = filter
-    }
-
-    fun toggleOnlyFavorites() {
-        _onlyFavorites.value = !_onlyFavorites.value
-    }
-
-    fun toggleFavorite(animeId: Int) {
+    fun updateReminder(anime: AnimeRelease, enabled: Boolean, minutesBefore: Int) {
         viewModelScope.launch {
-            val anime = _rawReleases.value.find { it.id == animeId }
-                ?: _selectedAnimeForDetail.value?.takeIf { it.id == animeId }
-                ?: return@launch
-            val wasAdded = repository.toggleFavorite(anime)
-            if (wasAdded) {
-                _notificationMessage.value = "¡${anime.displayTitle} añadido a favoritos! Notificación con WorkManager programada."
-            }
-        }
-    }
-
-    fun updateReminder(animeId: Int, enabled: Boolean, minutesBefore: Int = 15) {
-        viewModelScope.launch {
-            val anime = _rawReleases.value.find { it.id == animeId }
-                ?: _selectedAnimeForDetail.value?.takeIf { it.id == animeId }
-                ?: return@launch
-            val updated = anime.copy(hasReminder = enabled, reminderMinutesBefore = minutesBefore)
-            repository.updateReminder(updated, enabled, minutesBefore)
-            updateAnimeInState(animeId) { it.copy(hasReminder = enabled, reminderMinutesBefore = minutesBefore) }
-            _notificationMessage.value = if (enabled) {
-                "Notificación WorkManager: $minutesBefore min antes de la emisión de '${anime.displayTitle}'"
-            } else {
-                "Recordatorio desactivado para '${anime.displayTitle}'"
+            repository.updateReminder(anime, enabled, minutesBefore)
+            _uiState.update {
+                it.copy(
+                    notificationMessage = if (enabled) {
+                        "Alerta programada $minutesBefore min antes para '${anime.displayTitle}'"
+                    } else {
+                        "Alerta desactivada"
+                    }
+                )
             }
         }
     }
 
     fun testEpisodeNotification(anime: AnimeRelease) {
         val context = getApplication<Application>().applicationContext
-        // Execute direct notification and enqueue via WorkManager
-        repository.sendTestNotification(anime, anime.reminderMinutesBefore)
-        com.example.notifications.AnimeEpisodeReminderWorker.scheduleImmediateTest(context, anime)
-        _notificationMessage.value = "Notificación de WorkManager enviada para ${anime.displayTitle}"
+        repository.sendTestNotification(anime, _uiState.value.defaultReminderMinutes)
+        AnimeEpisodeReminderWorker.scheduleImmediateTest(context, anime)
+        _uiState.update { it.copy(notificationMessage = "Notificación de prueba enviada para '${anime.displayTitle}'") }
+    }
+
+    fun setUserRating(animeId: Int, rating: Int) {
+        viewModelScope.launch {
+            repository.setUserRating(animeId, rating)
+            _uiState.update {
+                it.copy(
+                    notificationMessage = if (rating > 0) "Calificación de $rating ★ guardada" else "Calificación eliminada"
+                )
+            }
+        }
+    }
+
+    fun setAnimeSynopsisLanguage(animeId: Int, language: SynopsisLanguage) {
+        val currentDetail = _uiState.value.selectedAnimeForDetail ?: return
+        if (currentDetail.id != animeId) return
+
+        if (language == SynopsisLanguage.SPANISH && currentDetail.synopsisEs.isBlank() && currentDetail.synopsisEn.isNotBlank()) {
+            viewModelScope.launch {
+                _uiState.update {
+                    it.copy(selectedAnimeForDetail = currentDetail.copy(isTranslating = true))
+                }
+                val translated = repository.translateSynopsis(currentDetail.synopsisEn, SynopsisLanguage.SPANISH)
+                _uiState.update { state ->
+                    val latest = state.selectedAnimeForDetail
+                    if (latest?.id == animeId) {
+                        state.copy(
+                            selectedAnimeForDetail = latest.copy(
+                                synopsisEs = translated,
+                                activeLanguage = SynopsisLanguage.SPANISH,
+                                isTranslating = false
+                            )
+                        )
+                    } else state
+                }
+            }
+        } else {
+            _uiState.update {
+                it.copy(selectedAnimeForDetail = currentDetail.copy(activeLanguage = language))
+            }
+        }
+    }
+
+    // Settings Actions
+    fun setThemeMode(mode: AppThemeMode) {
+        prefs.edit().putString("theme_mode", mode.name).apply()
+        _uiState.update { it.copy(appThemeMode = mode) }
+    }
+
+    fun toggleJapanTimeZone() {
+        val next = !_uiState.value.isJapanTimeZone
+        prefs.edit().putBoolean("jst_zone", next).apply()
+        _uiState.update { state ->
+            recomputeDerivedLists(state.copy(isJapanTimeZone = next))
+        }
+        loadWeekSchedule(_uiState.value.weekStartDate)
+    }
+
+    fun setNotificationsEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("notif_enabled", enabled).apply()
+        _uiState.update { it.copy(notificationsEnabled = enabled) }
+    }
+
+    fun setDefaultReminderMinutes(minutes: Int) {
+        prefs.edit().putInt("default_reminder_min", minutes).apply()
+        _uiState.update { it.copy(defaultReminderMinutes = minutes) }
+    }
+
+    fun toggleQuietHours() {
+        val next = !_uiState.value.quietHoursEnabled
+        prefs.edit().putBoolean("quiet_hours", next).apply()
+        _uiState.update { it.copy(quietHoursEnabled = next) }
+    }
+
+    fun setGlobalLanguage(lang: SynopsisLanguage) {
+        prefs.edit().putString("synopsis_lang", lang.code).apply()
+        _uiState.update { it.copy(globalLanguage = lang) }
+    }
+
+    fun clearOfflineCache() {
+        viewModelScope.launch {
+            repository.clearOfflineCache()
+            _uiState.update { it.copy(notificationMessage = "Caché local limpiada correctamente") }
+        }
     }
 
     fun clearNotificationMessage() {
-        _notificationMessage.value = null
+        _uiState.update { it.copy(notificationMessage = null) }
     }
 
-    fun toggleSynopsisLanguage(animeId: Int) {
-        val anime = _rawReleases.value.find { it.id == animeId } ?: return
-        val newLang = if (anime.activeLanguage == SynopsisLanguage.SPANISH) {
-            SynopsisLanguage.ENGLISH
-        } else {
-            SynopsisLanguage.SPANISH
-        }
-        setAnimeLanguage(animeId, newLang)
-    }
-
-    fun setAnimeLanguage(animeId: Int, language: SynopsisLanguage) {
-        val anime = _rawReleases.value.find { it.id == animeId } ?: return
-
-        if (language == SynopsisLanguage.SPANISH && anime.synopsisEs.isBlank() && anime.synopsisEn.isNotBlank()) {
-            translateSynopsis(animeId, language)
-            return
-        }
-
-        updateAnimeInState(animeId) { it.copy(activeLanguage = language) }
-    }
-
-    fun translateSynopsis(animeId: Int, targetLanguage: SynopsisLanguage = SynopsisLanguage.SPANISH) {
-        viewModelScope.launch {
-            val anime = _rawReleases.value.find { it.id == animeId } ?: return@launch
-            updateAnimeInState(animeId) { it.copy(isTranslating = true) }
-
-            val sourceText = if (targetLanguage == SynopsisLanguage.SPANISH) {
-                anime.synopsisEn.ifBlank { anime.synopsis }
-            } else {
-                anime.synopsisEs.ifBlank { anime.synopsis }
-            }
-
-            val translated = repository.translateSynopsis(sourceText, targetLanguage)
-
-            updateAnimeInState(animeId) { item ->
-                if (targetLanguage == SynopsisLanguage.SPANISH) {
-                    item.copy(
-                        synopsisEs = translated,
-                        activeLanguage = targetLanguage,
-                        isTranslating = false
-                    )
-                } else {
-                    item.copy(
-                        synopsisEn = translated,
-                        activeLanguage = targetLanguage,
-                        isTranslating = false
-                    )
-                }
+    private fun scheduleRemindersForFavorites(releases: List<AnimeRelease>, favIds: Set<Int>) {
+        if (!_uiState.value.notificationsEnabled || favIds.isEmpty() || releases.isEmpty()) return
+        val context = getApplication<Application>().applicationContext
+        val nowMillis = System.currentTimeMillis()
+        releases.filter { favIds.contains(it.id) }.forEach { anime ->
+            if (anime.effectiveAiringSeconds() * 1000L > nowMillis - (15 * 60 * 1000L)) {
+                AnimeNotificationHelper.scheduleAnimeReminder(context, anime, _uiState.value.defaultReminderMinutes)
             }
         }
     }
 
-    private fun updateAnimeInState(animeId: Int, transform: (AnimeRelease) -> AnimeRelease) {
-        _rawReleases.value = _rawReleases.value.map { item ->
-            if (item.id == animeId) transform(item) else item
+    private fun decorateItem(item: AnimeRelease, state: AnimeUiState): AnimeRelease {
+        val ep = item.effectiveEpisodeNumber()
+        val isFav = state.favoriteIds.contains(item.id)
+        val isWatched = state.watchedEpisodeKeys.contains("${item.id}_$ep")
+        val isInWatchlist = state.watchlistIds.contains(item.id)
+        val rating = state.userRatings[item.id] ?: item.userRating
+        return item.copy(
+            isFavorite = isFav,
+            isWatched = isWatched,
+            isInWatchlist = isInWatchlist,
+            hasReminder = isFav,
+            userRating = rating
+        )
+    }
+
+    private fun recomputeDerivedLists(state: AnimeUiState): AnimeUiState {
+        val zone = state.activeZoneId
+        val today = LocalDate.now(zone)
+
+        val decoratedSchedule = state.scheduleReleases.map { decorateItem(it, state) }
+        val decoratedSeasonal = state.seasonalAnime.map { decorateItem(it, state) }
+        val decoratedPopular = state.popularAnime.map { decorateItem(it, state) }
+        val decoratedSearch = state.searchResults.map { decorateItem(it, state) }
+        val decoratedMonth = state.monthReleases.map { decorateItem(it, state) }
+
+        val tabs = (0..6).map { offset ->
+            val date = state.weekStartDate.plusDays(offset.toLong())
+            val isToday = date == today
+            val isTomorrow = date == today.plusDays(1)
+            val shortDay = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("es"))
+                .replace(".", "")
+                .replaceFirstChar { it.uppercase() }
+                .take(3)
+            val fullDay = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale("es"))
+                .replaceFirstChar { it.uppercase() }
+            val monthName = date.month.getDisplayName(TextStyle.SHORT, Locale("es"))
+                .replaceFirstChar { it.uppercase() }
+
+            val dayItems = decoratedSchedule.filter { it.getAiringLocalDate(zone) == date }
+            DayScheduleTab(
+                date = date,
+                label = shortDay,
+                dayOfMonth = date.dayOfMonth,
+                monthName = monthName,
+                fullDayName = fullDay,
+                isToday = isToday,
+                isTomorrow = isTomorrow,
+                episodeCount = dayItems.size,
+                premieresCount = dayItems.count { it.isSeriesPremiere },
+                ongoingCount = dayItems.count { it.isOngoingEpisode }
+            )
         }
-        if (_selectedAnimeForDetail.value?.id == animeId) {
-            _selectedAnimeForDetail.value = _selectedAnimeForDetail.value?.let(transform)
+
+        val filteredDay = decoratedSchedule.filter { item ->
+            val matchesDate = item.getAiringLocalDate(zone) == state.selectedDate
+            val matchesFormat = state.calendarFormatFilter.apiValue == null ||
+                item.format.equals(state.calendarFormatFilter.apiValue, ignoreCase = true)
+            val matchesGenre = state.calendarGenreFilter == null ||
+                GenreHelper.matchesAnyGenre(item.genres, setOf(state.calendarGenreFilter))
+            val matchesStudio = state.calendarStudioFilter == null ||
+                item.studio?.contains(state.calendarStudioFilter, ignoreCase = true) == true
+            matchesDate && matchesFormat && matchesGenre && matchesStudio
+        }.sortedBy { it.effectiveAiringSeconds() }
+
+        val filteredWatchlist = state.watchlistItems.filter { item ->
+            val key = "${item.animeId}_${item.watchedEpisodes.coerceAtLeast(1)}"
+            val isWatched = state.watchedEpisodeKeys.contains(key) ||
+                item.statusEnum == WatchlistStatus.COMPLETED ||
+                item.watchedEpisodes > 0
+            when (state.myListFilterTab) {
+                MyListFilterTab.ALL -> true
+                MyListFilterTab.WATCHED -> isWatched
+                MyListFilterTab.UNWATCHED -> !isWatched
+                MyListFilterTab.WATCHING -> item.statusEnum == WatchlistStatus.WATCHING
+                MyListFilterTab.PLAN_TO_WATCH -> item.statusEnum == WatchlistStatus.PLAN_TO_WATCH
+            }
+        }.let { list ->
+            when (state.myListSortOrder) {
+                WatchlistSortOrder.RECENT -> list.sortedByDescending { it.addedAt }
+                WatchlistSortOrder.TITLE_AZ -> list.sortedBy { it.displayTitle.lowercase() }
+                WatchlistSortOrder.SCORE -> list.sortedByDescending { it.score ?: 0.0 }
+                WatchlistSortOrder.PROGRESS -> list.sortedByDescending { it.watchedEpisodes }
+            }
         }
-    }
 
-    fun openDetail(anime: AnimeRelease) {
-        _selectedAnimeForDetail.value = anime
-    }
+        val updatedDetail = state.selectedAnimeForDetail?.let { decorateItem(it, state) }
 
-    fun closeDetail() {
-        _selectedAnimeForDetail.value = null
+        return state.copy(
+            scheduleReleases = decoratedSchedule,
+            seasonalAnime = decoratedSeasonal,
+            popularAnime = decoratedPopular,
+            searchResults = decoratedSearch,
+            monthReleases = decoratedMonth,
+            dayTabs = tabs,
+            filteredDayReleases = filteredDay,
+            filteredWatchlistItems = filteredWatchlist,
+            selectedAnimeForDetail = updatedDetail
+        )
     }
-
-    private data class Quad<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
 }

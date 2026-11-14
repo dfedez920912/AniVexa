@@ -12,17 +12,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.example.model.AppThemeMode
 
-private val DarkColorScheme = darkColorScheme(
-    primary = AniPrimary,
+private val AniVexaDarkScheme = darkColorScheme(
+    primary = AniAzureBright,
     onPrimary = Color.White,
-    primaryContainer = AniDarkSurfaceVariant,
-    onPrimaryContainer = Color(0xFFD6C8FF),
+    primaryContainer = AniAzureSoft,
+    onPrimaryContainer = Color(0xFF90CAF9),
     secondary = AniSecondary,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFF4A1A28),
-    onSecondaryContainer = Color(0xFFFFD9E2),
-    tertiary = AniTertiary,
-    onTertiary = Color.Black,
+    onSecondary = Color(0xFF051829),
+    secondaryContainer = AniNavyAction,
+    onSecondaryContainer = Color(0xFFBAE6FD),
+    tertiary = AniAiringGreenBright,
+    onTertiary = Color.White,
     background = AniDarkBackground,
     onBackground = AniTextPrimaryDark,
     surface = AniDarkSurface,
@@ -33,15 +33,15 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = AniPrimaryVariant,
+    primary = AniAzure,
     onPrimary = Color.White,
-    primaryContainer = AniLightSurfaceVariant,
-    onPrimaryContainer = AniPrimaryVariant,
-    secondary = AniSecondary,
+    primaryContainer = Color(0xFFDBEAFE),
+    onPrimaryContainer = AniAzureDark,
+    secondary = Color(0xFF0284C7),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFDDE4),
-    onSecondaryContainer = Color(0xFF680026),
-    tertiary = Color(0xFF00B4D8),
+    secondaryContainer = Color(0xFFE0F2FE),
+    onSecondaryContainer = Color(0xFF0C4A6E),
+    tertiary = AniAiringGreen,
     onTertiary = Color.White,
     background = AniLightBackground,
     onBackground = AniTextPrimaryLight,
@@ -53,63 +53,42 @@ private val LightColorScheme = lightColorScheme(
 )
 
 private val OledColorScheme = darkColorScheme(
-    primary = Color(0xFFBB86FC),
-    onPrimary = Color.Black,
-    primaryContainer = AniOledSurfaceVariant,
-    onPrimaryContainer = Color(0xFFD6C8FF),
-    secondary = Color(0xFF03DAC6),
+    primary = AniAzureBright,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFF102033),
+    onPrimaryContainer = Color(0xFF90CAF9),
+    secondary = AniSecondary,
     onSecondary = Color.Black,
-    secondaryContainer = Color(0xFF1E1E1E),
-    onSecondaryContainer = Color(0xFFE0E0E0),
-    tertiary = AniGold,
+    secondaryContainer = Color(0xFF141821),
+    onSecondaryContainer = Color(0xFFE2E8F0),
+    tertiary = AniAiringGreenBright,
     onTertiary = Color.Black,
     background = AniOledBackground,
-    onBackground = Color(0xFFF0F0F0),
+    onBackground = Color(0xFFF8FAFC),
     surface = AniOledSurface,
-    onSurface = Color(0xFFF0F0F0),
+    onSurface = Color(0xFFF8FAFC),
     surfaceVariant = AniOledSurfaceVariant,
-    onSurfaceVariant = Color(0xFFAAAAAA),
+    onSurfaceVariant = Color(0xFF94A3B8),
     outline = AniOledBorder
-)
-
-private val SakuraColorScheme = lightColorScheme(
-    primary = AniSakuraPrimary,
-    onPrimary = Color.White,
-    primaryContainer = AniSakuraSurfaceVariant,
-    onPrimaryContainer = AniSakuraText,
-    secondary = AniSakuraSecondary,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFD1DC),
-    onSecondaryContainer = AniSakuraText,
-    tertiary = Color(0xFFFFB6C1),
-    onTertiary = Color.Black,
-    background = AniSakuraBackground,
-    onBackground = AniSakuraText,
-    surface = AniSakuraSurface,
-    onSurface = AniSakuraText,
-    surfaceVariant = AniSakuraSurfaceVariant,
-    onSurfaceVariant = Color(0xFF884D60),
-    outline = Color(0xFFFFC0CB)
 )
 
 @Composable
 fun AniVexaTheme(
-    themeMode: AppThemeMode = AppThemeMode.CYBERPUNK,
+    themeMode: AppThemeMode = AppThemeMode.ANIVEXA_DARK,
     systemDarkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when (themeMode) {
-        AppThemeMode.CYBERPUNK -> DarkColorScheme
+        AppThemeMode.ANIVEXA_DARK -> AniVexaDarkScheme
         AppThemeMode.OLED -> OledColorScheme
-        AppThemeMode.SAKURA -> SakuraColorScheme
         AppThemeMode.LIGHT -> LightColorScheme
         AppThemeMode.SYSTEM -> {
             if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val context = LocalContext.current
                 if (systemDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             } else if (systemDarkTheme) {
-                DarkColorScheme
+                AniVexaDarkScheme
             } else {
                 LightColorScheme
             }

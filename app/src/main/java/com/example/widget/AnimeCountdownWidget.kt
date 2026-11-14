@@ -113,6 +113,7 @@ class AnimeCountdownWidget : AppWidgetProvider() {
                         // Refresh button click intent
                         val refreshIntent = Intent(context, AnimeCountdownWidget::class.java).apply {
                             action = ACTION_REFRESH_WIDGET
+                            `package` = context.packageName
                         }
                         val pendingRefreshIntent = PendingIntent.getBroadcast(
                             context,
