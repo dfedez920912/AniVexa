@@ -15,6 +15,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.MainActivity
 import com.example.model.AnimeRelease
+import cu.daniel.anical.R
 
 object AnimeNotificationHelper {
 
@@ -202,7 +203,7 @@ object AnimeNotificationHelper {
         val isQuietTime = quietHours && (currentHour >= 23 || currentHour < 7)
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(notificationTitle)
             .setContentText(notificationText)
             .setStyle(NotificationCompat.BigTextStyle().bigText(notificationText))

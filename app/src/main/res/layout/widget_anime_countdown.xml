@@ -18,7 +18,7 @@
             android:layout_width="16dp"
             android:layout_height="16dp"
             android:contentDescription="Icono AniVexa"
-            android:src="@drawable/ic_launcher_foreground" />
+            android:src="@drawable/ic_launcher_foreground_art" />
 
         <TextView
             android:id="@+id/widget_header_label"
