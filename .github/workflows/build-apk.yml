@@ -114,8 +114,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          name: AniVexa ${{ github.ref_name }}
           body_path: release-notes.md
+          make_latest: true
           files: |
             AniVexa-*.apk
             AniVexa-*.apk.sha256
