@@ -33,12 +33,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cu.daniel.anical.R
+import com.example.ui.theme.LocalIsLiquidGlass
+import com.example.ui.theme.glassCardBorder
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
     onSplashFinished: () -> Unit
 ) {
+    val isGlass = LocalIsLiquidGlass.current
     var startAnimation by remember { mutableStateOf(false) }
     val alphaAnim by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
@@ -52,8 +55,10 @@ fun SplashScreen(
         onSplashFinished()
     }
 
-    Box(
-        modifier = Modifier
+    val splashModifier = if (isGlass) {
+        Modifier.fillMaxSize()
+    } else {
+        Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
@@ -63,7 +68,11 @@ fun SplashScreen(
                         MaterialTheme.colorScheme.background
                     )
                 )
-            ),
+            )
+    }
+
+    Box(
+        modifier = splashModifier,
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -74,6 +83,7 @@ fun SplashScreen(
             Surface(
                 shape = RoundedCornerShape(26.dp),
                 color = Color.Transparent,
+                border = if (isGlass) glassCardBorder(highContrast = true) else null,
                 shadowElevation = 12.dp,
                 modifier = Modifier.size(108.dp)
             ) {

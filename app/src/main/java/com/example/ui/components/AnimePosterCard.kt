@@ -43,6 +43,10 @@ import coil.request.ImageRequest
 import com.example.model.AnimeRelease
 import com.example.ui.theme.AniAzure
 import com.example.ui.theme.AniGold
+import com.example.ui.theme.LocalIsLiquidGlass
+import com.example.ui.theme.adaptiveCardColor
+import com.example.ui.theme.adaptiveCardCorner
+import com.example.ui.theme.glassCardBorder
 import java.time.ZoneId
 
 @Composable
@@ -55,15 +59,18 @@ fun AnimePosterCard(
     zoneId: ZoneId = ZoneId.systemDefault()
 ) {
     val context = LocalContext.current
+    val isGlass = LocalIsLiquidGlass.current
+    val cardRadius = adaptiveCardCorner(standard = 12.dp, glass = 18.dp)
+    val cardShape = RoundedCornerShape(cardRadius)
 
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = cardShape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = adaptiveCardColor(elevated = false)
         ),
-        border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
+        border = glassCardBorder(standardWidth = 0.7.dp, glassWidth = 0.95.dp),
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(cardShape)
             .clickable(onClick = onClick)
             .testTag("poster_card_${anime.id}")
     ) {
@@ -105,8 +112,9 @@ fun AnimePosterCard(
                 }
                 if (badgeText != null) {
                     Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = AniAzure.copy(alpha = 0.94f),
+                        shape = RoundedCornerShape(if (isGlass) 9.dp else 6.dp),
+                        color = if (isGlass) Color(0xCC0EA5E9) else AniAzure.copy(alpha = 0.94f),
+                        border = if (isGlass) glassCardBorder(glassWidth = 0.75.dp, highContrast = true) else null,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(6.dp)

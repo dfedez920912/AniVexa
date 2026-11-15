@@ -6,7 +6,7 @@
     android:background="@drawable/widget_background"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="8dp">
+    android:padding="4dp">
 
     <TextView
         android:id="@+id/widget_count_text"
@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:text="0"
         android:textColor="#FFFFFF"
-        android:textSize="28sp"
+        android:textSize="22sp"
         android:textStyle="bold"
         android:gravity="center" />
 

@@ -34,11 +34,11 @@
             android:name="com.example.notifications.AnimeReminderReceiver"
             android:exported="false" />
 
-        <!-- 3x2 Scrollable List Anime Widget -->
+        <!-- Scrollable List Anime Widget -->
         <receiver
             android:name="com.example.widget.AnimeListWidgetProvider"
             android:exported="true"
-            android:label="AniVexa - Estrenos de Hoy (3x2)">
+            android:label="AniVexa - Estrenos de Hoy">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -47,11 +47,11 @@
                 android:resource="@xml/anime_list_widget_info" />
         </receiver>
 
-        <!-- 1x1 Count Anime Widget -->
+        <!-- Count Anime Widget -->
         <receiver
             android:name="com.example.widget.AnimeCountWidgetProvider"
             android:exported="true"
-            android:label="AniVexa - Contador de Estrenos (1x1)">
+            android:label="AniVexa - Contador de Estrenos">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -66,18 +66,6 @@
             android:permission="android.permission.BIND_REMOTEVIEWS"
             android:exported="false" />
 
-        <!-- Home Screen Anime Countdown Widget -->
-        <receiver
-            android:name="com.example.widget.AnimeCountdownWidget"
-            android:exported="true"
-            android:label="AniVexa - Próximo Estreno">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/anime_countdown_widget_info" />
-        </receiver>
     </application>
 
 </manifest>

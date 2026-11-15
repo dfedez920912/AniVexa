@@ -8,6 +8,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.example.model.AppThemeMode
@@ -72,6 +73,28 @@ private val OledColorScheme = darkColorScheme(
     outline = AniOledBorder
 )
 
+private val LiquidGlassColorScheme = darkColorScheme(
+    primary = AniGlassPrimary,
+    onPrimary = Color(0xFF041322),
+    primaryContainer = Color(0x4756CCF2),
+    onPrimaryContainer = Color(0xFFE0F7FF),
+    secondary = AniGlassSecondary,
+    onSecondary = Color(0xFF0F0724),
+    secondaryContainer = Color(0x45A78BFA),
+    onSecondaryContainer = Color(0xFFEDE9FE),
+    tertiary = Color(0xFF34D399),
+    onTertiary = Color(0xFF042218),
+    background = AniGlassBackground,
+    onBackground = AniGlassTextPrimary,
+    surface = AniGlassSurface,
+    onSurface = AniGlassTextPrimary,
+    surfaceVariant = AniGlassSurfaceVariant,
+    onSurfaceVariant = AniGlassTextSecondary,
+    surfaceContainer = AniGlassSheetSurface,
+    surfaceContainerHigh = AniGlassSheetSurface,
+    outline = AniGlassBorderMid
+)
+
 @Composable
 fun AniVexaTheme(
     themeMode: AppThemeMode = AppThemeMode.ANIVEXA_DARK,
@@ -79,10 +102,12 @@ fun AniVexaTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val isLiquidGlass = themeMode == AppThemeMode.LIQUID_GLASS
     val colorScheme = when (themeMode) {
         AppThemeMode.ANIVEXA_DARK -> AniVexaDarkScheme
         AppThemeMode.OLED -> OledColorScheme
         AppThemeMode.LIGHT -> LightColorScheme
+        AppThemeMode.LIQUID_GLASS -> LiquidGlassColorScheme
         AppThemeMode.SYSTEM -> {
             if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val context = LocalContext.current
@@ -95,9 +120,11 @@ fun AniVexaTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalIsLiquidGlass provides isLiquidGlass) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

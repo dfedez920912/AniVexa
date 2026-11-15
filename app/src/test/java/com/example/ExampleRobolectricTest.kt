@@ -210,14 +210,14 @@ class ExampleRobolectricTest {
   }
 
   @Test
-  fun `test AnimeCountdownWidget broadcast and layout configuration`() {
+  fun `test home widgets broadcast and layout configuration`() {
     val context = ApplicationProvider.getApplicationContext<Context>()
-    // Verify sendUpdateBroadcast does not throw exceptions
-    com.example.widget.AnimeCountdownWidget.sendUpdateBroadcast(context)
+    com.example.widget.WidgetDataHelper.notifyAllWidgets(context)
 
-    // Verify widget layout loads cleanly
-    val views = android.widget.RemoteViews(context.packageName, R.layout.widget_anime_countdown)
-    assertNotNull(views)
+    val countViews = android.widget.RemoteViews(context.packageName, R.layout.widget_anime_count_1x1)
+    val listViews = android.widget.RemoteViews(context.packageName, R.layout.widget_anime_list_3x2)
+    assertNotNull(countViews)
+    assertNotNull(listViews)
   }
 
   @Test
@@ -386,5 +386,90 @@ class ExampleRobolectricTest {
     assertEquals("ONA", com.example.model.MediaFormatFilter.ONA.apiValue)
     assertEquals("OVA", com.example.model.MediaFormatFilter.OVA.apiValue)
     assertEquals("TV", com.example.model.MediaFormatFilter.TV.apiValue)
+  }
+
+  @Test
+  fun `test WidgetDataHelper returns real cached releases for today only`() = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val appDb = AppDatabase.getDatabase(context)
+    val dao = appDb.cachedAnimeDao()
+    dao.clearAllCache()
+
+    val zoneId = java.time.ZoneId.systemDefault()
+    val today = LocalDate.now(zoneId)
+    val todayNoon = today.atTime(12, 0).atZone(zoneId).toEpochSecond()
+    val tomorrowNoon = today.plusDays(1).atTime(12, 0).atZone(zoneId).toEpochSecond()
+
+    dao.insertAll(
+      listOf(
+        com.example.data.local.CachedAnimeEntity(
+          id = 9001,
+          airingId = 9001,
+          titleRomaji = "Real Today Anime",
+          titleEnglish = "Real Today Anime",
+          coverImageUrl = "https://example.com/a.jpg",
+          bannerImageUrl = null,
+          synopsis = "Synopsis",
+          episode = 5,
+          totalEpisodes = 12,
+          airingAtSeconds = todayNoon,
+          genres = "Action",
+          score = 8.4,
+          studio = "Bones",
+          categoryTag = "SCHEDULE"
+        ),
+        com.example.data.local.CachedAnimeEntity(
+          id = 9002,
+          airingId = 9002,
+          titleRomaji = "Tomorrow Anime",
+          titleEnglish = "Tomorrow Anime",
+          coverImageUrl = "https://example.com/b.jpg",
+          bannerImageUrl = null,
+          synopsis = "Synopsis",
+          episode = 3,
+          totalEpisodes = 12,
+          airingAtSeconds = tomorrowNoon,
+          genres = "Comedy",
+          score = 7.9,
+          studio = "A-1 Pictures",
+          categoryTag = "SCHEDULE"
+        ),
+        com.example.data.local.CachedAnimeEntity(
+          id = 9003,
+          airingId = 9003,
+          titleRomaji = "Unscheduled Popular Anime",
+          titleEnglish = "Unscheduled Popular Anime",
+          coverImageUrl = "https://example.com/c.jpg",
+          bannerImageUrl = null,
+          synopsis = "Synopsis",
+          episode = 1,
+          totalEpisodes = 24,
+          airingAtSeconds = 0L,
+          genres = "Drama",
+          score = 9.0,
+          studio = "Madhouse",
+          categoryTag = "POPULAR"
+        )
+      )
+    )
+    com.example.widget.WidgetDataHelper.markScheduleSynced(context, today)
+
+    val (todayList, _) = com.example.widget.WidgetDataHelper.getTodayRealReleases(context, forceNetwork = false)
+    assertEquals(1, todayList.size)
+    assertEquals(9001, todayList.first().id)
+    assertEquals(5, todayList.first().effectiveEpisodeNumber())
+    dao.clearAllCache()
+  }
+
+  @Test
+  fun `test Liquid Glass theme mode is selectable and persisted`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val prefs = context.getSharedPreferences("anivexa_prefs", Context.MODE_PRIVATE)
+    prefs.edit().putString("theme_mode", com.example.model.AppThemeMode.LIQUID_GLASS.name).commit()
+
+    val savedName = prefs.getString("theme_mode", com.example.model.AppThemeMode.ANIVEXA_DARK.name)
+    val resolved = com.example.model.AppThemeMode.entries.find { it.name == savedName }
+    assertEquals(com.example.model.AppThemeMode.LIQUID_GLASS, resolved)
+    assertEquals("Cristal (Liquid Glass)", resolved?.label)
   }
 }

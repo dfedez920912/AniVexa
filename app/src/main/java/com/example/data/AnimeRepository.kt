@@ -168,7 +168,7 @@ class AnimeRepository(
             AnimeNotificationHelper.scheduleAnimeReminder(context, anime, anime.reminderMinutesBefore)
             true
         }
-        com.example.widget.AnimeCountdownWidget.sendUpdateBroadcast(context)
+        com.example.widget.WidgetDataHelper.notifyAllWidgets(context)
         result
     }
 
@@ -230,6 +230,12 @@ class AnimeRepository(
                 cachedAnimeDao.insertAll(
                     remoteReleases.map { CachedAnimeEntity.fromAnimeRelease(it, categoryTag = "SCHEDULE") }
                 )
+                val todayInZone = LocalDate.now(zoneId)
+                val endDate = startDate.plusDays(daysCount.toLong() - 1)
+                if (!todayInZone.isBefore(startDate) && !todayInZone.isAfter(endDate)) {
+                    com.example.widget.WidgetDataHelper.markScheduleSynced(context, todayInZone)
+                    com.example.widget.WidgetDataHelper.notifyAllWidgets(context)
+                }
                 return@withContext Result.success(
                     decorateReleases(remoteReleases, favIds, watchedKeys, userRatingsMap)
                 )

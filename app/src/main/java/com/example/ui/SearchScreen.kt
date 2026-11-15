@@ -54,6 +54,12 @@ import com.example.model.MediaFormatFilter
 import com.example.model.MediaSeason
 import com.example.model.MediaStatusFilter
 import com.example.ui.components.AnimePosterCard
+import com.example.ui.theme.LocalBottomDockPadding
+import com.example.ui.theme.LocalIsLiquidGlass
+import com.example.ui.theme.adaptiveCardColor
+import com.example.ui.theme.adaptiveCardCorner
+import com.example.ui.theme.glassCardBorder
+import com.example.ui.theme.screenBackdrop
 import java.time.LocalDate
 
 @Composable
@@ -72,13 +78,15 @@ fun SearchScreen(
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
+    val isGlass = LocalIsLiquidGlass.current
+    val bottomDockPadding = LocalBottomDockPadding.current
     val currentYear = LocalDate.now().year
     val years = listOf(currentYear + 1, currentYear, currentYear - 1, currentYear - 2)
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .screenBackdrop()
     ) {
         // Search Input Bar matching Screenshots 3 & 5
         OutlinedTextField(
@@ -112,12 +120,12 @@ fun SearchScreen(
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(if (isGlass) 22.dp else 12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedContainerColor = adaptiveCardColor(elevated = isGlass),
+                unfocusedContainerColor = adaptiveCardColor(),
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                unfocusedBorderColor = if (isGlass) Color.White.copy(alpha = 0.36f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -152,9 +160,9 @@ fun SearchScreen(
         // Expandable Filter Section (Genre, Season, Year, Status, Format, Studio)
         AnimatedVisibility(visible = uiState.showSearchFilters) {
             Surface(
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(14.dp),
+                color = adaptiveCardColor(),
+                border = glassCardBorder(),
+                shape = RoundedCornerShape(adaptiveCardCorner(14.dp, 20.dp)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
@@ -332,7 +340,12 @@ fun SearchScreen(
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 152.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 10.dp,
+                    bottom = 14.dp + bottomDockPadding
+                ),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier

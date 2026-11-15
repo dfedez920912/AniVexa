@@ -19,8 +19,20 @@
     <ListView
         android:id="@+id/widget_list_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:divider="@android:color/transparent"
         android:dividerHeight="4dp" />
+
+    <TextView
+        android:id="@+id/widget_list_empty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="• No hay estrenos programados para hoy"
+        android:textColor="#A5A3C2"
+        android:textSize="12sp"
+        android:visibility="gone" />
 
 </LinearLayout>

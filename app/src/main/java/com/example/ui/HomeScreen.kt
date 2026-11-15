@@ -45,9 +45,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.graphics.Color
 import com.example.model.AnimeRelease
 import com.example.model.MediaSeason
 import com.example.ui.components.AnimePosterCard
+import com.example.ui.theme.LocalBottomDockPadding
+import com.example.ui.theme.LocalIsLiquidGlass
+import com.example.ui.theme.glassCardBorder
+import com.example.ui.theme.screenBackdrop
 import java.time.LocalDate
 
 @Composable
@@ -60,16 +66,18 @@ fun HomeScreen(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isGlass = LocalIsLiquidGlass.current
+    val bottomDockPadding = LocalBottomDockPadding.current
     val today = LocalDate.now(uiState.activeZoneId)
     val todayReleases = uiState.scheduleReleases.filter {
-        it.getAiringLocalDate(uiState.activeZoneId) == today
+        it.effectiveAiringSeconds() > 0L && it.getAiringLocalDate(uiState.activeZoneId) == today
     }.sortedBy { it.effectiveAiringSeconds() }
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(bottom = 24.dp)
+            .screenBackdrop(),
+        contentPadding = PaddingValues(bottom = 24.dp + bottomDockPadding)
     ) {
         // Clean Top Bar
         item {
@@ -91,8 +99,9 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
+                        shape = RoundedCornerShape(if (isGlass) 12.dp else 8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        border = if (isGlass) glassCardBorder(glassWidth = 0.8.dp) else null
                     ) {
                         Text(
                             text = "${uiState.selectedHomeSeason.labelEs} ${uiState.selectedHomeYear}",
@@ -309,10 +318,12 @@ fun SeeAllCatalogScreen(
     val currentYear = LocalDate.now().year
     val years = listOf(currentYear - 1, currentYear, currentYear + 1)
 
+    val isGlass = LocalIsLiquidGlass.current
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .screenBackdrop()
     ) {
         TopAppBar(
             title = {
@@ -332,7 +343,7 @@ fun SeeAllCatalogScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.background
+                containerColor = if (isGlass) Color.Transparent else MaterialTheme.colorScheme.background
             )
         )
 
@@ -378,7 +389,9 @@ fun SeeAllCatalogScreen(
                 contentPadding = PaddingValues(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
             ) {
                 items(items, key = { "seeall_${it.id}" }) { anime ->
                     AnimePosterCard(

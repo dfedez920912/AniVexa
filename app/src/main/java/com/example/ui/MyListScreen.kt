@@ -59,6 +59,13 @@ import com.example.model.AnimeRelease
 import com.example.model.WatchlistSortOrder
 import com.example.ui.theme.AniAiringGreenBright
 import com.example.ui.theme.AniAzureSoft
+import com.example.ui.theme.AniGlassSheetSurface
+import com.example.ui.theme.LocalBottomDockPadding
+import com.example.ui.theme.LocalIsLiquidGlass
+import com.example.ui.theme.adaptiveCardColor
+import com.example.ui.theme.adaptiveCardCorner
+import com.example.ui.theme.glassCardBorder
+import com.example.ui.theme.screenBackdrop
 
 @Composable
 fun MyListScreen(
@@ -74,11 +81,12 @@ fun MyListScreen(
     modifier: Modifier = Modifier
 ) {
     var sortMenuOpen by remember { mutableStateOf(false) }
+    val bottomDockPadding = LocalBottomDockPadding.current
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .screenBackdrop()
     ) {
         // Header: "Mi Lista" + Sort button
         Row(
@@ -109,7 +117,8 @@ fun MyListScreen(
 
                 DropdownMenu(
                     expanded = sortMenuOpen,
-                    onDismissRequest = { sortMenuOpen = false }
+                    onDismissRequest = { sortMenuOpen = false },
+                    containerColor = if (LocalIsLiquidGlass.current) AniGlassSheetSurface else MaterialTheme.colorScheme.surface
                 ) {
                     WatchlistSortOrder.entries.forEach { order ->
                         DropdownMenuItem(
@@ -177,9 +186,9 @@ fun MyListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
+                    shape = RoundedCornerShape(adaptiveCardCorner(18.dp, 24.dp)),
+                    color = adaptiveCardColor(),
+                    border = glassCardBorder(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -222,7 +231,12 @@ fun MyListScreen(
             }
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 8.dp,
+                    bottom = 12.dp + bottomDockPadding
+                ),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxSize()
@@ -261,13 +275,14 @@ private fun MyListCard(
     val context = LocalContext.current
     var statusMenuOpen by remember { mutableStateOf(false) }
 
+    val cardCorner = adaptiveCardCorner(14.dp, 20.dp)
     Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
+        shape = RoundedCornerShape(cardCorner),
+        color = adaptiveCardColor(),
+        border = glassCardBorder(),
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(cardCorner))
             .clickable(onClick = onClick)
             .testTag("mylist_card_${item.animeId}")
     ) {
@@ -346,7 +361,11 @@ private fun MyListCard(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                             )
                         }
-                        DropdownMenu(expanded = statusMenuOpen, onDismissRequest = { statusMenuOpen = false }) {
+                        DropdownMenu(
+                            expanded = statusMenuOpen,
+                            onDismissRequest = { statusMenuOpen = false },
+                            containerColor = if (LocalIsLiquidGlass.current) AniGlassSheetSurface else MaterialTheme.colorScheme.surface
+                        ) {
                             WatchlistStatus.entries.forEach { st ->
                                 DropdownMenuItem(
                                     text = { Text(st.displayName) },

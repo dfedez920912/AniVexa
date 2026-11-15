@@ -5,10 +5,11 @@ import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
-import cu.daniel.anical.R
-import com.example.data.OfflineAnimeData
 import com.example.model.AnimeRelease
-import java.time.LocalDate
+import cu.daniel.anical.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import java.time.ZoneId
 
 class AnimeListWidgetService : RemoteViewsService() {
     override fun onGetViewFactory(intent: Intent): RemoteViewsFactory {
@@ -18,6 +19,7 @@ class AnimeListWidgetService : RemoteViewsService() {
 
 class AnimeListWidgetFactory(private val context: Context) : RemoteViewsService.RemoteViewsFactory {
     private var animeList = listOf<AnimeRelease>()
+    private var activeZoneId: ZoneId = ZoneId.systemDefault()
 
     override fun onCreate() {
         loadData()
@@ -31,9 +33,11 @@ class AnimeListWidgetFactory(private val context: Context) : RemoteViewsService.
     @SuppressLint("NewApi")
     private fun loadData() {
         try {
-            val today = LocalDate.now()
-            val weekSchedule = OfflineAnimeData.getCuratedWeekSchedule(today)
-            animeList = weekSchedule.filter { it.getAiringLocalDate() == today }
+            val (items, zone) = runBlocking(Dispatchers.IO) {
+                WidgetDataHelper.getTodayRealReleases(context, forceNetwork = false)
+            }
+            animeList = items
+            activeZoneId = zone
         } catch (e: Exception) {
             animeList = emptyList()
         }
@@ -50,8 +54,8 @@ class AnimeListWidgetFactory(private val context: Context) : RemoteViewsService.
         val views = RemoteViews(context.packageName, R.layout.widget_anime_list_item)
         if (position in animeList.indices) {
             val anime = animeList[position]
-            views.setTextViewText(R.id.item_anime_title, "${anime.displayTitle} (Ep ${anime.episode})")
-            views.setTextViewText(R.id.item_anime_time, anime.getFormattedTime())
+            views.setTextViewText(R.id.item_anime_title, "${anime.displayTitle} (Ep ${anime.effectiveEpisodeNumber()})")
+            views.setTextViewText(R.id.item_anime_time, anime.getFormattedTime(activeZoneId))
 
             val fillInIntent = Intent().apply {
                 putExtra("anime_id", anime.id)
@@ -65,7 +69,7 @@ class AnimeListWidgetFactory(private val context: Context) : RemoteViewsService.
 
     override fun getViewTypeCount(): Int = 1
 
-    override fun getItemId(position: Int): Long = position.toLong()
+    override fun getItemId(position: Int): Long = animeList.getOrNull(position)?.id?.toLong() ?: position.toLong()
 
     override fun hasStableIds(): Boolean = true
 }

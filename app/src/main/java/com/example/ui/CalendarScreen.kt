@@ -74,7 +74,14 @@ import com.example.model.GenreHelper
 import com.example.model.MediaFormatFilter
 import com.example.ui.components.AnimePosterCard
 import com.example.ui.theme.AniAiringGreenBright
+import com.example.ui.theme.AniGlassSheetSurface
 import com.example.ui.theme.AniGold
+import com.example.ui.theme.LocalBottomDockPadding
+import com.example.ui.theme.LocalIsLiquidGlass
+import com.example.ui.theme.adaptiveCardColor
+import com.example.ui.theme.adaptiveCardCorner
+import com.example.ui.theme.glassCardBorder
+import com.example.ui.theme.screenBackdrop
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -102,7 +109,7 @@ fun CalendarScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .screenBackdrop()
     ) {
         // Header: "Calendario" + Today + Filter + Bookmark shortcut
         Row(
@@ -241,7 +248,7 @@ private fun CalendarFilterPanel(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(adaptiveCardColor())
             .padding(vertical = 8.dp)
     ) {
         LazyRow(
@@ -270,7 +277,11 @@ private fun CalendarFilterPanel(
                             selectedLabelColor = MaterialTheme.colorScheme.primary
                         )
                     )
-                    DropdownMenu(expanded = genreMenuOpen, onDismissRequest = { genreMenuOpen = false }) {
+                    DropdownMenu(
+                        expanded = genreMenuOpen,
+                        onDismissRequest = { genreMenuOpen = false },
+                        containerColor = if (LocalIsLiquidGlass.current) AniGlassSheetSurface else MaterialTheme.colorScheme.surface
+                    ) {
                         DropdownMenuItem(
                             text = { Text("Todos los géneros") },
                             onClick = {
@@ -301,7 +312,11 @@ private fun CalendarFilterPanel(
                             selectedLabelColor = MaterialTheme.colorScheme.primary
                         )
                     )
-                    DropdownMenu(expanded = studioMenuOpen, onDismissRequest = { studioMenuOpen = false }) {
+                    DropdownMenu(
+                        expanded = studioMenuOpen,
+                        onDismissRequest = { studioMenuOpen = false },
+                        containerColor = if (LocalIsLiquidGlass.current) AniGlassSheetSurface else MaterialTheme.colorScheme.surface
+                    ) {
                         DropdownMenuItem(
                             text = { Text("Todos los estudios") },
                             onClick = {
@@ -336,9 +351,16 @@ private fun WeekCalendarContent(
         .getDisplayName(TextStyle.FULL, Locale("es"))
         .replaceFirstChar { it.uppercase() }
 
+    val bottomDockPadding = LocalBottomDockPadding.current
+
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 152.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 14.dp,
+            bottom = 14.dp + bottomDockPadding
+        ),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
@@ -347,9 +369,9 @@ private fun WeekCalendarContent(
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column {
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
+                    shape = RoundedCornerShape(adaptiveCardCorner(16.dp, 22.dp)),
+                    color = adaptiveCardColor(),
+                    border = glassCardBorder(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(vertical = 10.dp, horizontal = 8.dp)) {
@@ -542,16 +564,23 @@ private fun MonthCalendarContent(
             .sortedBy { it.effectiveAiringSeconds() }
     }
 
+    val bottomDockPadding = LocalBottomDockPadding.current
+
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 16.dp,
+            bottom = 16.dp + bottomDockPadding
+        ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
         item {
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f))
+                shape = RoundedCornerShape(adaptiveCardCorner(16.dp, 22.dp)),
+                color = adaptiveCardColor(),
+                border = glassCardBorder()
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Row(
@@ -697,8 +726,15 @@ private fun ListCalendarContent(
         return
     }
 
+    val bottomDockPadding = LocalBottomDockPadding.current
+
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 16.dp,
+            bottom = 16.dp + bottomDockPadding
+        ),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxSize()
     ) {
@@ -741,13 +777,14 @@ private fun ScheduleListRowCard(
     val context = LocalContext.current
     val countdown = anime.getCountdownStatus()
 
+    val rowCorner = adaptiveCardCorner(14.dp, 20.dp)
     Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
+        shape = RoundedCornerShape(rowCorner),
+        color = adaptiveCardColor(),
+        border = glassCardBorder(),
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(rowCorner))
             .clickable(onClick = onClick)
     ) {
         Row(
@@ -864,9 +901,9 @@ private fun ScheduleListRowCard(
 @Composable
 private fun EmptyDayCard(dayName: String) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+        shape = RoundedCornerShape(adaptiveCardCorner(16.dp, 22.dp)),
+        color = adaptiveCardColor(),
+        border = glassCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(

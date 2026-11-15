@@ -17,15 +17,23 @@ class AnimeListWidgetProvider : AppWidgetProvider() {
                 val views = RemoteViews(context.packageName, R.layout.widget_anime_list_3x2)
 
                 val serviceIntent = Intent(context, AnimeListWidgetService::class.java).apply {
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
                     data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
                 }
                 views.setRemoteAdapter(R.id.widget_list_view, serviceIntent)
+                views.setEmptyView(R.id.widget_list_view, R.id.widget_list_empty)
 
                 val appIntent = Intent(context, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
-                val pendingAppIntent = PendingIntent.getActivity(context, 0, appIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                val pendingAppIntent = PendingIntent.getActivity(
+                    context,
+                    appWidgetId,
+                    appIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
                 views.setOnClickPendingIntent(R.id.widget_list_root, pendingAppIntent)
+                views.setPendingIntentTemplate(R.id.widget_list_view, pendingAppIntent)
 
                 appWidgetManager.updateAppWidget(appWidgetId, views)
                 appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widget_list_view)

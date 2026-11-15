@@ -51,6 +51,12 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.model.AppThemeMode
 import com.example.model.SynopsisLanguage
+import com.example.ui.theme.LocalBottomDockPadding
+import com.example.ui.theme.LocalIsLiquidGlass
+import com.example.ui.theme.adaptiveCardColor
+import com.example.ui.theme.adaptiveCardCorner
+import com.example.ui.theme.glassCardBorder
+import com.example.ui.theme.screenBackdrop
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,6 +73,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val bottomDockPadding = LocalBottomDockPadding.current
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -76,8 +83,13 @@ fun SettingsScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(16.dp),
+            .screenBackdrop(),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 16.dp,
+            bottom = 16.dp + bottomDockPadding
+        ),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
@@ -243,11 +255,13 @@ fun SettingsScreen(
         // Appearance Section
         item {
             SettingsCard(title = "Apariencia", icon = Icons.Default.Palette) {
+                val isGlass = LocalIsLiquidGlass.current
                 AppThemeMode.entries.forEach { mode ->
                     val selected = uiState.appThemeMode == mode
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(if (isGlass) 14.dp else 10.dp),
                         color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                        border = if (selected && isGlass) glassCardBorder(highContrast = true) else null,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onSetThemeMode(mode) }
@@ -329,10 +343,11 @@ private fun SettingsCard(
     icon: ImageVector,
     content: @Composable () -> Unit
 ) {
+    val corner = adaptiveCardCorner(standard = 16.dp, glass = 22.dp)
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
+        shape = RoundedCornerShape(corner),
+        color = adaptiveCardColor(),
+        border = glassCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

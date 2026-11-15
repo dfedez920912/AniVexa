@@ -94,9 +94,19 @@ import com.example.model.SynopsisLanguage
 import com.example.ui.theme.AniAiringGreen
 import com.example.ui.theme.AniAiringGreenBright
 import com.example.ui.theme.AniAzureBright
+import com.example.ui.theme.AniGlassSheetSurface
 import com.example.ui.theme.AniGold
 import com.example.ui.theme.AniGoldBg
 import com.example.ui.theme.AniNavyAction
+import com.example.ui.theme.LocalIsLiquidGlass
+import com.example.ui.theme.adaptiveCardColor
+import com.example.ui.theme.adaptiveCardCorner
+import com.example.ui.theme.glassCardBorder
+import com.example.ui.theme.screenBackdrop
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import java.text.NumberFormat
 import java.time.ZoneId
 import java.util.Locale
@@ -160,10 +170,12 @@ fun AnimeDetailScreen(
         if (anime.popularity > 0) NumberFormat.getNumberInstance(Locale.US).format(anime.popularity) else null
     }
 
+    val isGlass = LocalIsLiquidGlass.current
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .screenBackdrop()
             .testTag("anime_detail_screen")
     ) {
         Column(
@@ -185,7 +197,24 @@ fun AnimeDetailScreen(
                         .build(),
                     contentDescription = anime.displayTitle,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = if (isGlass) {
+                        Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                            .drawWithContent {
+                                drawContent()
+                                drawRect(
+                                    brush = Brush.verticalGradient(
+                                        0.0f to Color.Black,
+                                        0.58f to Color.Black,
+                                        1.0f to Color.Transparent
+                                    ),
+                                    blendMode = BlendMode.DstIn
+                                )
+                            }
+                    } else {
+                        Modifier.fillMaxSize()
+                    }
                 )
 
                 // Top & bottom gradient scrim into background
@@ -194,12 +223,21 @@ fun AnimeDetailScreen(
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Black.copy(alpha = 0.45f),
-                                    Color.Transparent,
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.72f),
-                                    MaterialTheme.colorScheme.background
-                                )
+                                colors = if (isGlass) {
+                                    listOf(
+                                        Color.Black.copy(alpha = 0.48f),
+                                        Color.Transparent,
+                                        Color.Transparent,
+                                        Color.Transparent
+                                    )
+                                } else {
+                                    listOf(
+                                        Color.Black.copy(alpha = 0.45f),
+                                        Color.Transparent,
+                                        MaterialTheme.colorScheme.background.copy(alpha = 0.72f),
+                                        MaterialTheme.colorScheme.background
+                                    )
+                                }
                             )
                         )
                 )
@@ -213,9 +251,13 @@ fun AnimeDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val overlayCircleColor = if (isGlass) Color(0x70101D33) else Color.Black.copy(alpha = 0.55f)
+                    val overlayCircleBorder = if (isGlass) glassCardBorder(highContrast = true) else null
+
                     Surface(
                         shape = CircleShape,
-                        color = Color.Black.copy(alpha = 0.55f),
+                        color = overlayCircleColor,
+                        border = overlayCircleBorder,
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
@@ -235,7 +277,8 @@ fun AnimeDetailScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Surface(
                             shape = CircleShape,
-                            color = Color.Black.copy(alpha = 0.55f),
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
@@ -265,7 +308,8 @@ fun AnimeDetailScreen(
 
                         Surface(
                             shape = CircleShape,
-                            color = Color.Black.copy(alpha = 0.55f),
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
@@ -486,13 +530,18 @@ fun AnimeDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    val actionShape = RoundedCornerShape(adaptiveCardCorner(10.dp, 16.dp))
+                    val actionColor = if (isGlass) adaptiveCardColor(elevated = true) else AniNavyAction
+                    val actionBorder = if (isGlass) glassCardBorder() else null
+
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = AniNavyAction,
+                        shape = actionShape,
+                        color = actionColor,
+                        border = actionBorder,
                         modifier = Modifier
                             .weight(1f)
                             .height(46.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(actionShape)
                             .clickable { activeSheet = DetailSheetType.REVIEWS }
                             .testTag("detail_reviews_btn")
                     ) {
@@ -517,12 +566,13 @@ fun AnimeDetailScreen(
                     }
 
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = AniNavyAction,
+                        shape = actionShape,
+                        color = actionColor,
+                        border = actionBorder,
                         modifier = Modifier
                             .weight(1f)
                             .height(46.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(actionShape)
                             .clickable { activeSheet = DetailSheetType.CHARACTERS }
                             .testTag("detail_characters_btn")
                     ) {
@@ -626,9 +676,9 @@ fun AnimeDetailScreen(
 
                 // Airing Countdown & Reminder Card
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
+                    shape = RoundedCornerShape(adaptiveCardCorner(14.dp, 20.dp)),
+                    color = adaptiveCardColor(),
+                    border = glassCardBorder(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
@@ -728,9 +778,9 @@ fun AnimeDetailScreen(
                 val progress = if (totalEpCount > 0) watchedCount.toFloat() / totalEpCount.toFloat() else 0f
 
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
+                    shape = RoundedCornerShape(adaptiveCardCorner(14.dp, 20.dp)),
+                    color = adaptiveCardColor(),
+                    border = glassCardBorder(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
@@ -807,9 +857,9 @@ fun AnimeDetailScreen(
 
                 // User 5-star Rating
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
+                    shape = RoundedCornerShape(adaptiveCardCorner(14.dp, 20.dp)),
+                    color = adaptiveCardColor(),
+                    border = glassCardBorder(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -850,7 +900,7 @@ fun AnimeDetailScreen(
             ModalBottomSheet(
                 onDismissRequest = { activeSheet = DetailSheetType.NONE },
                 sheetState = sheetState,
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = if (isGlass) AniGlassSheetSurface else MaterialTheme.colorScheme.surface
             ) {
                 if (activeSheet == DetailSheetType.REVIEWS) {
                     ReviewsSheetContent(reviews = reviews, isLoading = isLoadingDetail)

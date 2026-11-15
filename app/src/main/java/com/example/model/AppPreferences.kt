@@ -4,6 +4,7 @@ enum class AppThemeMode(val label: String, val description: String) {
     ANIVEXA_DARK("AniVexa Dark", "Obsidiana profunda con azul eléctrico"),
     OLED("OLED Midnight", "Negro puro #000000 para pantallas AMOLED"),
     LIGHT("Claro Limpio", "Interfaz luminosa para lectura diurna"),
+    LIQUID_GLASS("Cristal (Liquid Glass)", "Cristal líquido translúcido con reflejos y dock flotante estilo Apple"),
     SYSTEM("Sistema", "Sigue el modo oscuro o claro del dispositivo")
 }
 

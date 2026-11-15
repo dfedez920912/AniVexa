@@ -768,6 +768,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { state ->
             recomputeDerivedLists(state.copy(isJapanTimeZone = next))
         }
+        com.example.widget.WidgetDataHelper.notifyAllWidgets(getApplication())
         loadWeekSchedule(_uiState.value.weekStartDate)
     }
 
@@ -852,7 +853,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             val monthName = date.month.getDisplayName(TextStyle.SHORT, Locale("es"))
                 .replaceFirstChar { it.uppercase() }
 
-            val dayItems = decoratedSchedule.filter { it.getAiringLocalDate(zone) == date }
+            val dayItems = decoratedSchedule.filter { it.effectiveAiringSeconds() > 0L && it.getAiringLocalDate(zone) == date }
             DayScheduleTab(
                 date = date,
                 label = shortDay,
@@ -868,7 +869,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val filteredDay = decoratedSchedule.filter { item ->
-            val matchesDate = item.getAiringLocalDate(zone) == state.selectedDate
+            val matchesDate = item.effectiveAiringSeconds() > 0L && item.getAiringLocalDate(zone) == state.selectedDate
             val matchesFormat = state.calendarFormatFilter.apiValue == null ||
                 item.format.equals(state.calendarFormatFilter.apiValue, ignoreCase = true)
             val matchesGenre = state.calendarGenreFilter == null ||
