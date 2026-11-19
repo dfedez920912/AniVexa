@@ -66,6 +66,14 @@
             android:permission="android.permission.BIND_REMOTEVIEWS"
             android:exported="false" />
 
+        <!-- Repository hints for Komi Store / F-Droid app matching & updates -->
+        <meta-data
+            android:name="github_repo"
+            android:value="dfedez920912/AniVexa" />
+        <meta-data
+            android:name="org.fdroid.fdroid.SourceCode"
+            android:value="https://github.com/dfedez920912/AniVexa" />
+
     </application>
 
 </manifest>

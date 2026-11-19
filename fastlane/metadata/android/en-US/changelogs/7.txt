@@ -1,0 +1,2 @@
+- Added Komi Store repository & APK metadata hints for automatic indexing and updates.
+- Added Fastlane metadata and updated README for GitHub app store discovery.

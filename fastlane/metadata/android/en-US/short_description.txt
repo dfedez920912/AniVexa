@@ -1,0 +1,1 @@
+Native Android anime release calendar, episode tracker, watchlist & widgets.

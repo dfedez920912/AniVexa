@@ -1,0 +1,10 @@
+AniVexa is a native Android application built with Kotlin and Jetpack Compose for tracking airing anime schedules via AniList.
+
+Key features:
+• Weekly, monthly, and list airing calendar with format, genre, and studio filters.
+• Current season catalog, popularity rankings, and related anime navigation (prequels, sequels, OVAs).
+• Watchlist management with full-season episode tracking and automatic in-progress/completed status.
+• Customizable local episode release notifications and optional Japan Standard Time (JST) mode.
+• Home screen widgets (1x1 release counter and 3x2 scrollable schedule list) locked to the real device date.
+• Material 3 themes including AniVexa Dark, Light, Dynamic Color, and Liquid Glass with a floating dock.
+• Non-destructive local Room database persistence across app upgrades.

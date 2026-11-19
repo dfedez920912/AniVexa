@@ -1,0 +1,2 @@
+- Compatibilidad con indexación y verificación automática de actualizaciones en Komi Store.
+- Metadatos Fastlane, iconos y README optimizados para tiendas de aplicaciones GitHub.

@@ -1,14 +1,7 @@
-# AniVexa v0.1.4
+# AniVexa v0.1.5
 
-## Novedades y correcciones de esta versión
+## Novedades de esta versión
 
-### Temporada actual aislada de "Ver todo"
-- **Inicio siempre en la temporada real**: Al entrar en **Esta Temporada → Ver todo** y filtrar por otros años o estaciones (como `2025`, `2026` o `2027`), la pantalla principal conserva intactos la temporada y el año reales actuales del dispositivo al regresar.
-- **Caché independiente**: Explorar catálogos históricos o futuros desde **Ver todo** ya no sobrescribe la caché de **Esta Temporada** de la pantalla de inicio.
-
-### Widgets y "Hoy en Emisión" siempre al día real
-- **Widgets independientes del Calendario**: Consultar otros días, semanas o meses en la pantalla de **Calendario** ya no afecta a los widgets de escritorio ni reemplaza sus estrenos con fechas de otras semanas.
-- **Instantánea dedicada para hoy**: Los widgets y la sección **Hoy en Emisión** utilizan un almacenamiento aislado exclusivo para la fecha real actual del dispositivo (respetando la zona horaria elegida en Ajustes).
-
-### Estabilidad y pruebas
-- **Verificación automatizada**: Se incorporaron pruebas unitarias para validar que tanto el snapshot de los widgets como la temporada actual de Inicio se mantienen aislados al navegar por el calendario o el catálogo.
+### Indexación y compatibilidad con Komi Store
+- **Metadatos en la aplicación (`AndroidManifest.xml`)**: Se añadieron las etiquetas `github_repo` (`dfedez920912/AniVexa`) y `org.fdroid.fdroid.SourceCode` para que **Komi Store** reconozca automáticamente el APK instalado en el dispositivo y gestione sus actualizaciones.
+- **Metadatos del repositorio**: Se incorporó la estructura estándar `fastlane/metadata/android` (en español e inglés), el icono oficial de tienda (`512x512`) y un `README.md` optimizado junto con los *topics* y descripción del repositorio en GitHub para su indexación en **Komi Store**.

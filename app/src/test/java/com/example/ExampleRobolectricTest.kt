@@ -930,4 +930,20 @@ class ExampleRobolectricTest {
     assertEquals(expectedSeason, viewModel.uiState.value.currentSeason)
     assertEquals(expectedYear, viewModel.uiState.value.currentSeasonYear)
   }
+
+  @Test
+  fun `test AndroidManifest declares Komi Store and F-Droid repository hints`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val appInfo = context.packageManager.getApplicationInfo(
+      context.packageName,
+      android.content.pm.PackageManager.GET_META_DATA
+    )
+    val metaData = appInfo.metaData
+    assertNotNull("Application meta-data bundle should exist", metaData)
+    assertEquals("dfedez920912/AniVexa", metaData!!.getString("github_repo"))
+    assertEquals(
+      "https://github.com/dfedez920912/AniVexa",
+      metaData.getString("org.fdroid.fdroid.SourceCode")
+    )
+  }
 }
