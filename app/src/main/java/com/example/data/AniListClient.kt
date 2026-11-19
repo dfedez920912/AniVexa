@@ -6,6 +6,7 @@ import com.example.model.AnimeDetailBundle
 import com.example.model.AnimeRelease
 import com.example.model.AnimeReview
 import com.example.model.MediaSeason
+import com.example.model.RelatedAnimeItem
 import com.example.model.SynopsisLanguage
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -468,6 +469,30 @@ class AniListClient(
                     }
                   }
                 }
+                relations {
+                  edges {
+                    relationType(version: 2)
+                    node {
+                      id
+                      type
+                      isAdult
+                      format
+                      status
+                      episodes
+                      seasonYear
+                      averageScore
+                      title {
+                        romaji
+                        english
+                      }
+                      coverImage {
+                        extraLarge
+                        large
+                        medium
+                      }
+                    }
+                  }
+                }
               }
             }
         """.trimIndent()
@@ -524,9 +549,108 @@ class AniListClient(
             }
         }
 
-        val bundle = AnimeDetailBundle(anime = anime, reviews = reviews, characters = characters)
+        val relations = parseRelations(media.optJSONObject("relations")?.optJSONArray("edges"))
+
+        val bundle = AnimeDetailBundle(
+            anime = anime,
+            reviews = reviews,
+            characters = characters,
+            relations = relations
+        )
         putCached(cacheKey, bundle, ttlMinutes = 360)
         return bundle
+    }
+
+    private fun parseRelations(edges: JSONArray?): List<RelatedAnimeItem> {
+        if (edges == null) return emptyList()
+        val parsed = mutableListOf<RelatedAnimeItem>()
+        for (i in 0 until edges.length()) {
+            val edge = edges.optJSONObject(i) ?: continue
+            val node = edge.optJSONObject("node") ?: continue
+            if (!node.optString("type", "").equals("ANIME", ignoreCase = true)) continue
+            if (node.optBoolean("isAdult", false)) continue
+
+            val id = node.optInt("id", 0)
+            if (id <= 0) continue
+
+            val relationType = edge.optString("relationType", "OTHER").uppercase()
+            val format = node.optString("format", "TV").takeIf { it.isNotBlank() && it != "null" } ?: "TV"
+            val status = node.optString("status", "FINISHED").takeIf { it.isNotBlank() && it != "null" } ?: "FINISHED"
+            val episodesInt = node.optInt("episodes", -1)
+            val totalEpisodes = if (episodesInt > 0) episodesInt else null
+            val seasonYear = node.optInt("seasonYear", -1).takeIf { it > 0 }
+            val avgScoreInt = node.optInt("averageScore", -1)
+            val score = if (avgScoreInt > 0) avgScoreInt / 10.0 else null
+
+            val titleObj = node.optJSONObject("title")
+            val romaji = titleObj?.optString("romaji")?.takeIf { it.isNotBlank() && it != "null" } ?: "Anime #$id"
+            val english = titleObj?.optString("english")?.takeIf { it.isNotBlank() && it != "null" }
+
+            val coverObj = node.optJSONObject("coverImage")
+            val coverUrl = coverObj?.optString("extraLarge")?.takeIf { it.isNotBlank() && it != "null" }
+                ?: coverObj?.optString("large")?.takeIf { it.isNotBlank() && it != "null" }
+                ?: coverObj?.optString("medium")?.takeIf { it.isNotBlank() && it != "null" }
+                ?: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/default.jpg"
+
+            parsed.add(
+                RelatedAnimeItem(
+                    id = id,
+                    relationType = relationType,
+                    relationLabelEs = mapRelationLabelEs(relationType, format),
+                    titleRomaji = romaji,
+                    titleEnglish = english,
+                    coverImageUrl = coverUrl,
+                    format = format,
+                    status = status,
+                    totalEpisodes = totalEpisodes,
+                    seasonYear = seasonYear,
+                    score = score
+                )
+            )
+        }
+        return parsed
+            .distinctBy { it.id }
+            .sortedBy { relationSortPriority(it.relationType, it.format) }
+    }
+
+    private fun mapRelationLabelEs(relationType: String, format: String): String {
+        val upperType = relationType.uppercase()
+        val upperFormat = format.uppercase()
+        return when (upperType) {
+            "PREQUEL" -> "Precuela"
+            "SEQUEL" -> "Secuela"
+            "PARENT" -> "Serie principal"
+            "SIDE_STORY" -> when (upperFormat) {
+                "OVA" -> "OVA"
+                "MOVIE" -> "Película"
+                "SPECIAL" -> "Especial"
+                else -> "Historia paralela"
+            }
+            "SPIN_OFF" -> "Spin-off"
+            "ALTERNATIVE" -> "Alternativa"
+            "SUMMARY" -> "Resumen"
+            "CHARACTER" -> "Crossover"
+            else -> when (upperFormat) {
+                "OVA" -> "OVA"
+                "ONA" -> "ONA"
+                "MOVIE" -> "Película"
+                "SPECIAL" -> "Especial"
+                else -> "Relacionado"
+            }
+        }
+    }
+
+    private fun relationSortPriority(relationType: String, format: String): Int {
+        return when (relationType.uppercase()) {
+            "PREQUEL" -> 0
+            "SEQUEL" -> 1
+            "PARENT" -> 2
+            "SIDE_STORY" -> if (format.equals("OVA", ignoreCase = true)) 3 else 4
+            "SPIN_OFF" -> 5
+            "ALTERNATIVE" -> 6
+            "SUMMARY" -> 7
+            else -> if (format.equals("OVA", ignoreCase = true)) 3 else 8
+        }
     }
 
     private fun executeGraphQL(query: String, variables: JSONObject): JSONObject {

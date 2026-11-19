@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -243,13 +244,18 @@ fun MyListScreen(
                     .testTag("mylist_items_column")
             ) {
                 items(uiState.filteredWatchlistItems, key = { it.animeId }) { item ->
-                    val epKey = "${item.animeId}_${item.watchedEpisodes.coerceAtLeast(1)}"
-                    val isWatched = uiState.watchedEpisodeKeys.contains(epKey) ||
-                        item.statusEnum == WatchlistStatus.COMPLETED ||
-                        item.watchedEpisodes > 0
+                    val watchedCount = maxOf(
+                        uiState.watchedEpisodeKeys.count { it.startsWith("${item.animeId}_") },
+                        item.watchedEpisodes
+                    )
+                    val isFullyWatched = item.statusEnum == WatchlistStatus.COMPLETED ||
+                        (item.totalEpisodes != null && item.totalEpisodes > 0 && watchedCount >= item.totalEpisodes)
+                    val isInProgress = !isFullyWatched && (item.statusEnum == WatchlistStatus.WATCHING || watchedCount > 0)
                     MyListCard(
                         item = item,
-                        isWatched = isWatched,
+                        watchedCount = watchedCount,
+                        isFullyWatched = isFullyWatched,
+                        isInProgress = isInProgress,
                         onClick = { onItemClick(item.toAnimeRelease()) },
                         onToggleWatched = { onToggleWatchedItem(item) },
                         onStatusChange = { status -> onUpdateStatus(item.animeId, status) },
@@ -265,7 +271,9 @@ fun MyListScreen(
 @Composable
 private fun MyListCard(
     item: WatchlistEntity,
-    isWatched: Boolean,
+    watchedCount: Int,
+    isFullyWatched: Boolean,
+    isInProgress: Boolean,
     onClick: () -> Unit,
     onToggleWatched: () -> Unit,
     onStatusChange: (WatchlistStatus) -> Unit,
@@ -349,15 +357,19 @@ private fun MyListCard(
                             modifier = Modifier.clickable { statusMenuOpen = true }
                         ) {
                             Text(
-                                text = when (item.statusEnum) {
-                                    WatchlistStatus.PLAN_TO_WATCH -> if (isWatched) "viendo" else "sin ver"
-                                    WatchlistStatus.WATCHING -> "viendo"
-                                    WatchlistStatus.COMPLETED -> "completado"
-                                    WatchlistStatus.DROPPED -> "en pausa"
+                                text = when {
+                                    item.statusEnum == WatchlistStatus.DROPPED -> "en pausa"
+                                    isFullyWatched -> "visto"
+                                    isInProgress -> "en proceso"
+                                    else -> "sin ver"
                                 },
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = when {
+                                    isFullyWatched -> AniAiringGreenBright
+                                    isInProgress -> MaterialTheme.colorScheme.primary
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                             )
                         }
@@ -379,7 +391,7 @@ private fun MyListCard(
                     }
 
                     Text(
-                        text = "Ep ${item.watchedEpisodes} / ${item.totalEpisodes ?: "?"}",
+                        text = "Ep $watchedCount / ${item.totalEpisodes ?: "?"}",
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -400,13 +412,21 @@ private fun MyListCard(
                     }
                 }
 
-                // Prominent "Mark as Watched" pill button matching Screenshot 6
+                // Prominent status pill button: Visto (all episodes) / En proceso (partial) / Marcar como Visto (0)
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = if (isWatched) AniAiringGreenBright.copy(alpha = 0.14f) else AniAzureSoft.copy(alpha = 0.55f),
+                    color = when {
+                        isFullyWatched -> AniAiringGreenBright.copy(alpha = 0.14f)
+                        isInProgress -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
+                        else -> AniAzureSoft.copy(alpha = 0.55f)
+                    },
                     border = BorderStroke(
                         1.dp,
-                        if (isWatched) AniAiringGreenBright else MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                        when {
+                            isFullyWatched -> AniAiringGreenBright
+                            isInProgress -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                        }
                     ),
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
@@ -419,16 +439,24 @@ private fun MyListCard(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(
-                            imageVector = if (isWatched) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                            imageVector = when {
+                                isFullyWatched -> Icons.Default.CheckCircle
+                                isInProgress -> Icons.Default.PlayCircleOutline
+                                else -> Icons.Default.RadioButtonUnchecked
+                            },
                             contentDescription = null,
-                            tint = if (isWatched) AniAiringGreenBright else MaterialTheme.colorScheme.primary,
+                            tint = if (isFullyWatched) AniAiringGreenBright else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(15.dp)
                         )
                         Text(
-                            text = if (isWatched) "Visto" else "Marcar como Visto",
+                            text = when {
+                                isFullyWatched -> "Visto"
+                                isInProgress -> "En proceso"
+                                else -> "Marcar como Visto"
+                            },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (isWatched) AniAiringGreenBright else MaterialTheme.colorScheme.primary
+                            color = if (isFullyWatched) AniAiringGreenBright else MaterialTheme.colorScheme.primary
                         )
                     }
                 }

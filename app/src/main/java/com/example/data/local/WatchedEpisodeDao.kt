@@ -21,8 +21,17 @@ interface WatchedEpisodeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun markWatched(entity: WatchedEpisodeEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun markAllWatched(entities: List<WatchedEpisodeEntity>)
+
     @Query("DELETE FROM watched_episodes WHERE episodeKey = :key")
     suspend fun unmarkWatched(key: String)
+
+    @Query("SELECT COUNT(*) FROM watched_episodes WHERE animeId = :animeId")
+    suspend fun getWatchedCountForAnime(animeId: Int): Int
+
+    @Query("SELECT episodeNumber FROM watched_episodes WHERE animeId = :animeId")
+    suspend fun getWatchedEpisodeNumbersForAnime(animeId: Int): List<Int>
 
     @Query("DELETE FROM watched_episodes WHERE animeId = :animeId")
     suspend fun clearForAnime(animeId: Int)

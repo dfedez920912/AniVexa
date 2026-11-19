@@ -30,8 +30,13 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -67,9 +72,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,6 +97,7 @@ import com.example.model.AnimeCharacter
 import com.example.model.AnimeRelease
 import com.example.model.AnimeReview
 import com.example.model.CountdownStatus
+import com.example.model.RelatedAnimeItem
 import com.example.model.SynopsisLanguage
 import com.example.ui.theme.AniAiringGreen
 import com.example.ui.theme.AniAiringGreenBright
@@ -107,6 +115,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.time.ZoneId
 import java.util.Locale
@@ -121,11 +130,13 @@ fun AnimeDetailScreen(
     anime: AnimeRelease,
     reviews: List<AnimeReview>,
     characters: List<AnimeCharacter>,
+    relatedAnime: List<RelatedAnimeItem> = emptyList(),
     isLoadingDetail: Boolean,
     watchedEpisodeKeys: Set<String>,
     defaultReminderMinutes: Int,
     zoneId: ZoneId,
     onBack: () -> Unit,
+    onRelatedAnimeClick: (RelatedAnimeItem) -> Unit = {},
     onToggleWatchlist: () -> Unit,
     onToggleReminder: (Boolean, Int) -> Unit,
     onTestNotification: () -> Unit,
@@ -770,88 +781,14 @@ fun AnimeDetailScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Episode Tracker Grid
-                val totalEpCount = (anime.totalEpisodes ?: anime.effectiveEpisodeNumber().coerceAtLeast(12)).coerceAtMost(48)
-                val watchedCount = (1..totalEpCount).count { ep ->
-                    watchedEpisodeKeys.contains("${anime.id}_$ep")
-                }
-                val progress = if (totalEpCount > 0) watchedCount.toFloat() / totalEpCount.toFloat() else 0f
-
-                Surface(
-                    shape = RoundedCornerShape(adaptiveCardCorner(14.dp, 20.dp)),
-                    color = adaptiveCardColor(),
-                    border = glassCardBorder(),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Seguimiento de Episodios",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "$watchedCount / ${anime.totalEpisodes ?: totalEpCount}",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = AniAiringGreenBright
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            color = AniAiringGreenBright,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(7.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            (1..totalEpCount).forEach { epNum ->
-                                val isWatched = watchedEpisodeKeys.contains("${anime.id}_$epNum")
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (isWatched) AniAiringGreenBright.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant,
-                                    border = BorderStroke(
-                                        1.dp,
-                                        if (isWatched) AniAiringGreenBright else Color.Transparent
-                                    ),
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .clickable { onToggleWatchedEpisodeNum(epNum) }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isWatched) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                                            contentDescription = null,
-                                            tint = if (isWatched) AniAiringGreenBright else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Text(
-                                            text = "Ep $epNum",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (isWatched) AniAiringGreenBright else MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                // Episode Tracker Grid (supports full season episode count with scrollable grid)
+                EpisodeTrackerSection(
+                    animeId = anime.id,
+                    totalEpisodes = anime.totalEpisodes,
+                    effectiveEpisode = anime.effectiveEpisodeNumber(),
+                    watchedEpisodeKeys = watchedEpisodeKeys,
+                    onToggleWatchedEpisodeNum = onToggleWatchedEpisodeNum
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -890,6 +827,50 @@ fun AnimeDetailScreen(
                     }
                 }
 
+                // Related Content (Prequel, Sequel, OVA, Movie, Spin-off...) at bottom of view
+                if (relatedAnime.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(22.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Contenido Relacionado",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            border = if (isGlass) glassCardBorder(glassWidth = 0.75.dp) else null
+                        ) {
+                            Text(
+                                text = "${relatedAnime.size}",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("detail_related_row")
+                    ) {
+                        items(relatedAnime, key = { "rel_${it.id}" }) { rel ->
+                            RelatedAnimeCard(
+                                item = rel,
+                                onClick = { onRelatedAnimeClick(rel) }
+                            )
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(28.dp))
             }
         }
@@ -908,6 +889,415 @@ fun AnimeDetailScreen(
                     CharactersSheetContent(characters = characters, isLoading = isLoadingDetail)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RelatedAnimeCard(
+    item: RelatedAnimeItem,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val isGlass = LocalIsLiquidGlass.current
+    val cardRadius = adaptiveCardCorner(standard = 12.dp, glass = 18.dp)
+    val cardShape = RoundedCornerShape(cardRadius)
+
+    val badgeColor = when (item.relationType.uppercase()) {
+        "PREQUEL" -> Color(0xFF6366F1)
+        "SEQUEL" -> Color(0xFF0EA5E9)
+        "PARENT" -> Color(0xFF2563EB)
+        "SIDE_STORY" -> if (item.format.equals("OVA", ignoreCase = true)) Color(0xFF10B981) else Color(0xFF8B5CF6)
+        else -> when (item.format.uppercase()) {
+            "OVA" -> Color(0xFF10B981)
+            "MOVIE" -> Color(0xFFD97706)
+            "SPECIAL" -> Color(0xFFEC4899)
+            else -> Color(0xFF64748B)
+        }
+    }
+
+    Surface(
+        shape = cardShape,
+        color = adaptiveCardColor(),
+        border = glassCardBorder(),
+        modifier = Modifier
+            .width(138.dp)
+            .clip(cardShape)
+            .clickable(onClick = onClick)
+            .testTag("related_anime_card_${item.id}")
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(0.72f)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(item.coverImageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = item.displayTitle,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(34.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.50f))
+                            )
+                        )
+                )
+                Surface(
+                    shape = RoundedCornerShape(if (isGlass) 8.dp else 6.dp),
+                    color = badgeColor.copy(alpha = 0.92f),
+                    border = if (isGlass) glassCardBorder(glassWidth = 0.7.dp, highContrast = true) else null,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp)
+                ) {
+                    Text(
+                        text = item.relationLabelEs,
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+                if (!item.relationLabelEs.equals(item.format, ignoreCase = true)) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color.Black.copy(alpha = 0.70f),
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(6.dp)
+                    ) {
+                        Text(
+                            text = item.format,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 9.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = item.displayTitle,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 16.sp,
+                    modifier = Modifier.height(32.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                val metaParts = listOfNotNull(
+                    item.seasonYear?.toString(),
+                    item.totalEpisodes?.let { "$it eps" }
+                ).joinToString(" • ")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    if (item.score != null) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = AniGold,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Text(
+                            text = String.format("%.1f", item.score),
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AniGold
+                        )
+                        if (metaParts.isNotEmpty()) {
+                            Text(
+                                text = "•",
+                                fontSize = 10.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    if (metaParts.isNotEmpty()) {
+                        Text(
+                            text = metaParts,
+                            fontSize = 10.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+internal data class EpisodeTrackerMetrics(
+    val displayEpisodeCount: Int,
+    val watchedCount: Int,
+    val progress: Float,
+    val progressPercent: Int
+)
+
+internal fun calculateEpisodeTrackerMetrics(
+    totalEpisodes: Int?,
+    effectiveEpisode: Int,
+    animeId: Int,
+    watchedEpisodeKeys: Set<String>
+): EpisodeTrackerMetrics {
+    val displayCount = totalEpisodes?.takeIf { it > 0 } ?: effectiveEpisode.coerceAtLeast(12)
+    val prefix = "${animeId}_"
+    val watched = watchedEpisodeKeys.count { key ->
+        if (!key.startsWith(prefix)) return@count false
+        val epNum = key.removePrefix(prefix).toIntOrNull() ?: return@count false
+        epNum in 1..displayCount
+    }
+    val progress = if (displayCount > 0) {
+        (watched.toFloat() / displayCount.toFloat()).coerceIn(0f, 1f)
+    } else 0f
+    val percent = when {
+        displayCount <= 0 || watched <= 0 -> 0
+        watched >= displayCount -> 100
+        else -> (progress * 100f).toInt().coerceIn(0, 99)
+    }
+    return EpisodeTrackerMetrics(
+        displayEpisodeCount = displayCount,
+        watchedCount = watched,
+        progress = progress,
+        progressPercent = percent
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EpisodeTrackerSection(
+    animeId: Int,
+    totalEpisodes: Int?,
+    effectiveEpisode: Int,
+    watchedEpisodeKeys: Set<String>,
+    onToggleWatchedEpisodeNum: (Int) -> Unit
+) {
+    val isGlass = LocalIsLiquidGlass.current
+    val metrics = remember(animeId, totalEpisodes, effectiveEpisode, watchedEpisodeKeys) {
+        calculateEpisodeTrackerMetrics(
+            totalEpisodes = totalEpisodes,
+            effectiveEpisode = effectiveEpisode,
+            animeId = animeId,
+            watchedEpisodeKeys = watchedEpisodeKeys
+        )
+    }
+    val totalEpCount = metrics.displayEpisodeCount
+    val watchedCount = metrics.watchedCount
+    val progress = metrics.progress
+
+    Surface(
+        shape = RoundedCornerShape(adaptiveCardCorner(14.dp, 20.dp)),
+        color = adaptiveCardColor(),
+        border = glassCardBorder(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("detail_episode_tracker")
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Seguimiento de Episodios",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "$watchedCount / $totalEpCount (${metrics.progressPercent}%)",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AniAiringGreenBright,
+                    modifier = Modifier.testTag("detail_episode_progress_label")
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                color = AniAiringGreenBright,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(7.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .testTag("detail_episode_progress_bar")
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (totalEpCount <= 18) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    (1..totalEpCount).forEach { epNum ->
+                        val isWatched = watchedEpisodeKeys.contains("${animeId}_$epNum")
+                        EpisodeGridChip(
+                            episodeNumber = epNum,
+                            isWatched = isWatched,
+                            onClick = { onToggleWatchedEpisodeNum(epNum) }
+                        )
+                    }
+                }
+            } else {
+                val gridState = rememberLazyGridState()
+                val coroutineScope = rememberCoroutineScope()
+
+                if (totalEpCount > 48) {
+                    val blockSize = 50
+                    val ranges = remember(totalEpCount) {
+                        (1..totalEpCount step blockSize).map { start ->
+                            start to minOf(start + blockSize - 1, totalEpCount)
+                        }
+                    }
+                    val activeRangeIndex by remember(ranges) {
+                        derivedStateOf {
+                            val firstVisibleEp = gridState.firstVisibleItemIndex + 1
+                            ranges.indexOfFirst { (start, end) -> firstVisibleEp in start..end }
+                                .coerceAtLeast(0)
+                        }
+                    }
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("detail_episode_range_row")
+                    ) {
+                        items(ranges.size) { index ->
+                            val (start, end) = ranges[index]
+                            val isActive = index == activeRangeIndex
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        coroutineScope.launch {
+                                            gridState.animateScrollToItem(start - 1)
+                                        }
+                                    }
+                                    .testTag("episode_range_${start}_$end")
+                            ) {
+                                Text(
+                                    text = "$start–$end",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isActive) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.background.copy(alpha = if (isGlass) 0.25f else 0.45f),
+                    border = if (isGlass) glassCardBorder(glassWidth = 0.7.dp) else BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    LazyVerticalGrid(
+                        state = gridState,
+                        columns = GridCells.Adaptive(minSize = 88.dp),
+                        contentPadding = PaddingValues(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(252.dp)
+                            .testTag("detail_episode_scroll_grid")
+                    ) {
+                        items(totalEpCount, key = { it + 1 }) { index ->
+                            val epNum = index + 1
+                            val isWatched = watchedEpisodeKeys.contains("${animeId}_$epNum")
+                            EpisodeGridChip(
+                                episodeNumber = epNum,
+                                isWatched = isWatched,
+                                onClick = { onToggleWatchedEpisodeNum(epNum) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Desliza la lista para seleccionar entre los $totalEpCount episodios",
+                    fontSize = 10.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EpisodeGridChip(
+    episodeNumber: Int,
+    isWatched: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = if (isWatched) AniAiringGreenBright.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(
+            1.dp,
+            if (isWatched) AniAiringGreenBright else Color.Transparent
+        ),
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .testTag("episode_chip_$episodeNumber")
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = if (isWatched) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                contentDescription = null,
+                tint = if (isWatched) AniAiringGreenBright else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(14.dp)
+            )
+            Text(
+                text = "Ep $episodeNumber",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = if (isWatched) AniAiringGreenBright else MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

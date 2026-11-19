@@ -16,6 +16,7 @@ import com.example.model.GenreHelper
 import com.example.model.MediaFormatFilter
 import com.example.model.MediaSeason
 import com.example.model.MediaStatusFilter
+import com.example.model.RelatedAnimeItem
 import com.example.model.SynopsisLanguage
 import com.example.model.WatchlistSortOrder
 import com.example.notifications.AnimeEpisodeReminderWorker
@@ -59,7 +60,7 @@ enum class MyListFilterTab(val label: String) {
     ALL("Todos"),
     WATCHED("Vistos"),
     UNWATCHED("Sin ver"),
-    WATCHING("Viendo"),
+    WATCHING("En proceso"),
     PLAN_TO_WATCH("Por ver")
 }
 
@@ -121,6 +122,7 @@ data class AnimeUiState(
     val selectedAnimeForDetail: AnimeRelease? = null,
     val detailReviews: List<AnimeReview> = emptyList(),
     val detailCharacters: List<AnimeCharacter> = emptyList(),
+    val detailRelations: List<RelatedAnimeItem> = emptyList(),
 
     // Settings & Preferences
     val appThemeMode: AppThemeMode = AppThemeMode.ANIVEXA_DARK,
@@ -157,6 +159,8 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<AnimeUiState> = _uiState.asStateFlow()
 
     private var searchJob: Job? = null
+    private var detailJob: Job? = null
+    private val detailBackStack = mutableListOf<AnimeRelease>()
 
     init {
         AnimeNotificationHelper.createNotificationChannel(application.applicationContext)
@@ -486,6 +490,23 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
 
     // Detail Screen
     fun openDetail(anime: AnimeRelease) {
+        detailBackStack.clear()
+        detailBackStack.add(anime)
+        loadDetailFor(anime)
+    }
+
+    fun openRelatedDetail(related: RelatedAnimeItem) {
+        val current = _uiState.value.selectedAnimeForDetail
+        if (current != null && current.id == related.id) return
+        val anime = related.toAnimeRelease()
+        if (detailBackStack.lastOrNull()?.id != anime.id) {
+            detailBackStack.add(anime)
+        }
+        loadDetailFor(anime)
+    }
+
+    private fun loadDetailFor(anime: AnimeRelease) {
+        detailJob?.cancel()
         val preferredLang = _uiState.value.globalLanguage
         val decorated = decorateItem(anime, _uiState.value).copy(activeLanguage = preferredLang)
         _uiState.update {
@@ -493,14 +514,16 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 selectedAnimeForDetail = decorated,
                 detailReviews = emptyList(),
                 detailCharacters = emptyList(),
+                detailRelations = emptyList(),
                 isLoadingDetail = true
             )
         }
         if (preferredLang == SynopsisLanguage.SPANISH && decorated.synopsisEs.isBlank() && decorated.synopsisEn.isNotBlank()) {
             translateDetailSynopsisInBackground(decorated.id, decorated.synopsisEn)
         }
-        viewModelScope.launch {
+        detailJob = viewModelScope.launch {
             val bundle = repository.getAnimeDetailBundle(anime.id)
+            if (_uiState.value.selectedAnimeForDetail?.id != anime.id) return@launch
             if (bundle != null) {
                 val mergedAnime = decorateItem(
                     bundle.anime.copy(
@@ -516,6 +539,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                         selectedAnimeForDetail = mergedAnime,
                         detailReviews = bundle.reviews,
                         detailCharacters = bundle.characters,
+                        detailRelations = bundle.relations,
                         isLoadingDetail = false
                     )
                 }
@@ -556,7 +580,24 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun closeDetail() {
-        _uiState.update { it.copy(selectedAnimeForDetail = null) }
+        detailJob?.cancel()
+        if (detailBackStack.isNotEmpty()) {
+            detailBackStack.removeAt(detailBackStack.lastIndex)
+        }
+        val previous = detailBackStack.lastOrNull()
+        if (previous != null) {
+            loadDetailFor(previous)
+        } else {
+            _uiState.update {
+                it.copy(
+                    selectedAnimeForDetail = null,
+                    detailReviews = emptyList(),
+                    detailCharacters = emptyList(),
+                    detailRelations = emptyList(),
+                    isLoadingDetail = false
+                )
+            }
+        }
     }
 
     // Watchlist & Watched Actions
@@ -596,53 +637,28 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateWatchlistEpisodes(animeId: Int, episodes: Int) {
         viewModelScope.launch {
-            val item = _uiState.value.watchlistItems.firstOrNull { it.animeId == animeId }
-            val clamped = item?.totalEpisodes?.let { max -> episodes.coerceIn(0, max) } ?: episodes.coerceAtLeast(0)
-            repository.updateWatchlistEpisodes(animeId, clamped)
-            if (item != null && clamped > 0) {
-                val key = "${animeId}_$clamped"
-                if (!_uiState.value.watchedEpisodeKeys.contains(key)) {
-                    repository.toggleWatchedEpisode(animeId, clamped)
-                }
-                val nextStatus = if (item.totalEpisodes != null && clamped >= item.totalEpisodes) {
-                    WatchlistStatus.COMPLETED
-                } else {
-                    WatchlistStatus.WATCHING
-                }
-                if (item.statusEnum != nextStatus) {
-                    repository.updateWatchlistStatus(animeId, nextStatus)
-                }
+            val item = _uiState.value.watchlistItems.firstOrNull { it.animeId == animeId } ?: return@launch
+            val clamped = item.totalEpisodes?.let { max -> episodes.coerceIn(0, max) } ?: episodes.coerceAtLeast(0)
+            if (clamped > 0) {
+                repository.markEpisodeWatched(animeId, clamped)
+            } else {
+                repository.clearWatchedEpisodesForAnime(animeId)
             }
         }
     }
 
     fun toggleWatchlistItemWatched(item: WatchlistEntity) {
         viewModelScope.launch {
-            val targetEp = item.watchedEpisodes.coerceAtLeast(1)
-            val key = "${item.animeId}_$targetEp"
-            val isCurrentlyWatched = _uiState.value.watchedEpisodeKeys.contains(key) ||
-                item.statusEnum == WatchlistStatus.COMPLETED ||
-                item.watchedEpisodes > 0
-            if (isCurrentlyWatched) {
-                if (_uiState.value.watchedEpisodeKeys.contains(key)) {
-                    repository.toggleWatchedEpisode(item.animeId, targetEp)
-                }
-                repository.updateWatchlistEpisodes(item.animeId, 0)
-                repository.updateWatchlistStatus(item.animeId, WatchlistStatus.PLAN_TO_WATCH)
+            val watchedCount = maxOf(
+                _uiState.value.watchedEpisodeKeys.count { it.startsWith("${item.animeId}_") },
+                item.watchedEpisodes
+            )
+            val isFullyWatched = item.statusEnum == WatchlistStatus.COMPLETED ||
+                (item.totalEpisodes != null && item.totalEpisodes > 0 && watchedCount >= item.totalEpisodes)
+            if (isFullyWatched) {
+                repository.clearWatchedEpisodesForAnime(item.animeId)
             } else {
-                if (!_uiState.value.watchedEpisodeKeys.contains(key)) {
-                    repository.toggleWatchedEpisode(item.animeId, targetEp)
-                }
-                val newWatched = (item.watchedEpisodes + 1).let { ep ->
-                    item.totalEpisodes?.let { max -> ep.coerceAtMost(max) } ?: ep
-                }
-                repository.updateWatchlistEpisodes(item.animeId, newWatched)
-                val newStatus = if (item.totalEpisodes != null && newWatched >= item.totalEpisodes) {
-                    WatchlistStatus.COMPLETED
-                } else {
-                    WatchlistStatus.WATCHING
-                }
-                repository.updateWatchlistStatus(item.animeId, newStatus)
+                repository.markAllEpisodesWatched(item.animeId, item.totalEpisodes)
             }
         }
     }
@@ -880,16 +896,19 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }.sortedBy { it.effectiveAiringSeconds() }
 
         val filteredWatchlist = state.watchlistItems.filter { item ->
-            val key = "${item.animeId}_${item.watchedEpisodes.coerceAtLeast(1)}"
-            val isWatched = state.watchedEpisodeKeys.contains(key) ||
-                item.statusEnum == WatchlistStatus.COMPLETED ||
-                item.watchedEpisodes > 0
+            val watchedCount = maxOf(
+                state.watchedEpisodeKeys.count { it.startsWith("${item.animeId}_") },
+                item.watchedEpisodes
+            )
+            val isFullyWatched = item.statusEnum == WatchlistStatus.COMPLETED ||
+                (item.totalEpisodes != null && item.totalEpisodes > 0 && watchedCount >= item.totalEpisodes)
+            val isInProgress = !isFullyWatched && (item.statusEnum == WatchlistStatus.WATCHING || watchedCount > 0)
             when (state.myListFilterTab) {
                 MyListFilterTab.ALL -> true
-                MyListFilterTab.WATCHED -> isWatched
-                MyListFilterTab.UNWATCHED -> !isWatched
-                MyListFilterTab.WATCHING -> item.statusEnum == WatchlistStatus.WATCHING
-                MyListFilterTab.PLAN_TO_WATCH -> item.statusEnum == WatchlistStatus.PLAN_TO_WATCH
+                MyListFilterTab.WATCHED -> isFullyWatched
+                MyListFilterTab.UNWATCHED -> !isFullyWatched && !isInProgress
+                MyListFilterTab.WATCHING -> isInProgress
+                MyListFilterTab.PLAN_TO_WATCH -> !isFullyWatched && !isInProgress && item.statusEnum == WatchlistStatus.PLAN_TO_WATCH
             }
         }.let { list ->
             when (state.myListSortOrder) {

@@ -472,4 +472,366 @@ class ExampleRobolectricTest {
     assertEquals(com.example.model.AppThemeMode.LIQUID_GLASS, resolved)
     assertEquals("Cristal (Liquid Glass)", resolved?.label)
   }
+
+  @Test
+  fun `test watchlist stays in WATCHING until all episodes are marked watched`() = runBlocking {
+    val series = OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now()).first().copy(
+      id = 7777,
+      totalEpisodes = 4
+    )
+    repository.toggleWatchlist(series)
+
+    // Mark episodes 1 and 2 out of 4 -> should be WATCHING (En proceso), NOT COMPLETED
+    repository.toggleWatchedEpisode(series.id, 1)
+    repository.toggleWatchedEpisode(series.id, 2)
+    var saved = db.watchlistDao().getWatchlistItemById(series.id)!!
+    assertEquals(2, saved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, saved.statusEnum)
+
+    // Mark episodes 3 and 4 (all 4 episodes) -> now COMPLETED
+    repository.toggleWatchedEpisode(series.id, 3)
+    repository.toggleWatchedEpisode(series.id, 4)
+    saved = db.watchlistDao().getWatchlistItemById(series.id)!!
+    assertEquals(4, saved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.COMPLETED, saved.statusEnum)
+
+    // Unmark episode 4 -> drops back to WATCHING
+    repository.toggleWatchedEpisode(series.id, 4)
+    saved = db.watchlistDao().getWatchlistItemById(series.id)!!
+    assertEquals(3, saved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, saved.statusEnum)
+  }
+
+  @Test
+  fun `test AniListClient parses related prequel sequel and OVA filtering manga and adult`() {
+    val mockDetailJson = """
+      {
+        "data": {
+          "Media": {
+            "id": 100,
+            "title": { "romaji": "Main Anime", "english": "Main Anime" },
+            "coverImage": { "large": "https://example.com/main.jpg" },
+            "description": "Main description",
+            "genres": ["Action"],
+            "averageScore": 85,
+            "popularity": 10000,
+            "episodes": 12,
+            "format": "TV",
+            "status": "FINISHED",
+            "season": "SPRING",
+            "seasonYear": 2025,
+            "relations": {
+              "edges": [
+                {
+                  "relationType": "SEQUEL",
+                  "node": {
+                    "id": 102,
+                    "type": "ANIME",
+                    "isAdult": false,
+                    "format": "TV",
+                    "status": "RELEASING",
+                    "episodes": 12,
+                    "seasonYear": 2026,
+                    "averageScore": 87,
+                    "title": { "romaji": "Main Anime S2", "english": "Main Anime Season 2" },
+                    "coverImage": { "large": "https://example.com/s2.jpg" }
+                  }
+                },
+                {
+                  "relationType": "PREQUEL",
+                  "node": {
+                    "id": 99,
+                    "type": "ANIME",
+                    "isAdult": false,
+                    "format": "TV",
+                    "status": "FINISHED",
+                    "episodes": 24,
+                    "seasonYear": 2023,
+                    "averageScore": 82,
+                    "title": { "romaji": "Main Anime Zero", "english": "Main Anime Zero" },
+                    "coverImage": { "large": "https://example.com/s0.jpg" }
+                  }
+                },
+                {
+                  "relationType": "SIDE_STORY",
+                  "node": {
+                    "id": 103,
+                    "type": "ANIME",
+                    "isAdult": false,
+                    "format": "OVA",
+                    "status": "FINISHED",
+                    "episodes": 2,
+                    "seasonYear": 2025,
+                    "averageScore": 79,
+                    "title": { "romaji": "Main Anime OVA", "english": null },
+                    "coverImage": { "large": "https://example.com/ova.jpg" }
+                  }
+                },
+                {
+                  "relationType": "ADAPTATION",
+                  "node": {
+                    "id": 200,
+                    "type": "MANGA",
+                    "isAdult": false,
+                    "format": "MANGA",
+                    "status": "RELEASING",
+                    "title": { "romaji": "Original Manga" },
+                    "coverImage": { "large": "https://example.com/manga.jpg" }
+                  }
+                },
+                {
+                  "relationType": "SPIN_OFF",
+                  "node": {
+                    "id": 201,
+                    "type": "ANIME",
+                    "isAdult": true,
+                    "format": "OVA",
+                    "status": "FINISHED",
+                    "title": { "romaji": "Adult Filtered" },
+                    "coverImage": { "large": "https://example.com/adult.jpg" }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    """.trimIndent()
+
+    val mockClient = okhttp3.OkHttpClient.Builder()
+      .addInterceptor { chain ->
+        okhttp3.Response.Builder()
+          .request(chain.request())
+          .protocol(okhttp3.Protocol.HTTP_1_1)
+          .code(200)
+          .message("OK")
+          .body(mockDetailJson.toResponseBody(null))
+          .build()
+      }
+      .build()
+
+    val client = com.example.data.AniListClient(mockClient)
+    val bundle = client.fetchAnimeDetails(100)!!
+    assertEquals(3, bundle.relations.size)
+    assertEquals("Precuela", bundle.relations[0].relationLabelEs)
+    assertEquals("Secuela", bundle.relations[1].relationLabelEs)
+    assertEquals("OVA", bundle.relations[2].relationLabelEs)
+  }
+
+  @Test
+  fun `test episode tracker shows full 178 episodes and accurate progress when 48 are watched`() = runBlocking {
+    val animeId = 97940 // Black Clover style 178-episode season
+    val partialKeys = (1..48).map { "${animeId}_$it" }.toSet()
+
+    val partialMetrics = com.example.ui.calculateEpisodeTrackerMetrics(
+      totalEpisodes = 178,
+      effectiveEpisode = 178,
+      animeId = animeId,
+      watchedEpisodeKeys = partialKeys
+    )
+
+    assertEquals(178, partialMetrics.displayEpisodeCount)
+    assertEquals(48, partialMetrics.watchedCount)
+    assertEquals(48f / 178f, partialMetrics.progress, 0.001f)
+    assertEquals(26, partialMetrics.progressPercent)
+
+    // Verify Room persistence for >48 episodes (e.g. episode 150) & bulk completion for 178 episodes
+    val longSeries = OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now()).first().copy(
+      id = animeId,
+      totalEpisodes = 178
+    )
+    repository.toggleWatchlist(longSeries)
+    repository.toggleWatchedEpisode(animeId, 150)
+
+    var saved = db.watchlistDao().getWatchlistItemById(animeId)!!
+    assertEquals(1, saved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, saved.statusEnum)
+
+    repository.markAllEpisodesWatched(animeId, 178)
+    val allKeys = repository.getWatchedEpisodeKeys()
+    val fullMetrics = com.example.ui.calculateEpisodeTrackerMetrics(
+      totalEpisodes = 178,
+      effectiveEpisode = 178,
+      animeId = animeId,
+      watchedEpisodeKeys = allKeys
+    )
+    assertEquals(178, fullMetrics.watchedCount)
+    assertEquals(1.0f, fullMetrics.progress, 0.001f)
+    assertEquals(100, fullMetrics.progressPercent)
+
+    saved = db.watchlistDao().getWatchlistItemById(animeId)!!
+    assertEquals(178, saved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.COMPLETED, saved.statusEnum)
+  }
+
+  @Test
+  fun `test local database preserves watchlist watched episodes favorites and ratings across app reopen`(): Unit = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val dbName = "test_persist_anical_database"
+    context.deleteDatabase(dbName)
+
+    val firstDb = Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+      .allowMainThreadQueries()
+      .addMigrations(*AppDatabase.MIGRATIONS)
+      .build()
+
+    firstDb.watchlistDao().insertWatchlist(
+      com.example.data.local.WatchlistEntity(
+        animeId = 5555,
+        titleRomaji = "Black Clover",
+        titleEnglish = "Black Clover",
+        coverImageUrl = "https://example.com/bc.jpg",
+        bannerImageUrl = null,
+        synopsis = "Asta",
+        genres = "Action, Fantasy",
+        studio = "Pierrot",
+        score = 8.1,
+        format = "TV",
+        totalEpisodes = 178,
+        watchedEpisodes = 2,
+        status = com.example.data.local.WatchlistStatus.WATCHING.name
+      )
+    )
+    firstDb.watchedEpisodeDao().markAllWatched(
+      listOf(
+        com.example.data.local.WatchedEpisodeEntity("5555_1", 5555, 1),
+        com.example.data.local.WatchedEpisodeEntity("5555_2", 5555, 2)
+      )
+    )
+    firstDb.favoriteAnimeDao().insertFavorite(
+      com.example.data.local.FavoriteAnimeEntity(
+        animeId = 5555,
+        titleRomaji = "Black Clover",
+        titleEnglish = "Black Clover",
+        coverImageUrl = "https://example.com/bc.jpg",
+        bannerImageUrl = null,
+        synopsis = "Asta",
+        genres = "Action",
+        studio = "Pierrot",
+        score = 8.1,
+        format = "TV"
+      )
+    )
+    firstDb.userRatingDao().insertOrUpdateRating(com.example.data.local.UserRatingEntity(animeId = 5555, rating = 5))
+    firstDb.close()
+
+    // Reopen as an updated app session using production migrations
+    val updatedDb = Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+      .allowMainThreadQueries()
+      .addMigrations(*AppDatabase.MIGRATIONS)
+      .build()
+
+    val savedWatchlist = updatedDb.watchlistDao().getWatchlistItemById(5555)
+    assertNotNull("Watchlist entry must survive update", savedWatchlist)
+    assertEquals(2, savedWatchlist!!.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, savedWatchlist.statusEnum)
+
+    val savedEpisodes = updatedDb.watchedEpisodeDao().getWatchedEpisodeNumbersForAnime(5555)
+    assertEquals(listOf(1, 2), savedEpisodes.sorted())
+
+    assertTrue("Favorite must survive update", updatedDb.favoriteAnimeDao().isFavoriteDirect(5555))
+    assertEquals(5, updatedDb.userRatingDao().getRatingDirect(5555))
+
+    updatedDb.close()
+    context.deleteDatabase(dbName)
+  }
+
+  @Test
+  fun `test non-destructive migration from older DB version preserves user series and watched episodes`(): Unit = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val dbName = "test_migration_v4_to_v6"
+    context.deleteDatabase(dbName)
+
+    // Simulate an older app installation (schema version 4) with partial columns & user progress
+    val legacyHelper = androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory().create(
+      androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+        .name(dbName)
+        .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(4) {
+          override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+            db.execSQL(
+              """
+              CREATE TABLE favorite_anime (
+                animeId INTEGER NOT NULL PRIMARY KEY,
+                titleRomaji TEXT NOT NULL,
+                titleEnglish TEXT,
+                coverImageUrl TEXT NOT NULL,
+                bannerImageUrl TEXT,
+                synopsis TEXT NOT NULL,
+                genres TEXT NOT NULL,
+                studio TEXT,
+                score REAL,
+                format TEXT NOT NULL
+              )
+              """.trimIndent()
+            )
+            db.execSQL(
+              """
+              CREATE TABLE watched_episodes (
+                episodeKey TEXT NOT NULL PRIMARY KEY,
+                animeId INTEGER NOT NULL,
+                episodeNumber INTEGER NOT NULL
+              )
+              """.trimIndent()
+            )
+            db.execSQL(
+              """
+              CREATE TABLE watchlist_anime (
+                animeId INTEGER NOT NULL PRIMARY KEY,
+                titleRomaji TEXT NOT NULL,
+                titleEnglish TEXT,
+                coverImageUrl TEXT NOT NULL,
+                bannerImageUrl TEXT,
+                synopsis TEXT NOT NULL,
+                genres TEXT NOT NULL,
+                studio TEXT,
+                score REAL,
+                format TEXT NOT NULL,
+                totalEpisodes INTEGER,
+                watchedEpisodes INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'PLAN_TO_WATCH'
+              )
+              """.trimIndent()
+            )
+            db.execSQL(
+              """
+              INSERT INTO watchlist_anime (animeId, titleRomaji, titleEnglish, coverImageUrl, bannerImageUrl, synopsis, genres, studio, score, format, totalEpisodes, watchedEpisodes, status)
+              VALUES (8888, 'Bleach', 'Bleach', 'https://example.com/bleach.jpg', NULL, 'Shinigami', 'Action', 'Pierrot', 8.2, 'TV', 366, 3, 'WATCHING')
+              """.trimIndent()
+            )
+            db.execSQL("INSERT INTO watched_episodes (episodeKey, animeId, episodeNumber) VALUES ('8888_1', 8888, 1)")
+            db.execSQL("INSERT INTO watched_episodes (episodeKey, animeId, episodeNumber) VALUES ('8888_2', 8888, 2)")
+            db.execSQL("INSERT INTO watched_episodes (episodeKey, animeId, episodeNumber) VALUES ('8888_3', 8888, 3)")
+            db.execSQL(
+              """
+              INSERT INTO favorite_anime (animeId, titleRomaji, titleEnglish, coverImageUrl, bannerImageUrl, synopsis, genres, studio, score, format)
+              VALUES (8888, 'Bleach', 'Bleach', 'https://example.com/bleach.jpg', NULL, 'Shinigami', 'Action', 'Pierrot', 8.2, 'TV')
+              """.trimIndent()
+            )
+          }
+
+          override fun onUpgrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+        })
+        .build()
+    )
+    legacyHelper.writableDatabase.close()
+    legacyHelper.close()
+
+    // Upgrade to Room AppDatabase v6 using MIGRATIONS (no destructive fallback)
+    val migratedDb = Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+      .allowMainThreadQueries()
+      .addMigrations(*AppDatabase.MIGRATIONS)
+      .build()
+
+    val item = migratedDb.watchlistDao().getWatchlistItemById(8888)
+    assertNotNull("Legacy watchlist item must survive migration to v6", item)
+    assertEquals(3, item!!.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, item.statusEnum)
+
+    val watched = migratedDb.watchedEpisodeDao().getWatchedEpisodeNumbersForAnime(8888)
+    assertEquals(listOf(1, 2, 3), watched.sorted())
+    assertTrue(migratedDb.favoriteAnimeDao().isFavoriteDirect(8888))
+
+    migratedDb.close()
+    context.deleteDatabase(dbName)
+  }
 }

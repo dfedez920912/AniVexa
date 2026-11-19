@@ -234,8 +234,47 @@ data class AnimeCharacter(
     val voiceActorImageUrl: String?
 )
 
+data class RelatedAnimeItem(
+    val id: Int,
+    val relationType: String,
+    val relationLabelEs: String,
+    val titleRomaji: String,
+    val titleEnglish: String?,
+    val coverImageUrl: String,
+    val format: String,
+    val status: String,
+    val totalEpisodes: Int?,
+    val seasonYear: Int?,
+    val score: Double?
+) {
+    val displayTitle: String
+        get() = if (!titleEnglish.isNullOrBlank()) titleEnglish else titleRomaji
+
+    fun toAnimeRelease(): AnimeRelease {
+        return AnimeRelease(
+            id = id,
+            airingId = id,
+            titleRomaji = titleRomaji,
+            titleEnglish = titleEnglish,
+            coverImageUrl = coverImageUrl,
+            bannerImageUrl = null,
+            synopsis = "",
+            episode = 1,
+            totalEpisodes = totalEpisodes,
+            airingAtSeconds = 0L,
+            genres = emptyList(),
+            score = score,
+            studio = null,
+            format = format,
+            status = status,
+            seasonYear = seasonYear
+        )
+    }
+}
+
 data class AnimeDetailBundle(
     val anime: AnimeRelease,
     val reviews: List<AnimeReview>,
-    val characters: List<AnimeCharacter>
+    val characters: List<AnimeCharacter>,
+    val relations: List<RelatedAnimeItem> = emptyList()
 )

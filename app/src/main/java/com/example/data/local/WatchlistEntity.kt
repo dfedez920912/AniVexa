@@ -5,9 +5,9 @@ import androidx.room.PrimaryKey
 import com.example.model.AnimeRelease
 
 enum class WatchlistStatus(val displayName: String, val shortLabel: String) {
-    PLAN_TO_WATCH("Por Ver", "Plan"),
-    WATCHING("Viendo", "Viendo"),
-    COMPLETED("Completado", "Visto"),
+    PLAN_TO_WATCH("Por Ver", "Sin ver"),
+    WATCHING("En Proceso", "En proceso"),
+    COMPLETED("Completado (Visto)", "Visto"),
     DROPPED("En Pausa", "Pausa")
 }
 

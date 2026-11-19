@@ -81,11 +81,18 @@ class AnimeRepository(
             watchlistDao.deleteFromWatchlist(anime.id)
             false
         } else {
+            val watchedCount = watchedEpisodeDao.getWatchedCountForAnime(anime.id)
+            val total = anime.totalEpisodes
+            val resolvedStatus = when {
+                total != null && total > 0 && watchedCount >= total -> WatchlistStatus.COMPLETED
+                watchedCount > 0 -> WatchlistStatus.WATCHING
+                else -> status
+            }
             watchlistDao.insertWatchlist(
                 WatchlistEntity.fromAnimeRelease(
                     anime = anime,
-                    status = status,
-                    watchedEpisodes = if (anime.isWatched) anime.episode else 0
+                    status = resolvedStatus,
+                    watchedEpisodes = watchedCount
                 )
             )
             true
@@ -123,10 +130,49 @@ class AnimeRepository(
         watchedEpisodeDao.getAllWatchedKeysList().toSet()
     }
 
+    suspend fun getWatchedCountForAnime(animeId: Int): Int = withContext(Dispatchers.IO) {
+        watchedEpisodeDao.getWatchedCountForAnime(animeId)
+    }
+
+    suspend fun markEpisodeWatched(animeId: Int, episodeNumber: Int) = withContext(Dispatchers.IO) {
+        val key = "${animeId}_${episodeNumber}"
+        if (!watchedEpisodeDao.isWatched(key)) {
+            watchedEpisodeDao.markWatched(
+                WatchedEpisodeEntity(
+                    episodeKey = key,
+                    animeId = animeId,
+                    episodeNumber = episodeNumber
+                )
+            )
+        }
+        syncWatchlistProgressWithWatchedEpisodes(animeId)
+    }
+
+    suspend fun markAllEpisodesWatched(animeId: Int, totalEpisodes: Int?) = withContext(Dispatchers.IO) {
+        if (totalEpisodes != null && totalEpisodes > 0) {
+            val entities = (1..totalEpisodes).map { ep ->
+                WatchedEpisodeEntity(
+                    episodeKey = "${animeId}_$ep",
+                    animeId = animeId,
+                    episodeNumber = ep
+                )
+            }
+            watchedEpisodeDao.markAllWatched(entities)
+            watchlistDao.updateWatchedEpisodes(animeId, totalEpisodes)
+        }
+        watchlistDao.updateStatus(animeId, WatchlistStatus.COMPLETED.name)
+    }
+
+    suspend fun clearWatchedEpisodesForAnime(animeId: Int) = withContext(Dispatchers.IO) {
+        watchedEpisodeDao.clearForAnime(animeId)
+        watchlistDao.updateWatchedEpisodes(animeId, 0)
+        watchlistDao.updateStatus(animeId, WatchlistStatus.PLAN_TO_WATCH.name)
+    }
+
     suspend fun toggleWatchedEpisode(animeId: Int, episodeNumber: Int): Boolean = withContext(Dispatchers.IO) {
         val key = "${animeId}_${episodeNumber}"
         val isAlreadyWatched = watchedEpisodeDao.isWatched(key)
-        if (isAlreadyWatched) {
+        val result = if (isAlreadyWatched) {
             watchedEpisodeDao.unmarkWatched(key)
             false
         } else {
@@ -137,13 +183,27 @@ class AnimeRepository(
                     episodeNumber = episodeNumber
                 )
             )
-            // Keep watchlist episode progress synced if in watchlist
-            watchlistDao.getWatchlistItemById(animeId)?.let { existing ->
-                if (episodeNumber > existing.watchedEpisodes) {
-                    watchlistDao.updateWatchedEpisodes(animeId, episodeNumber)
+            true
+        }
+        syncWatchlistProgressWithWatchedEpisodes(animeId)
+        result
+    }
+
+    private suspend fun syncWatchlistProgressWithWatchedEpisodes(animeId: Int) {
+        watchlistDao.getWatchlistItemById(animeId)?.let { existing ->
+            val watchedCount = watchedEpisodeDao.getWatchedCountForAnime(animeId)
+            watchlistDao.updateWatchedEpisodes(animeId, watchedCount)
+            if (existing.statusEnum != WatchlistStatus.DROPPED) {
+                val total = existing.totalEpisodes
+                val nextStatus = when {
+                    total != null && total > 0 && watchedCount >= total -> WatchlistStatus.COMPLETED
+                    watchedCount > 0 -> WatchlistStatus.WATCHING
+                    else -> WatchlistStatus.PLAN_TO_WATCH
+                }
+                if (existing.statusEnum != nextStatus) {
+                    watchlistDao.updateStatus(animeId, nextStatus.name)
                 }
             }
-            true
         }
     }
 

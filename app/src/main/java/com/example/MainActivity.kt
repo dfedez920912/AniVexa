@@ -82,11 +82,13 @@ class MainActivity : ComponentActivity() {
                                     anime = detailAnime,
                                     reviews = uiState.detailReviews,
                                     characters = uiState.detailCharacters,
+                                    relatedAnime = uiState.detailRelations,
                                     isLoadingDetail = uiState.isLoadingDetail,
                                     watchedEpisodeKeys = uiState.watchedEpisodeKeys,
                                     defaultReminderMinutes = uiState.defaultReminderMinutes,
                                     zoneId = uiState.activeZoneId,
                                     onBack = { viewModel.closeDetail() },
+                                    onRelatedAnimeClick = { viewModel.openRelatedDetail(it) },
                                     onToggleWatchlist = { viewModel.toggleWatchlist(detailAnime) },
                                     onToggleReminder = { enabled, mins ->
                                         viewModel.updateReminder(detailAnime, enabled, mins)
