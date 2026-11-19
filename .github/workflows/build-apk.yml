@@ -55,17 +55,20 @@ jobs:
       - name: Build Android APK
         id: build_apk
         env:
-          KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.SIGNING_KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -euo pipefail
           if [ -n "${KEYSTORE_BASE64:-}" ] && [ -n "${STORE_PASSWORD:-}" ] && [ -n "${KEY_PASSWORD:-}" ]; then
             echo "Building signed release APK..."
-            echo "$KEYSTORE_BASE64" | base64 --decode > my-upload-key.jks
-            export KEYSTORE_PATH="$PWD/my-upload-key.jks"
+            printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 --decode > "$RUNNER_TEMP/my-upload-key.jks"
+            export KEYSTORE_PATH="$RUNNER_TEMP/my-upload-key.jks"
             ./gradlew assembleRelease --no-daemon
             APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          elif [[ "${GITHUB_REF:-}" == refs/tags/* ]]; then
+            echo "Error: Release signing secrets (ANDROID_KEYSTORE_BASE64, STORE_PASSWORD, KEY_PASSWORD) are required for tagged releases."
+            exit 1
           else
             echo "Release signing secrets not configured; building debug APK..."
             if [ ! -f debug.keystore ]; then
