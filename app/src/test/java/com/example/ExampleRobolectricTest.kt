@@ -834,4 +834,100 @@ class ExampleRobolectricTest {
     migratedDb.close()
     context.deleteDatabase(dbName)
   }
+
+  @Test
+  fun `test WidgetDataHelper today snapshot stays locked to device real date when Calendar overwrites cache`(): Unit = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    com.example.widget.WidgetDataHelper.clearTodaySnapshot(context)
+
+    val appDb = AppDatabase.getDatabase(context)
+    val dao = appDb.cachedAnimeDao()
+    dao.clearAllCache()
+
+    val zoneId = java.time.ZoneId.systemDefault()
+    val today = LocalDate.now(zoneId)
+    val todayNoon = today.atTime(12, 0).atZone(zoneId).toEpochSecond()
+    val nextWeekNoon = today.plusDays(7).atTime(12, 0).atZone(zoneId).toEpochSecond()
+
+    val todayRelease = OfflineAnimeData.getCuratedWeekSchedule(today).first().copy(
+      id = 9101,
+      airingId = 9101,
+      titleRomaji = "Today Locked Anime",
+      titleEnglish = "Today Locked Anime",
+      episode = 10,
+      airingAtSeconds = todayNoon
+    )
+
+    // Save isolated today snapshot as AnimeRepository.getSchedule does when syncing today
+    com.example.widget.WidgetDataHelper.saveTodaySnapshot(
+      context = context,
+      date = today,
+      zoneId = zoneId,
+      releases = listOf(todayRelease)
+    )
+
+    // Simulate user browsing another week in Calendar which overwrites the same anime ID in cached_anime
+    dao.insertAll(
+      listOf(
+        com.example.data.local.CachedAnimeEntity(
+          id = 9101,
+          airingId = 9199,
+          titleRomaji = "Next Week Episode",
+          titleEnglish = "Next Week Episode",
+          coverImageUrl = todayRelease.coverImageUrl,
+          bannerImageUrl = null,
+          synopsis = "Synopsis",
+          episode = 11,
+          totalEpisodes = 12,
+          airingAtSeconds = nextWeekNoon,
+          genres = "Action",
+          score = 8.5,
+          studio = "Bones",
+          categoryTag = "SCHEDULE"
+        )
+      )
+    )
+
+    val (widgetReleases, resolvedZone) = com.example.widget.WidgetDataHelper.getTodayRealReleases(
+      context = context,
+      forceNetwork = false
+    )
+    assertEquals(zoneId, resolvedZone)
+    assertEquals(1, widgetReleases.size)
+    assertEquals(9101, widgetReleases.first().id)
+    assertEquals(10, widgetReleases.first().effectiveEpisodeNumber())
+    assertEquals(today, widgetReleases.first().getAiringLocalDate(zoneId))
+
+    com.example.widget.WidgetDataHelper.clearTodaySnapshot(context)
+    dao.clearAllCache()
+  }
+
+  @Test
+  fun `test SeeAll season selection does not mutate Home currentSeason or currentSeasonYear`() {
+    val application = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val viewModel = com.example.ui.AnimeViewModel(application)
+
+    val expectedToday = LocalDate.now(viewModel.uiState.value.activeZoneId)
+    val expectedSeason = com.example.model.MediaSeason.fromDate(expectedToday)
+    val expectedYear = expectedToday.year
+
+    assertEquals(expectedSeason, viewModel.uiState.value.currentSeason)
+    assertEquals(expectedYear, viewModel.uiState.value.currentSeasonYear)
+
+    // Open Ver todo and pick another season/year (e.g., Winter 2025)
+    viewModel.openSeeAll(com.example.ui.SeeAllMode.THIS_SEASON)
+    viewModel.selectSeeAllSeason(com.example.model.MediaSeason.WINTER, 2025)
+
+    assertEquals(com.example.model.MediaSeason.WINTER, viewModel.uiState.value.seeAllSeason)
+    assertEquals(2025, viewModel.uiState.value.seeAllYear)
+    // Home state remains locked to the device's real season and year
+    assertEquals(expectedSeason, viewModel.uiState.value.currentSeason)
+    assertEquals(expectedYear, viewModel.uiState.value.currentSeasonYear)
+
+    // Return to Home
+    viewModel.closeSeeAll()
+    assertEquals(com.example.ui.SeeAllMode.NONE, viewModel.uiState.value.seeAllMode)
+    assertEquals(expectedSeason, viewModel.uiState.value.currentSeason)
+    assertEquals(expectedYear, viewModel.uiState.value.currentSeasonYear)
+  }
 }

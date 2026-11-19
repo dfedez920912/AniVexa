@@ -149,7 +149,7 @@ class MainActivity : ComponentActivity() {
                                                     uiState = uiState,
                                                     onBack = { viewModel.closeSeeAll() },
                                                     onSelectSeason = { season, year ->
-                                                        viewModel.selectHomeSeason(season, year)
+                                                        viewModel.selectSeeAllSeason(season, year)
                                                     },
                                                     onAnimeClick = { viewModel.openDetail(it) }
                                                 )

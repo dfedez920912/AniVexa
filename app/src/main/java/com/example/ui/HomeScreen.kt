@@ -69,9 +69,11 @@ fun HomeScreen(
     val isGlass = LocalIsLiquidGlass.current
     val bottomDockPadding = LocalBottomDockPadding.current
     val today = LocalDate.now(uiState.activeZoneId)
-    val todayReleases = uiState.scheduleReleases.filter {
-        it.effectiveAiringSeconds() > 0L && it.getAiringLocalDate(uiState.activeZoneId) == today
-    }.sortedBy { it.effectiveAiringSeconds() }
+    val todayReleases = uiState.todayReleases.ifEmpty {
+        uiState.scheduleReleases.filter {
+            it.effectiveAiringSeconds() > 0L && it.getAiringLocalDate(uiState.activeZoneId) == today
+        }.sortedBy { it.effectiveAiringSeconds() }
+    }
 
     LazyColumn(
         modifier = modifier
@@ -104,7 +106,7 @@ fun HomeScreen(
                         border = if (isGlass) glassCardBorder(glassWidth = 0.8.dp) else null
                     ) {
                         Text(
-                            text = "${uiState.selectedHomeSeason.labelEs} ${uiState.selectedHomeYear}",
+                            text = "${uiState.currentSeason.labelEs} ${uiState.currentSeasonYear}",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -314,7 +316,8 @@ fun SeeAllCatalogScreen(
 ) {
     BackHandler(onBack = onBack)
 
-    val items = if (mode == SeeAllMode.THIS_SEASON) uiState.seasonalAnime else uiState.popularAnime
+    val items = if (mode == SeeAllMode.THIS_SEASON) uiState.seeAllSeasonAnime else uiState.popularAnime
+    val isLoading = if (mode == SeeAllMode.THIS_SEASON) uiState.isLoadingSeeAll else uiState.isLoadingHome
     val currentYear = LocalDate.now().year
     val years = listOf(currentYear - 1, currentYear, currentYear + 1)
 
@@ -353,10 +356,10 @@ fun SeeAllCatalogScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(MediaSeason.entries) { season ->
-                    val selected = uiState.selectedHomeSeason == season
+                    val selected = uiState.seeAllSeason == season
                     FilterChip(
                         selected = selected,
-                        onClick = { onSelectSeason(season, uiState.selectedHomeYear) },
+                        onClick = { onSelectSeason(season, uiState.seeAllYear) },
                         label = { Text(season.labelEs, fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
@@ -365,10 +368,10 @@ fun SeeAllCatalogScreen(
                     )
                 }
                 items(years) { yr ->
-                    val selected = uiState.selectedHomeYear == yr
+                    val selected = uiState.seeAllYear == yr
                     FilterChip(
                         selected = selected,
-                        onClick = { onSelectSeason(uiState.selectedHomeSeason, yr) },
+                        onClick = { onSelectSeason(uiState.seeAllSeason, yr) },
                         label = { Text("$yr", fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -379,7 +382,7 @@ fun SeeAllCatalogScreen(
             }
         }
 
-        if (uiState.isLoadingHome && items.isEmpty()) {
+        if (isLoading && items.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }

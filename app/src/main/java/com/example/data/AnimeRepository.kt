@@ -293,7 +293,10 @@ class AnimeRepository(
                 val todayInZone = LocalDate.now(zoneId)
                 val endDate = startDate.plusDays(daysCount.toLong() - 1)
                 if (!todayInZone.isBefore(startDate) && !todayInZone.isAfter(endDate)) {
-                    com.example.widget.WidgetDataHelper.markScheduleSynced(context, todayInZone)
+                    val todayOnly = remoteReleases.filter {
+                        it.effectiveAiringSeconds() > 0L && it.getAiringLocalDate(zoneId) == todayInZone
+                    }
+                    com.example.widget.WidgetDataHelper.saveTodaySnapshot(context, todayInZone, zoneId, todayOnly)
                     com.example.widget.WidgetDataHelper.notifyAllWidgets(context)
                 }
                 return@withContext Result.success(
@@ -313,7 +316,8 @@ class AnimeRepository(
         season: MediaSeason = MediaSeason.fromDate(LocalDate.now()),
         year: Int = LocalDate.now().year,
         page: Int = 1,
-        perPage: Int = 30
+        perPage: Int = 30,
+        cacheForHome: Boolean = true
     ): Pair<List<AnimeRelease>, Boolean> = withContext(Dispatchers.IO) {
         val favIds = favoriteAnimeDao.getFavoriteIdsList().toSet()
         val watchedKeys = watchedEpisodeDao.getAllWatchedKeysList().toSet()
@@ -322,9 +326,11 @@ class AnimeRepository(
         try {
             val remote = aniListClient.fetchSeasonalAnime(season, year, page, perPage)
             if (remote.isNotEmpty()) {
-                cachedAnimeDao.insertAll(
-                    remote.map { CachedAnimeEntity.fromAnimeRelease(it, categoryTag = "SEASON") }
-                )
+                if (cacheForHome) {
+                    cachedAnimeDao.insertAll(
+                        remote.map { CachedAnimeEntity.fromAnimeRelease(it, categoryTag = "SEASON") }
+                    )
+                }
                 return@withContext Pair(decorateReleases(remote, favIds, watchedKeys, userRatingsMap), false)
             }
         } catch (e: Exception) {

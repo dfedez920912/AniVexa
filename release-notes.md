@@ -1,17 +1,14 @@
-# AniVexa v0.1.3
+# AniVexa v0.1.4
 
-## Novedades de esta versión
+## Novedades y correcciones de esta versión
 
-### Seguimiento preciso en Mi Lista
-- **Estado "En proceso"**: Al añadir una serie a *Mi Lista* y marcar varios episodios como vistos sin haberla terminado, ahora se muestra correctamente como **En proceso** en lugar de *Visto*.
-- **Completado real**: Una serie solo pasa a marcarse como **Visto** cuando hayas completado todos los capítulos de la temporada (y vuelve a *En proceso* si desmarcas alguno).
+### Temporada actual aislada de "Ver todo"
+- **Inicio siempre en la temporada real**: Al entrar en **Esta Temporada → Ver todo** y filtrar por otros años o estaciones (como `2025`, `2026` o `2027`), la pantalla principal conserva intactos la temporada y el año reales actuales del dispositivo al regresar.
+- **Caché independiente**: Explorar catálogos históricos o futuros desde **Ver todo** ya no sobrescribe la caché de **Esta Temporada** de la pantalla de inicio.
 
-### Contenido relacionado en cada serie
-- **Precuelas, secuelas y OVAs**: Al entrar al detalle de un anime, ahora verás al final de la pantalla la sección **Contenido Relacionado** si tiene entregas vinculadas (precuelas, secuelas, OVAs, películas o historias paralelas), con acceso directo para abrirlas.
+### Widgets y "Hoy en Emisión" siempre al día real
+- **Widgets independientes del Calendario**: Consultar otros días, semanas o meses en la pantalla de **Calendario** ya no afecta a los widgets de escritorio ni reemplaza sus estrenos con fechas de otras semanas.
+- **Instantánea dedicada para hoy**: Los widgets y la sección **Hoy en Emisión** utilizan un almacenamiento aislado exclusivo para la fecha real actual del dispositivo (respetando la zona horaria elegida en Ajustes).
 
-### Series largas con todos sus capítulos
-- **Selector desplazable sin límite de 48 episodios**: En series de larga duración (como temporadas de 100, 178 o más capítulos) ya puedes desplazarte por la lista completa de episodios y saltar rápido entre bloques para marcar los que ya viste.
-- **Progreso real de la temporada**: La barra de progreso y el porcentaje ahora se calculan sobre el total real de capítulos de la serie, sin marcar 100% antes de terminarla.
-
-### Conservación de tus datos al actualizar
-- **Tu progreso siempre a salvo**: Se reforzó el guardado local y la compatibilidad de copias de seguridad para que al actualizar AniVexa mantengas todas tus series, episodios vistos, favoritos, puntuaciones y ajustes sin tener que volver a marcarlos.
+### Estabilidad y pruebas
+- **Verificación automatizada**: Se incorporaron pruebas unitarias para validar que tanto el snapshot de los widgets como la temporada actual de Inicio se mantienen aislados al navegar por el calendario o el catálogo.

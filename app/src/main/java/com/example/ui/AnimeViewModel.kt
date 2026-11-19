@@ -76,13 +76,18 @@ data class AnimeUiState(
     val errorMessage: String? = null,
     val notificationMessage: String? = null,
 
-    // Home Data (current season dynamically from LocalDate.now())
+    // Home Data (always locked to current real season/year & today's real releases)
     val currentSeason: MediaSeason = MediaSeason.fromDate(LocalDate.now()),
     val currentSeasonYear: Int = LocalDate.now().year,
-    val selectedHomeSeason: MediaSeason = MediaSeason.fromDate(LocalDate.now()),
-    val selectedHomeYear: Int = LocalDate.now().year,
     val seasonalAnime: List<AnimeRelease> = emptyList(),
     val popularAnime: List<AnimeRelease> = emptyList(),
+    val todayReleases: List<AnimeRelease> = emptyList(),
+
+    // SeeAll Catalog Browser (isolated from Home's current season)
+    val seeAllSeason: MediaSeason = MediaSeason.fromDate(LocalDate.now()),
+    val seeAllYear: Int = LocalDate.now().year,
+    val seeAllSeasonAnime: List<AnimeRelease> = emptyList(),
+    val isLoadingSeeAll: Boolean = false,
 
     // Calendar & Schedule Data
     val calendarViewMode: CalendarViewMode = CalendarViewMode.WEEK,
@@ -160,6 +165,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
 
     private var searchJob: Job? = null
     private var detailJob: Job? = null
+    private var seeAllSeasonJob: Job? = null
     private val detailBackStack = mutableListOf<AnimeRelease>()
 
     init {
@@ -235,7 +241,13 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(isRefreshing = true) }
         viewModelScope.launch {
             loadHomeDataInternal()
-            loadWeekScheduleInternal(_uiState.value.weekStartDate)
+            val weekStart = _uiState.value.weekStartDate
+            loadWeekScheduleInternal(weekStart)
+            val today = LocalDate.now(_uiState.value.activeZoneId)
+            val weekEnd = weekStart.plusDays(6)
+            if (today.isBefore(weekStart) || today.isAfter(weekEnd)) {
+                loadTodayRealScheduleInternal()
+            }
             _uiState.update { it.copy(isRefreshing = false) }
         }
     }
@@ -250,16 +262,24 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun loadHomeDataInternal() {
         val state = _uiState.value
+        val zone = state.activeZoneId
+        val realToday = LocalDate.now(zone)
+        val realSeason = MediaSeason.fromDate(realToday)
+        val realYear = realToday.year
+
         val (seasonal, seasonOffline) = repository.getSeasonalAnime(
-            season = state.selectedHomeSeason,
-            year = state.selectedHomeYear,
+            season = realSeason,
+            year = realYear,
             page = 1,
-            perPage = 30
+            perPage = 30,
+            cacheForHome = true
         )
         val (popular, popOffline) = repository.getPopularRanking(page = 1, perPage = 30)
 
         _uiState.update { s ->
             val updated = s.copy(
+                currentSeason = realSeason,
+                currentSeasonYear = realYear,
                 seasonalAnime = seasonal,
                 popularAnime = popular,
                 isOfflineMode = seasonOffline && popOffline
@@ -268,12 +288,28 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun selectHomeSeason(season: MediaSeason, year: Int) {
-        _uiState.update { it.copy(selectedHomeSeason = season, selectedHomeYear = year, isLoadingHome = true) }
-        viewModelScope.launch {
-            val (seasonal, offline) = repository.getSeasonalAnime(season = season, year = year, page = 1, perPage = 35)
+    fun selectSeeAllSeason(season: MediaSeason, year: Int) {
+        seeAllSeasonJob?.cancel()
+        _uiState.update {
+            it.copy(
+                seeAllSeason = season,
+                seeAllYear = year,
+                isLoadingSeeAll = true
+            )
+        }
+        seeAllSeasonJob = viewModelScope.launch {
+            val (seasonal, _) = repository.getSeasonalAnime(
+                season = season,
+                year = year,
+                page = 1,
+                perPage = 35,
+                cacheForHome = false
+            )
             _uiState.update { s ->
-                val updated = s.copy(seasonalAnime = seasonal, isLoadingHome = false, isOfflineMode = offline)
+                val updated = s.copy(
+                    seeAllSeasonAnime = seasonal,
+                    isLoadingSeeAll = false
+                )
                 recomputeDerivedLists(updated)
             }
         }
@@ -289,15 +325,50 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun loadWeekScheduleInternal(weekStart: LocalDate) {
         val zone = _uiState.value.activeZoneId
+        val todayInZone = LocalDate.now(zone)
+        val weekEnd = weekStart.plusDays(6)
+        val includesToday = !todayInZone.isBefore(weekStart) && !todayInZone.isAfter(weekEnd)
+
         val result = repository.getSchedule(startDate = weekStart, daysCount = 7, zoneId = zone)
         result.onSuccess { releases ->
             _uiState.update { s ->
-                val updated = s.copy(scheduleReleases = releases, errorMessage = null)
+                val nextToday = if (includesToday) {
+                    releases.filter {
+                        it.effectiveAiringSeconds() > 0L && it.getAiringLocalDate(zone) == todayInZone
+                    }.sortedBy { it.effectiveAiringSeconds() }
+                } else {
+                    s.todayReleases
+                }
+                val updated = s.copy(
+                    scheduleReleases = releases,
+                    todayReleases = nextToday,
+                    errorMessage = null
+                )
                 recomputeDerivedLists(updated)
             }
             scheduleRemindersForFavorites(releases, _uiState.value.favoriteIds)
         }.onFailure { err ->
             _uiState.update { it.copy(errorMessage = err.message) }
+        }
+    }
+
+    private fun loadTodayRealSchedule() {
+        viewModelScope.launch {
+            loadTodayRealScheduleInternal()
+        }
+    }
+
+    private suspend fun loadTodayRealScheduleInternal() {
+        val zone = _uiState.value.activeZoneId
+        val realToday = LocalDate.now(zone)
+        val result = repository.getSchedule(startDate = realToday, daysCount = 1, zoneId = zone)
+        result.onSuccess { releases ->
+            val todayOnly = releases.filter {
+                it.effectiveAiringSeconds() > 0L && it.getAiringLocalDate(zone) == realToday
+            }.sortedBy { it.effectiveAiringSeconds() }
+            _uiState.update { s ->
+                recomputeDerivedLists(s.copy(todayReleases = todayOnly))
+            }
         }
     }
 
@@ -383,15 +454,33 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setNavScreen(screen: MainNavScreen) {
-        _uiState.update { it.copy(currentNavScreen = screen, seeAllMode = SeeAllMode.NONE) }
+        seeAllSeasonJob?.cancel()
+        _uiState.update { it.copy(currentNavScreen = screen, seeAllMode = SeeAllMode.NONE, isLoadingSeeAll = false) }
     }
 
     fun openSeeAll(mode: SeeAllMode) {
-        _uiState.update { it.copy(seeAllMode = mode) }
+        seeAllSeasonJob?.cancel()
+        _uiState.update { state ->
+            val realToday = LocalDate.now(state.activeZoneId)
+            val realSeason = MediaSeason.fromDate(realToday)
+            val realYear = realToday.year
+            if (mode == SeeAllMode.THIS_SEASON) {
+                state.copy(
+                    seeAllMode = mode,
+                    seeAllSeason = realSeason,
+                    seeAllYear = realYear,
+                    seeAllSeasonAnime = state.seasonalAnime,
+                    isLoadingSeeAll = false
+                )
+            } else {
+                state.copy(seeAllMode = mode, isLoadingSeeAll = false)
+            }
+        }
     }
 
     fun closeSeeAll() {
-        _uiState.update { it.copy(seeAllMode = SeeAllMode.NONE) }
+        seeAllSeasonJob?.cancel()
+        _uiState.update { it.copy(seeAllMode = SeeAllMode.NONE, isLoadingSeeAll = false) }
     }
 
     // Search & Discover
@@ -784,7 +873,9 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { state ->
             recomputeDerivedLists(state.copy(isJapanTimeZone = next))
         }
+        com.example.widget.WidgetDataHelper.clearTodaySnapshot(getApplication())
         com.example.widget.WidgetDataHelper.notifyAllWidgets(getApplication())
+        loadTodayRealSchedule()
         loadWeekSchedule(_uiState.value.weekStartDate)
     }
 
@@ -852,6 +943,8 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
 
         val decoratedSchedule = state.scheduleReleases.map { decorateItem(it, state) }
         val decoratedSeasonal = state.seasonalAnime.map { decorateItem(it, state) }
+        val decoratedSeeAllSeasonal = state.seeAllSeasonAnime.map { decorateItem(it, state) }
+        val decoratedTodayReleases = state.todayReleases.map { decorateItem(it, state) }
         val decoratedPopular = state.popularAnime.map { decorateItem(it, state) }
         val decoratedSearch = state.searchResults.map { decorateItem(it, state) }
         val decoratedMonth = state.monthReleases.map { decorateItem(it, state) }
@@ -924,6 +1017,8 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         return state.copy(
             scheduleReleases = decoratedSchedule,
             seasonalAnime = decoratedSeasonal,
+            seeAllSeasonAnime = decoratedSeeAllSeasonal,
+            todayReleases = decoratedTodayReleases,
             popularAnime = decoratedPopular,
             searchResults = decoratedSearch,
             monthReleases = decoratedMonth,
