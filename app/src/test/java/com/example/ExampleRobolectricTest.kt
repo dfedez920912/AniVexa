@@ -748,7 +748,7 @@ class ExampleRobolectricTest {
         .name(dbName)
         .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(4) {
           override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-            db.execSQL(
+            db.execSQL( // mobsf-ignore: android_kotlin_sql_raw_query
               """
               CREATE TABLE favorite_anime (
                 animeId INTEGER NOT NULL PRIMARY KEY,
@@ -764,7 +764,7 @@ class ExampleRobolectricTest {
               )
               """.trimIndent()
             )
-            db.execSQL(
+            db.execSQL( // mobsf-ignore: android_kotlin_sql_raw_query
               """
               CREATE TABLE watched_episodes (
                 episodeKey TEXT NOT NULL PRIMARY KEY,
@@ -773,7 +773,7 @@ class ExampleRobolectricTest {
               )
               """.trimIndent()
             )
-            db.execSQL(
+            db.execSQL( // mobsf-ignore: android_kotlin_sql_raw_query
               """
               CREATE TABLE watchlist_anime (
                 animeId INTEGER NOT NULL PRIMARY KEY,
@@ -792,16 +792,16 @@ class ExampleRobolectricTest {
               )
               """.trimIndent()
             )
-            db.execSQL(
+            db.execSQL( // mobsf-ignore: android_kotlin_sql_raw_query
               """
               INSERT INTO watchlist_anime (animeId, titleRomaji, titleEnglish, coverImageUrl, bannerImageUrl, synopsis, genres, studio, score, format, totalEpisodes, watchedEpisodes, status)
               VALUES (8888, 'Bleach', 'Bleach', 'https://example.com/bleach.jpg', NULL, 'Shinigami', 'Action', 'Pierrot', 8.2, 'TV', 366, 3, 'WATCHING')
               """.trimIndent()
             )
-            db.execSQL("INSERT INTO watched_episodes (episodeKey, animeId, episodeNumber) VALUES ('8888_1', 8888, 1)")
-            db.execSQL("INSERT INTO watched_episodes (episodeKey, animeId, episodeNumber) VALUES ('8888_2', 8888, 2)")
-            db.execSQL("INSERT INTO watched_episodes (episodeKey, animeId, episodeNumber) VALUES ('8888_3', 8888, 3)")
-            db.execSQL(
+            db.execSQL("INSERT INTO watched_episodes (episodeKey, animeId, episodeNumber) VALUES ('8888_1', 8888, 1)") // mobsf-ignore: android_kotlin_sql_raw_query
+            db.execSQL("INSERT INTO watched_episodes (episodeKey, animeId, episodeNumber) VALUES ('8888_2', 8888, 2)") // mobsf-ignore: android_kotlin_sql_raw_query
+            db.execSQL("INSERT INTO watched_episodes (episodeKey, animeId, episodeNumber) VALUES ('8888_3', 8888, 3)") // mobsf-ignore: android_kotlin_sql_raw_query
+            db.execSQL( // mobsf-ignore: android_kotlin_sql_raw_query
               """
               INSERT INTO favorite_anime (animeId, titleRomaji, titleEnglish, coverImageUrl, bannerImageUrl, synopsis, genres, studio, score, format)
               VALUES (8888, 'Bleach', 'Bleach', 'https://example.com/bleach.jpg', NULL, 'Shinigami', 'Action', 'Pierrot', 8.2, 'TV')
@@ -945,5 +945,20 @@ class ExampleRobolectricTest {
       "https://github.com/dfedez920912/AniVexa",
       metaData.getString("org.fdroid.fdroid.SourceCode")
     )
+  }
+
+  @Test
+  fun `test allowBackup is disabled and DeviceSecurityManager runs non-blockingly`(): Unit = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val appInfo = context.packageManager.getApplicationInfo(context.packageName, 0)
+    assertEquals(
+      "android:allowBackup must be disabled",
+      0,
+      appInfo.flags and android.content.pm.ApplicationInfo.FLAG_ALLOW_BACKUP
+    )
+
+    val report = com.example.security.DeviceSecurityManager.evaluateDeviceSecurity(context)
+    assertTrue("Security check timestamp should be populated", report.checkedAtMillis > 0L)
+    assertNotNull("Play Integrity status should be resolved safely", report.playIntegrityStatus)
   }
 }

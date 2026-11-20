@@ -21,6 +21,8 @@ import com.example.model.SynopsisLanguage
 import com.example.model.WatchlistSortOrder
 import com.example.notifications.AnimeEpisodeReminderWorker
 import com.example.notifications.AnimeNotificationHelper
+import com.example.security.DeviceSecurityManager
+import com.example.security.DeviceSecurityReport
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -136,7 +138,8 @@ data class AnimeUiState(
     val defaultReminderMinutes: Int = 15,
     val quietHoursEnabled: Boolean = false,
     val globalLanguage: SynopsisLanguage = SynopsisLanguage.SPANISH,
-    val cachedCount: Int = 0
+    val cachedCount: Int = 0,
+    val deviceSecurityReport: DeviceSecurityReport = DeviceSecurityReport()
 ) {
     val activeZoneId: ZoneId
         get() = if (isJapanTimeZone) ZoneId.of("Asia/Tokyo") else ZoneId.systemDefault()
@@ -172,6 +175,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         AnimeNotificationHelper.createNotificationChannel(application.applicationContext)
         observeRoomStreams()
         loadInitialData()
+        evaluateDeviceSecurity(showRootWarning = true)
     }
 
     private fun loadSavedTheme(): AppThemeMode {
@@ -235,6 +239,34 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         loadHomeData()
         loadWeekSchedule(_uiState.value.weekStartDate)
         executeSearch()
+    }
+
+    fun refreshDeviceSecurity() {
+        evaluateDeviceSecurity(showRootWarning = false, notifyResult = true)
+    }
+
+    private fun evaluateDeviceSecurity(
+        showRootWarning: Boolean = false,
+        notifyResult: Boolean = false
+    ) {
+        viewModelScope.launch {
+            val report = DeviceSecurityManager.evaluateDeviceSecurity(getApplication())
+            _uiState.update { state ->
+                val warningMsg = when {
+                    notifyResult && report.isRooted ->
+                        "Aviso: dispositivo con acceso root detectado. Los datos locales pueden quedar expuestos a otras apps con privilegios."
+                    notifyResult ->
+                        "Verificación de seguridad completada: entorno sin root (${report.playIntegrityStatus.label})."
+                    showRootWarning && report.isRooted ->
+                        "Aviso de seguridad: dispositivo rooteado detectado. La app sigue operativa, pero protege tus datos locales."
+                    else -> state.notificationMessage
+                }
+                state.copy(
+                    deviceSecurityReport = report,
+                    notificationMessage = warningMsg
+                )
+            }
+        }
     }
 
     fun refreshAll() {

@@ -6,9 +6,9 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import android.widget.RemoteViews
 import com.example.MainActivity
+import com.example.util.AppLogger
 import cu.daniel.anical.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,7 +42,7 @@ class AnimeCountWidgetProvider : AppWidgetProvider() {
                     appWidgetManager.updateAppWidget(appWidgetId, views)
                 }
             } catch (e: Exception) {
-                Log.e("AnimeCountWidget", "Error updating count widget: ${e.message}")
+                AppLogger.e("AnimeCountWidget", "Error updating count widget: ${e.message}")
             } finally {
                 pendingResult.finish()
             }

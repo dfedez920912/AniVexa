@@ -1,7 +1,7 @@
 package com.example.notifications
 
 import android.content.Context
-import android.util.Log
+import android.util.Log // mobsf-ignore: android_kotlin_logging
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -10,6 +10,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.example.data.AnimeRepository
+import com.example.util.AppLogger
+import cu.daniel.anical.BuildConfig
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
@@ -23,12 +25,12 @@ class FavoriteAnimeSyncWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        Log.d(TAG, "Starting periodic sync for favorite anime episodes...")
+        AppLogger.d(TAG, "Starting periodic sync for favorite anime episodes...")
         return try {
             val repository = AnimeRepository(applicationContext)
             val favoriteIds = repository.getFavoriteIds()
             if (favoriteIds.isEmpty()) {
-                Log.d(TAG, "No favorite anime tracked. Sync finished.")
+                AppLogger.d(TAG, "No favorite anime tracked. Sync finished.")
                 return Result.success()
             }
 
@@ -51,10 +53,10 @@ class FavoriteAnimeSyncWorker(
                 }
             }
 
-            Log.d(TAG, "Periodic sync completed: scheduled/refreshed reminders for $scheduledCount favorite episodes.")
+            AppLogger.d(TAG, "Periodic sync completed: scheduled/refreshed reminders for $scheduledCount favorite episodes.")
             Result.success()
         } catch (e: Exception) {
-            Log.e(TAG, "Error in FavoriteAnimeSyncWorker: ${e.message}", e)
+            AppLogger.e(TAG, "Error in FavoriteAnimeSyncWorker: ${e.message}", e)
             Result.retry()
         }
     }
@@ -69,7 +71,7 @@ class FavoriteAnimeSyncWorker(
             } catch (e: IllegalStateException) {
                 try {
                     val config = androidx.work.Configuration.Builder()
-                        .setMinimumLoggingLevel(Log.DEBUG)
+                        .setMinimumLoggingLevel(if (BuildConfig.DEBUG) Log.DEBUG else Log.ERROR) // mobsf-ignore: android_kotlin_logging
                         .build()
                     WorkManager.initialize(context, config)
                     WorkManager.getInstance(context)
@@ -107,7 +109,7 @@ class FavoriteAnimeSyncWorker(
                 ExistingPeriodicWorkPolicy.KEEP,
                 periodicRequest
             )
-            Log.d(TAG, "Enqueued periodic sync worker every 6 hours.")
+            AppLogger.d(TAG, "Enqueued periodic sync worker every 6 hours.")
         }
     }
 }

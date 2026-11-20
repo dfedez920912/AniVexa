@@ -3,7 +3,7 @@ package com.example.notifications
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
+import com.example.util.AppLogger
 
 class AnimeReminderReceiver : BroadcastReceiver() {
 
@@ -13,7 +13,7 @@ class AnimeReminderReceiver : BroadcastReceiver() {
         val airingTime = intent.getStringExtra(AnimeNotificationHelper.EXTRA_AIRING_TIME) ?: "18:00"
         val minutesBefore = intent.getIntExtra(AnimeNotificationHelper.EXTRA_MINUTES_BEFORE, 15)
 
-        Log.d("AnimeReminderReceiver", "Alarm received for $animeTitle ep $episode at $airingTime")
+        AppLogger.d("AnimeReminderReceiver", "Alarm received for $animeTitle ep $episode at $airingTime")
 
         AnimeNotificationHelper.showImmediateNotification(
             context = context,
