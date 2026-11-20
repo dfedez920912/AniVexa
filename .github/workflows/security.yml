@@ -1,0 +1,98 @@
+name: Security Scan with MobSF
+
+# Disparadores para ejecutar el análisis de seguridad en PRs y pushes a ramas principales
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+      - develop
+
+# Cancelar ejecuciones obsoletas en el mismo PR o rama para optimizar recursos
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Job 1: Análisis estático de código fuente (SAST) usando mobsfscan
+  mobsfscan-sast:
+    name: Análisis SAST de código fuente (mobsfscan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Permisos requeridos para escribir los hallazgos SARIF en la pestaña Security de GitHub
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      # Paso 1: Descargar el código fuente del repositorio
+      - name: Check out source code
+        uses: actions/checkout@v4
+
+      # Paso 2: Ejecutar mobsfscan pinneado a un commit SHA fijo para garantizar inmutabilidad y seguridad
+      - name: Run mobsfscan SAST scanner
+        uses: MobSF/mobsfscan-action@a62b8743c49e21f64483d735071f6575124119df
+        with:
+          args: '. --sarif --output results.sarif'
+
+      # Paso 3: Subir los resultados SARIF a la pestaña Code Scanning / Security de GitHub
+      - name: Upload SARIF report to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: results.sarif
+
+  # Job 2: Análisis estático/dinámico del binario APK compilado usando MobSF Docker Action
+  mobsf-apk:
+    name: Escaneo de APK compilado con MobSF
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # Paso 1: Descargar el código fuente
+      - name: Check out source code
+        uses: actions/checkout@v4
+
+      # Paso 2: Configurar entorno Java JDK (mismo que el workflow de build/release)
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      # Paso 3: Configurar caché de Gradle para optimizar tiempos de compilación
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Paso 4: Otorgar permisos de ejecución al wrapper de Gradle
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Paso 5: Ejecutar pruebas unitarias del proyecto
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      # Paso 6: Compilar el APK de debug del módulo principal (:app)
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      # Paso 6: Escanear el APK binario generado con la versión pinneada v1.7.2 de mobsf-action
+      - name: Run MobSF APK Scanner
+        uses: fundacaocerti/mobsf-action@v1.7.2
+        env:
+          INPUT_FILE_NAME: app/build/outputs/apk/debug/app-debug.apk
+          SCAN_TYPE: apk
+          OUTPUT_FILE_NAME: mobsf-report
+
+      # Paso 7: Almacenar los reportes de MobSF (JSON y PDF) como artefactos del workflow
+      - name: Upload MobSF Analysis Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobsf-analysis-reports
+          path: |
+            mobsf-report.json
+            mobsf-report.pdf
