@@ -1,6 +1,6 @@
 package com.example.data
 
-import android.util.Log
+import com.example.util.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -66,7 +66,7 @@ class TranslationService {
                 }
             }
         } catch (e: Exception) {
-            Log.w("TranslationService", "Translation API failed: ${e.message}")
+            AppLogger.w("TranslationService", "Translation API failed: ${e.message}")
         }
 
         // Comprehensive Full Spanish Translation Fallback (Ensures 100% integral translation)

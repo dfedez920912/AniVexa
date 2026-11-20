@@ -217,7 +217,8 @@ class MainActivity : ComponentActivity() {
                                                         onSetGlobalLanguage = { viewModel.setGlobalLanguage(it) },
                                                         onSetThemeMode = { viewModel.setThemeMode(it) },
                                                         onSyncNow = { viewModel.refreshAll() },
-                                                        onClearCache = { viewModel.clearOfflineCache() }
+                                                        onClearCache = { viewModel.clearOfflineCache() },
+                                                        onCheckDeviceSecurity = { viewModel.refreshDeviceSecurity() }
                                                     )
                                                 }
                                             }

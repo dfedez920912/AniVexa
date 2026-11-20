@@ -2,8 +2,8 @@ package com.example.data
 
 import android.content.Context
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
+import com.example.util.AppLogger
 import com.example.data.local.AppDatabase
 import com.example.data.local.CachedAnimeDao
 import com.example.data.local.CachedAnimeEntity
@@ -304,7 +304,7 @@ class AnimeRepository(
                 )
             }
         } catch (e: Exception) {
-            Log.w("AnimeRepository", "AniList schedule fetch failed, falling back to Room cache: ${e.message}")
+            AppLogger.w("AnimeRepository", "AniList schedule fetch failed, falling back to Room cache: ${e.message}")
         }
 
         val cached = cachedAnimeDao.getAllCachedAnimeList().map { it.toAnimeRelease() }
@@ -334,7 +334,7 @@ class AnimeRepository(
                 return@withContext Pair(decorateReleases(remote, favIds, watchedKeys, userRatingsMap), false)
             }
         } catch (e: Exception) {
-            Log.w("AnimeRepository", "AniList seasonal fetch failed, using offline cache: ${e.message}")
+            AppLogger.w("AnimeRepository", "AniList seasonal fetch failed, using offline cache: ${e.message}")
         }
 
         val cachedSeason = cachedAnimeDao.getCachedByCategory("SEASON").map { it.toAnimeRelease() }
@@ -364,7 +364,7 @@ class AnimeRepository(
                 return@withContext Pair(decorateReleases(remote, favIds, watchedKeys, userRatingsMap), false)
             }
         } catch (e: Exception) {
-            Log.w("AnimeRepository", "AniList popular fetch failed, using offline cache: ${e.message}")
+            AppLogger.w("AnimeRepository", "AniList popular fetch failed, using offline cache: ${e.message}")
         }
 
         val cachedPopular = cachedAnimeDao.getCachedByCategory("POPULAR").map { it.toAnimeRelease() }
@@ -411,7 +411,7 @@ class AnimeRepository(
             }
             return@withContext Pair(decorateReleases(studioFiltered, favIds, watchedKeys, userRatingsMap), false)
         } catch (e: Exception) {
-            Log.w("AnimeRepository", "AniList search failed, filtering offline cache: ${e.message}")
+            AppLogger.w("AnimeRepository", "AniList search failed, filtering offline cache: ${e.message}")
         }
 
         val offlinePool = (cachedAnimeDao.getAllCachedAnimeList().map { it.toAnimeRelease() })
@@ -444,7 +444,7 @@ class AnimeRepository(
                 return@withContext bundle.copy(anime = decorated)
             }
         } catch (e: Exception) {
-            Log.w("AnimeRepository", "AniList detail fetch failed for id=$animeId: ${e.message}")
+            AppLogger.w("AnimeRepository", "AniList detail fetch failed for id=$animeId: ${e.message}")
         }
         null
     }

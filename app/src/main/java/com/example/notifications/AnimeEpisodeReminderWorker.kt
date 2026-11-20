@@ -1,7 +1,7 @@
 package com.example.notifications
 
 import android.content.Context
-import android.util.Log
+import android.util.Log // mobsf-ignore: android_kotlin_logging
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
@@ -9,6 +9,8 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.example.model.AnimeRelease
+import com.example.util.AppLogger
+import cu.daniel.anical.BuildConfig
 import java.util.concurrent.TimeUnit
 
 /**
@@ -26,7 +28,7 @@ class AnimeEpisodeReminderWorker(
         val airingTime = inputData.getString(KEY_AIRING_TIME) ?: ""
         val minutesBefore = inputData.getInt(KEY_MINUTES_BEFORE, 15)
 
-        Log.d(TAG, "Executing notification work for anime: $animeTitle (Ep $episode)")
+        AppLogger.d(TAG, "Executing notification work for anime: $animeTitle (Ep $episode)")
 
         AnimeNotificationHelper.showImmediateNotification(
             context = applicationContext,
@@ -53,7 +55,7 @@ class AnimeEpisodeReminderWorker(
             } catch (e: IllegalStateException) {
                 try {
                     val config = androidx.work.Configuration.Builder()
-                        .setMinimumLoggingLevel(android.util.Log.DEBUG)
+                        .setMinimumLoggingLevel(if (BuildConfig.DEBUG) Log.DEBUG else Log.ERROR) // mobsf-ignore: android_kotlin_logging
                         .build()
                     WorkManager.initialize(context, config)
                     WorkManager.getInstance(context)
@@ -114,7 +116,7 @@ class AnimeEpisodeReminderWorker(
                 workRequest
             )
 
-            Log.d(TAG, "Enqueued WorkManager reminder for ${anime.displayTitle} with delay ${delayMillis}ms")
+            AppLogger.d(TAG, "Enqueued WorkManager reminder for ${anime.displayTitle} with delay ${delayMillis}ms")
         }
 
         fun scheduleImmediateTest(context: Context, anime: AnimeRelease) {
@@ -134,13 +136,13 @@ class AnimeEpisodeReminderWorker(
                 .build()
 
             workManager.enqueue(workRequest)
-            Log.d(TAG, "Enqueued immediate test WorkManager notification for ${anime.displayTitle}")
+            AppLogger.d(TAG, "Enqueued immediate test WorkManager notification for ${anime.displayTitle}")
         }
 
         fun cancelReminderWithWorkManager(context: Context, animeId: Int) {
             val workManager = getWorkManagerSafe(context) ?: return
             workManager.cancelUniqueWork("anime_reminder_$animeId")
-            Log.d(TAG, "Cancelled WorkManager reminder for animeId=$animeId")
+            AppLogger.d(TAG, "Cancelled WorkManager reminder for animeId=$animeId")
         }
 
         fun getWorkTag(animeId: Int): String = "anime_work_tag_$animeId"

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - beta
     tags:
       - "v*"
       - "AniVexa*"
@@ -119,7 +120,8 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: AniVexa ${{ github.ref_name }}
           body_path: release-notes.md
-          make_latest: true
+          prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc') }}
+          make_latest: ${{ !(contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc')) }}
           files: |
             AniVexa-*.apk
             AniVexa-*.apk.sha256

@@ -5,12 +5,12 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import com.example.data.AniListClient
 import com.example.data.local.AppDatabase
 import com.example.data.local.CachedAnimeEntity
 import com.example.model.AnimeRelease
+import com.example.util.AppLogger
 import cu.daniel.anical.R
 import org.json.JSONArray
 import org.json.JSONObject
@@ -143,7 +143,7 @@ object WidgetDataHelper {
             list.filter { it.effectiveAiringSeconds() > 0L && it.getAiringLocalDate(zoneId) == today }
                 .sortedBy { it.effectiveAiringSeconds() }
         } catch (e: Exception) {
-            Log.w(TAG, "Failed parsing today widget snapshot: ${e.message}")
+            AppLogger.w(TAG, "Failed parsing today widget snapshot: ${e.message}")
             null
         }
     }
@@ -173,7 +173,7 @@ object WidgetDataHelper {
                 .filter { it.effectiveAiringSeconds() > 0L && it.getAiringLocalDate(zoneId) == today }
                 .sortedBy { it.effectiveAiringSeconds() }
         } catch (e: Exception) {
-            Log.w(TAG, "Failed reading cached anime for widget: ${e.message}")
+            AppLogger.w(TAG, "Failed reading cached anime for widget: ${e.message}")
             emptyList()
         }
 
@@ -193,7 +193,7 @@ object WidgetDataHelper {
                 }
                 return Pair(remoteToday, zoneId)
             } catch (e: Exception) {
-                Log.w(TAG, "Widget AniList fetch failed, falling back to snapshot/cached DB: ${e.message}")
+                AppLogger.w(TAG, "Widget AniList fetch failed, falling back to snapshot/cached DB: ${e.message}")
             }
         }
 
@@ -227,7 +227,7 @@ object WidgetDataHelper {
                 context.sendBroadcast(listIntent)
             }
         } catch (e: Exception) {
-            Log.w(TAG, "notifyAllWidgets error: ${e.message}")
+            AppLogger.w(TAG, "notifyAllWidgets error: ${e.message}")
         }
     }
 }

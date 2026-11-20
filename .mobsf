@@ -1,0 +1,13 @@
+---
+# Configuración de falsos positivos / reglas aceptadas de mobsfscan para AniVexa:
+# - android_tapjacking: Descartado intencionadamente para no bloquear toques cuando el usuario usa burbujas flotantes o filtros de pantalla legítimos.
+# - android_prevent_screenshot: Descartado intencionadamente para permitir capturas de pantalla de calendarios, fichas y listas sin datos bancarios.
+# - android_ssl_pinning: Descartado intencionadamente para evitar cortes de conectividad cuando Cloudflare/Google rotan certificados públicos.
+# - android_certificate_transparency: Configurado de forma nativa mediante <certificateTransparency enabled="true" /> en network_security_config.xml (Android 16+).
+# - android_safetynet: Implementado mediante su sucesor oficial Google Play Integrity API (com.google.android.play:integrity); la API legacy de SafetyNet fue retirada por Google.
+- ignore-rules:
+    - android_tapjacking
+    - android_prevent_screenshot
+    - android_ssl_pinning
+    - android_certificate_transparency
+    - android_safetynet

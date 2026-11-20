@@ -9,12 +9,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.MainActivity
 import com.example.model.AnimeRelease
+import com.example.util.AppLogger
 import cu.daniel.anical.R
 
 object AnimeNotificationHelper {
@@ -45,7 +45,7 @@ object AnimeNotificationHelper {
         try {
             FavoriteAnimeSyncWorker.enqueuePeriodicSync(context)
         } catch (e: Exception) {
-            Log.w("AnimeNotificationHelper", "Could not enqueue periodic sync: ${e.message}")
+            AppLogger.w("AnimeNotificationHelper", "Could not enqueue periodic sync: ${e.message}")
         }
     }
 
@@ -59,9 +59,9 @@ object AnimeNotificationHelper {
         // Primary: WorkManager guaranteed background scheduling
         try {
             AnimeEpisodeReminderWorker.scheduleReminderWithWorkManager(context, anime, minutesBefore)
-            Log.d("AnimeNotificationHelper", "WorkManager reminder enqueued for ${anime.displayTitle}")
+            AppLogger.d("AnimeNotificationHelper", "WorkManager reminder enqueued for ${anime.displayTitle}")
         } catch (e: Exception) {
-            Log.w("AnimeNotificationHelper", "WorkManager schedule exception: ${e.message}")
+            AppLogger.w("AnimeNotificationHelper", "WorkManager schedule exception: ${e.message}")
         }
 
         // Secondary: AlarmManager exact alarm fallback
@@ -126,9 +126,9 @@ object AnimeNotificationHelper {
                     pendingIntent
                 )
             }
-            Log.d("AnimeNotificationHelper", "Scheduled reminder for ${anime.displayTitle} at $targetMillis")
+            AppLogger.d("AnimeNotificationHelper", "Scheduled reminder for ${anime.displayTitle} at $targetMillis")
         } catch (e: SecurityException) {
-            Log.w("AnimeNotificationHelper", "Exact alarm permission denied, fallback to set: ${e.message}")
+            AppLogger.w("AnimeNotificationHelper", "Exact alarm permission denied, fallback to set: ${e.message}")
             alarmManager.set(AlarmManager.RTC_WAKEUP, targetMillis, pendingIntent)
         }
     }
@@ -138,7 +138,7 @@ object AnimeNotificationHelper {
         try {
             AnimeEpisodeReminderWorker.cancelReminderWithWorkManager(context, animeId)
         } catch (e: Exception) {
-            Log.w("AnimeNotificationHelper", "WorkManager cancel exception: ${e.message}")
+            AppLogger.w("AnimeNotificationHelper", "WorkManager cancel exception: ${e.message}")
         }
 
         // Cancel AlarmManager
@@ -170,7 +170,7 @@ object AnimeNotificationHelper {
                     Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
-                Log.w("AnimeNotificationHelper", "POST_NOTIFICATIONS permission not granted")
+                AppLogger.w("AnimeNotificationHelper", "POST_NOTIFICATIONS permission not granted")
                 return
             }
         }
@@ -217,7 +217,7 @@ object AnimeNotificationHelper {
         try {
             NotificationManagerCompat.from(context).notify(animeTitle.hashCode(), notification)
         } catch (e: SecurityException) {
-            Log.e("AnimeNotificationHelper", "Cannot show notification: ${e.message}")
+            AppLogger.e("AnimeNotificationHelper", "Cannot show notification: ${e.message}")
         }
     }
 }

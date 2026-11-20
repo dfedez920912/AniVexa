@@ -5,9 +5,11 @@ on:
   push:
     branches:
       - main
+      - beta
   pull_request:
     branches:
       - main
+      - beta
       - develop
 
 # Cancelar ejecuciones obsoletas en el mismo PR o rama para optimizar recursos

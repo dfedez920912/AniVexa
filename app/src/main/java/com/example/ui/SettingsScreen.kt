@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -70,6 +71,7 @@ fun SettingsScreen(
     onSetThemeMode: (AppThemeMode) -> Unit,
     onSyncNow: () -> Unit,
     onClearCache: () -> Unit,
+    onCheckDeviceSecurity: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -313,6 +315,46 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.size(4.dp))
                         Text("Limpiar caché", fontSize = 12.sp)
                     }
+                }
+            }
+        }
+
+        // Security & Device Integrity Section
+        item {
+            val sec = uiState.deviceSecurityReport
+            SettingsCard(title = "Seguridad e Integridad", icon = Icons.Default.Security) {
+                Text(
+                    text = if (sec.isRooted) {
+                        "Entorno con acceso root detectado (${sec.rootIndicators.joinToString()}). AniVexa sigue funcionando con normalidad, pero otras apps con privilegios elevados podrían acceder al almacenamiento."
+                    } else {
+                        "Entorno verificado: sin indicadores de root detectados."
+                    },
+                    fontSize = 12.5.sp,
+                    color = if (sec.isRooted) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 17.sp
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Play Integrity API: ${sec.playIntegrityStatus.label} • ${sec.playIntegrityStatus.detail}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 16.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Copia de seguridad externa (allowBackup) desactivada y tráfico cifrado HTTPS obligatorio.",
+                    fontSize = 11.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = onCheckDeviceSecurity,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("settings_security_check_button"),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Verificar seguridad ahora", fontSize = 12.sp)
                 }
             }
         }

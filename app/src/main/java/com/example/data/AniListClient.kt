@@ -1,6 +1,6 @@
 package com.example.data
 
-import android.util.Log
+import com.example.util.AppLogger
 import com.example.model.AnimeCharacter
 import com.example.model.AnimeDetailBundle
 import com.example.model.AnimeRelease
@@ -669,7 +669,7 @@ class AniListClient(
         if (response.code == 429) {
             val retryAfter = response.header("Retry-After")?.toLongOrNull() ?: 2L
             response.close()
-            Log.w(TAG, "Rate limited by AniList (429). Retrying after ${retryAfter}s")
+            AppLogger.w(TAG, "Rate limited by AniList (429). Retrying after ${retryAfter}s")
             Thread.sleep((retryAfter.coerceIn(1L, 5L)) * 1000L)
             response = okHttpClient.newCall(request).execute()
         }
@@ -683,7 +683,7 @@ class AniListClient(
             if (json.has("errors")) {
                 val errArr = json.optJSONArray("errors")
                 val msg = errArr?.optJSONObject(0)?.optString("message") ?: "GraphQL error"
-                Log.w(TAG, "AniList GraphQL error: $msg")
+                AppLogger.w(TAG, "AniList GraphQL error: $msg")
             }
             return json.optJSONObject("data") ?: JSONObject()
         }
