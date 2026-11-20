@@ -1,0 +1,3 @@
+- Endurecimiento de seguridad: protección contra StrandHogg 2.0, HTTPS obligatorio y logs desactivados en producción.
+- Migraciones SQL endurecidas y copias externas (allowBackup) desactivadas para proteger datos locales.
+- Nuevo panel informativo en Ajustes con detección de root y Google Play Integrity API sin bloquear funciones.

@@ -1,0 +1,3 @@
+- Security hardening: StrandHogg 2.0 protection, strict HTTPS enforcement, and release-mode log suppression.
+- Hardened Room SQL migrations and disabled external backup extraction (allowBackup=false) to protect local data.
+- Added non-blocking root detection and Google Play Integrity diagnostics in Settings.
