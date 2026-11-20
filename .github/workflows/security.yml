@@ -32,13 +32,15 @@ jobs:
       - name: Check out source code
         uses: actions/checkout@v4
 
-      # Paso 2: Ejecutar mobsfscan pinneado a un commit SHA fijo para garantizar inmutabilidad y seguridad
-      - name: Run mobsfscan SAST scanner
-        uses: MobSF/mobsfscan-action@a62b8743c49e21f64483d735071f6575124119df
-        with:
-          args: '. --sarif --output results.sarif'
+      # Paso 2: Instalar la herramienta oficial mobsfscan desde PyPI
+      - name: Install mobsfscan
+        run: python -m pip install --disable-pip-version-check "mobsfscan==1.2.0"
 
-      # Paso 3: Subir los resultados SARIF a la pestaña Code Scanning / Security de GitHub
+      # Paso 3: Ejecutar el análisis SAST y generar el informe SARIF
+      - name: Run mobsfscan SAST scanner
+        run: mobsfscan --sarif --output results.sarif .
+
+      # Paso 4: Subir los resultados SARIF a la pestaña Code Scanning / Security de GitHub
       - name: Upload SARIF report to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always()
@@ -96,7 +98,7 @@ jobs:
             echo "apk_path=$APK" >> "$GITHUB_OUTPUT"
             echo "scan_apk=true" >> "$GITHUB_OUTPUT"
           elif [[ "${GITHUB_EVENT_NAME:-}" == "pull_request" ]]; then
-            echo "::warning::APK scan skipped because signing secrets are unavailable (for example, on a pull request from a fork)."
+            echo "::warning::APK scan skipped because signing secrets are unavailable (for example, on a pull_request from a fork)."
             echo "scan_apk=false" >> "$GITHUB_OUTPUT"
             echo "MobSF APK scan was skipped because signing secrets are unavailable. Source SAST and unit tests still ran." >> "$GITHUB_STEP_SUMMARY"
           else
