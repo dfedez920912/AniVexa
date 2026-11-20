@@ -28,24 +28,59 @@ jobs:
       security-events: write
 
     steps:
-      # Paso 1: Descargar el código fuente del repositorio
       - name: Check out source code
         uses: actions/checkout@v4
 
-      # Paso 2: Instalar la herramienta oficial mobsfscan desde PyPI
+      # Fijar Python evita cambios inesperados en las dependencias de mobsfscan
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install mobsfscan
         run: python -m pip install --disable-pip-version-check "mobsfscan==1.2.0"
 
-      # Paso 3: Ejecutar el análisis SAST y generar el informe SARIF
+      # mobsfscan devuelve 1 cuando encuentra hallazgos. En ese caso mantenemos el
+      # SARIF y dejamos que GitHub Code Scanning muestre los resultados sin romper CI.
+      # Códigos distintos de 0/1 y la ausencia del informe sí son errores reales.
       - name: Run mobsfscan SAST scanner
-        run: mobsfscan --sarif --output results.sarif .
+        shell: bash
+        run: |
+          set +e
+          mobsfscan --sarif --output results.sarif .
+          scan_status=$?
+          set -e
 
-      # Paso 4: Subir los resultados SARIF a la pestaña Code Scanning / Security de GitHub
+          if [ ! -s results.sarif ]; then
+            echo "::error::mobsfscan no generó results.sarif (código $scan_status)."
+            exit 1
+          fi
+
+          if [ "$scan_status" -eq 1 ]; then
+            echo "::warning::mobsfscan encontró hallazgos; se publicará el informe SARIF."
+          elif [ "$scan_status" -ne 0 ]; then
+            echo "::error::mobsfscan falló con el código $scan_status."
+            exit "$scan_status"
+          fi
+
+      # En PRs desde forks GitHub no concede security-events: write.
+      # Evitar que la limitación de permisos convierta el escaneo en un fallo del job.
       - name: Upload SARIF report to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: >-
+          always() && hashFiles('results.sarif') != '' &&
+          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         with:
           sarif_file: results.sarif
+
+      # Guardar siempre el SARIF como artefacto, también para PRs desde forks.
+      - name: Upload SARIF report as artifact
+        uses: actions/upload-artifact@v4
+        if: always() && hashFiles('results.sarif') != ''
+        with:
+          name: mobsfscan-sarif
+          path: results.sarif
+          if-no-files-found: ignore
 
   # Job 2: Análisis del APK firmado con los mismos secrets del workflow de build
   mobsf-apk:
@@ -54,30 +89,25 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      # Paso 1: Descargar el código fuente
       - name: Check out source code
         uses: actions/checkout@v4
 
-      # Paso 2: Configurar entorno Java JDK (mismo que el workflow de build/release)
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '25'
 
-      # Paso 3: Configurar caché de Gradle para optimizar tiempos de compilación
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # Paso 4: Otorgar permisos de ejecución al wrapper de Gradle
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # Paso 5: Ejecutar pruebas unitarias del proyecto
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --no-daemon
 
-      # Paso 6: Compilar el APK release con los mismos secrets que build-apk.yml
+      # Compilar el APK release con los mismos secrets que build-apk.yml
       - name: Build signed Release APK
         id: build_apk
         env:
@@ -106,7 +136,6 @@ jobs:
             exit 1
           fi
 
-      # Paso 7: Escanear el APK release con MobSF
       - name: Run MobSF APK Scanner
         if: steps.build_apk.outputs.scan_apk == 'true'
         uses: fundacaocerti/mobsf-action@v1.7.2
@@ -115,7 +144,6 @@ jobs:
           SCAN_TYPE: apk
           OUTPUT_FILE_NAME: mobsf-report
 
-      # Paso 8: Almacenar los reportes de MobSF (JSON y PDF) como artefactos del workflow
       - name: Upload MobSF Analysis Artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -124,3 +152,4 @@ jobs:
           path: |
             mobsf-report.json
             mobsf-report.pdf
+          if-no-files-found: ignore
