@@ -45,7 +45,7 @@ jobs:
         with:
           sarif_file: results.sarif
 
-  # Job 2: Análisis estático/dinámico del binario APK compilado usando MobSF Docker Action
+  # Job 2: Análisis del APK firmado con los mismos secrets del workflow de build
   mobsf-apk:
     name: Escaneo de APK compilado con MobSF
     runs-on: ubuntu-latest
@@ -75,19 +75,45 @@ jobs:
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --no-daemon
 
-      # Paso 6: Compilar el APK de debug del módulo principal (:app)
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+      # Paso 6: Compilar el APK release con los mismos secrets que build-apk.yml
+      - name: Build signed Release APK
+        id: build_apk
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.SIGNING_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -n "${KEYSTORE_BASE64:-}" ] && [ -n "${STORE_PASSWORD:-}" ] && [ -n "${KEY_PASSWORD:-}" ]; then
+            printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 --decode > "$RUNNER_TEMP/my-upload-key.jks"
+            export KEYSTORE_PATH="$RUNNER_TEMP/my-upload-key.jks"
+            ./gradlew assembleRelease --no-daemon
+            APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+            if [ -z "$APK" ] || [ ! -f "$APK" ]; then
+              echo "Error: No release APK generated!"
+              exit 1
+            fi
+            echo "apk_path=$APK" >> "$GITHUB_OUTPUT"
+            echo "scan_apk=true" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_EVENT_NAME:-}" == "pull_request" ]]; then
+            echo "::warning::APK scan skipped because signing secrets are unavailable (for example, on a pull request from a fork)."
+            echo "scan_apk=false" >> "$GITHUB_OUTPUT"
+            echo "MobSF APK scan was skipped because signing secrets are unavailable. Source SAST and unit tests still ran." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Error: Signing secrets (ANDROID_KEYSTORE_BASE64 or SIGNING_KEYSTORE_BASE64, STORE_PASSWORD, KEY_PASSWORD) are required to build the APK for MobSF scanning."
+            exit 1
+          fi
 
-      # Paso 6: Escanear el APK binario generado con la versión pinneada v1.7.2 de mobsf-action
+      # Paso 7: Escanear el APK release con MobSF
       - name: Run MobSF APK Scanner
+        if: steps.build_apk.outputs.scan_apk == 'true'
         uses: fundacaocerti/mobsf-action@v1.7.2
         env:
-          INPUT_FILE_NAME: app/build/outputs/apk/debug/app-debug.apk
+          INPUT_FILE_NAME: ${{ steps.build_apk.outputs.apk_path }}
           SCAN_TYPE: apk
           OUTPUT_FILE_NAME: mobsf-report
 
-      # Paso 7: Almacenar los reportes de MobSF (JSON y PDF) como artefactos del workflow
+      # Paso 8: Almacenar los reportes de MobSF (JSON y PDF) como artefactos del workflow
       - name: Upload MobSF Analysis Artifacts
         uses: actions/upload-artifact@v4
         if: always()
