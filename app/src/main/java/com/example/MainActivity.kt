@@ -65,7 +65,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            AniVexaTheme(themeMode = uiState.appThemeMode) {
+            AniVexaTheme(
+                themeMode = uiState.appThemeMode,
+                appLanguage = uiState.globalLanguage
+            ) {
                 val isGlass = LocalIsLiquidGlass.current
                 val dockPadding = if (isGlass && uiState.seeAllMode == SeeAllMode.NONE) 104.dp else 0.dp
 

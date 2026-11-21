@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.example.data.AnimeRepository
 import com.example.data.UserDatabaseBackupSnapshot
 import com.example.model.AppThemeMode
+import com.example.model.SynopsisLanguage
 import com.example.widget.WidgetDataHelper
 import cu.daniel.anical.BuildConfig
 import kotlinx.coroutines.Dispatchers
@@ -93,7 +94,7 @@ class BackupManager(
         } catch (_: Exception) {
             AppThemeMode.ANIVEXA_DARK.name
         }
-        val validLang = if (snapshot.synopsisLanguageCode == "en") "en" else "es"
+        val validLang = SynopsisLanguage.fromCode(snapshot.synopsisLanguageCode).code
         val validReminderMinutes = snapshot.defaultReminderMinutes.coerceIn(0, 180)
         prefs.edit()
             .putString("theme_mode", validTheme)

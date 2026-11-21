@@ -67,8 +67,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.i18n.AppLocalization
+import com.example.i18n.LocalAppLanguage
+import com.example.i18n.LocalAppStrings
 import com.example.model.AnimeRelease
-import com.example.model.CountdownStatus
 import com.example.model.DayScheduleTab
 import com.example.model.GenreHelper
 import com.example.model.MediaFormatFilter
@@ -82,10 +84,10 @@ import com.example.ui.theme.adaptiveCardColor
 import com.example.ui.theme.adaptiveCardCorner
 import com.example.ui.theme.glassCardBorder
 import com.example.ui.theme.screenBackdrop
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
-import java.util.Locale
 
 @Composable
 fun CalendarScreen(
@@ -104,6 +106,7 @@ fun CalendarScreen(
     onGoToMyList: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val s = LocalAppStrings.current
     var showFilters by remember { mutableStateOf(false) }
 
     Column(
@@ -111,7 +114,7 @@ fun CalendarScreen(
             .fillMaxSize()
             .screenBackdrop()
     ) {
-        // Header: "Calendario" + Today + Filter + Bookmark shortcut
+        // Header: Calendar title + Today + Filter + Bookmark shortcut
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -120,7 +123,7 @@ fun CalendarScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Calendario",
+                text = s.calendarTitle,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onBackground
@@ -136,7 +139,7 @@ fun CalendarScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Today,
-                        contentDescription = "Ir a Hoy",
+                        contentDescription = s.calendarTodayBtnDesc,
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -146,7 +149,7 @@ fun CalendarScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.FilterList,
-                        contentDescription = "Filtros de formato, género y estudio",
+                        contentDescription = s.calendarFilterBtnDesc,
                         tint = if (showFilters || uiState.calendarFormatFilter != MediaFormatFilter.ALL ||
                             uiState.calendarGenreFilter != null || uiState.calendarStudioFilter != null
                         ) {
@@ -162,14 +165,14 @@ fun CalendarScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.BookmarkBorder,
-                        contentDescription = "Ir a Mi Lista",
+                        contentDescription = s.calendarMyListBtnDesc,
                         tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
             }
         }
 
-        // 3-Segment Tab Bar with Blue Bottom Indicator (Semana | Mes | Lista)
+        // 3-Segment Tab Bar with Blue Bottom Indicator (Week | Month | List)
         Row(modifier = Modifier.fillMaxWidth()) {
             CalendarViewMode.entries.forEach { mode ->
                 val isSelected = uiState.calendarViewMode == mode
@@ -181,7 +184,7 @@ fun CalendarScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = mode.label,
+                        text = AppLocalization.calendarModeLabel(mode, s),
                         fontSize = 14.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -242,6 +245,7 @@ private fun CalendarFilterPanel(
     onSelectGenre: (String?) -> Unit,
     onSelectStudio: (String?) -> Unit
 ) {
+    val s = LocalAppStrings.current
     var genreMenuOpen by remember { mutableStateOf(false) }
     var studioMenuOpen by remember { mutableStateOf(false) }
 
@@ -259,7 +263,7 @@ private fun CalendarFilterPanel(
                 FilterChip(
                     selected = selectedFormat == fmt,
                     onClick = { onSelectFormat(fmt) },
-                    label = { Text(fmt.labelEs, fontSize = 11.5.sp) },
+                    label = { Text(AppLocalization.formatFilterLabel(fmt, s), fontSize = 11.5.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primary,
                         selectedLabelColor = Color.White
@@ -271,7 +275,13 @@ private fun CalendarFilterPanel(
                     FilterChip(
                         selected = selectedGenre != null,
                         onClick = { genreMenuOpen = true },
-                        label = { Text(selectedGenre ?: "Género ▾", fontSize = 11.5.sp) },
+                        label = {
+                            Text(
+                                text = selectedGenre?.let { AppLocalization.genreLabel(it, s) }
+                                    ?: s.calendarGenreChipDefault,
+                                fontSize = 11.5.sp
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.primary
@@ -283,7 +293,7 @@ private fun CalendarFilterPanel(
                         containerColor = if (LocalIsLiquidGlass.current) AniGlassSheetSurface else MaterialTheme.colorScheme.surface
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Todos los géneros") },
+                            text = { Text(s.calendarAllGenres) },
                             onClick = {
                                 onSelectGenre(null)
                                 genreMenuOpen = false
@@ -291,7 +301,7 @@ private fun CalendarFilterPanel(
                         )
                         GenreHelper.FEATURED_GENRES.forEach { g ->
                             DropdownMenuItem(
-                                text = { Text(g) },
+                                text = { Text(AppLocalization.genreLabel(g, s)) },
                                 onClick = {
                                     onSelectGenre(g)
                                     genreMenuOpen = false
@@ -306,7 +316,7 @@ private fun CalendarFilterPanel(
                     FilterChip(
                         selected = selectedStudio != null,
                         onClick = { studioMenuOpen = true },
-                        label = { Text(selectedStudio ?: "Estudio ▾", fontSize = 11.5.sp) },
+                        label = { Text(selectedStudio ?: s.calendarStudioChipDefault, fontSize = 11.5.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.primary
@@ -318,7 +328,7 @@ private fun CalendarFilterPanel(
                         containerColor = if (LocalIsLiquidGlass.current) AniGlassSheetSurface else MaterialTheme.colorScheme.surface
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Todos los estudios") },
+                            text = { Text(s.calendarAllStudios) },
                             onClick = {
                                 onSelectStudio(null)
                                 studioMenuOpen = false
@@ -347,9 +357,11 @@ private fun WeekCalendarContent(
     onShiftWeek: (Long) -> Unit,
     onAnimeClick: (AnimeRelease) -> Unit
 ) {
+    val s = LocalAppStrings.current
+    val locale = LocalAppLanguage.current.toLocale()
     val selectedDayName = uiState.selectedDate.dayOfWeek
-        .getDisplayName(TextStyle.FULL, Locale("es"))
-        .replaceFirstChar { it.uppercase() }
+        .getDisplayName(TextStyle.FULL, locale)
+        .replaceFirstChar { it.uppercase(locale) }
 
     val bottomDockPadding = LocalBottomDockPadding.current
 
@@ -389,13 +401,13 @@ private fun WeekCalendarContent(
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                                    contentDescription = "Semana anterior",
+                                    contentDescription = s.calendarPrevWeekDesc,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             val monthLabel = uiState.selectedDate.month
-                                .getDisplayName(TextStyle.FULL, Locale("es"))
-                                .replaceFirstChar { it.uppercase() }
+                                .getDisplayName(TextStyle.FULL, locale)
+                                .replaceFirstChar { it.uppercase(locale) }
                             Text(
                                 text = "$monthLabel ${uiState.selectedDate.year}",
                                 fontSize = 12.sp,
@@ -408,7 +420,7 @@ private fun WeekCalendarContent(
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription = "Semana siguiente",
+                                    contentDescription = s.calendarNextWeekDesc,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -434,7 +446,7 @@ private fun WeekCalendarContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Section Title: "Emisiones del Viernes (8)"
+                // Section Title
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -445,7 +457,7 @@ private fun WeekCalendarContent(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "Emisiones del $selectedDayName",
+                            text = s.calendarReleasesForDay(selectedDayName),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground
@@ -550,6 +562,8 @@ private fun MonthCalendarContent(
     onShiftMonth: (Long) -> Unit,
     onAnimeClick: (AnimeRelease) -> Unit
 ) {
+    val s = LocalAppStrings.current
+    val locale = LocalAppLanguage.current.toLocale()
     val month = uiState.selectedMonth
     val firstDayOfMonth = month.atDay(1)
     val leadingBlanks = (firstDayOfMonth.dayOfWeek.value - 1).coerceIn(0, 6)
@@ -589,22 +603,23 @@ private fun MonthCalendarContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = { onShiftMonth(-1) }) {
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Mes anterior")
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = s.calendarPrevMonthDesc)
                         }
-                        val monthTitle = month.month.getDisplayName(TextStyle.FULL, Locale("es"))
-                            .replaceFirstChar { it.uppercase() }
+                        val monthTitle = month.month.getDisplayName(TextStyle.FULL, locale)
+                            .replaceFirstChar { it.uppercase(locale) }
                         Text(
                             text = "$monthTitle ${month.year}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         IconButton(onClick = { onShiftMonth(1) }) {
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Mes siguiente")
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = s.calendarNextMonthDesc)
                         }
                     }
 
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        listOf("L", "M", "X", "J", "V", "S", "D").forEach { d ->
+                        DayOfWeek.entries.forEach { dow ->
+                            val d = dow.getDisplayName(TextStyle.NARROW, locale).uppercase(locale)
                             Text(
                                 text = d,
                                 fontSize = 11.sp,
@@ -672,8 +687,8 @@ private fun MonthCalendarContent(
 
         item {
             val dayLabel = uiState.selectedDate.dayOfWeek
-                .getDisplayName(TextStyle.FULL, Locale("es"))
-                .replaceFirstChar { it.uppercase() }
+                .getDisplayName(TextStyle.FULL, locale)
+                .replaceFirstChar { it.uppercase(locale) }
             Text(
                 text = "$dayLabel ${uiState.selectedDate.dayOfMonth} (${selectedDayList.size})",
                 style = MaterialTheme.typography.titleMedium,
@@ -682,7 +697,7 @@ private fun MonthCalendarContent(
         }
 
         if (selectedDayList.isEmpty()) {
-            item { EmptyDayCard(dayName = "este día") }
+            item { EmptyDayCard(dayName = s.calendarThisDay) }
         } else {
             items(selectedDayList, key = { "month_${it.id}_${it.episode}" }) { anime ->
                 ScheduleListRowCard(
@@ -705,6 +720,8 @@ private fun ListCalendarContent(
     onToggleWatched: (AnimeRelease) -> Unit,
     onToggleReminder: (AnimeRelease) -> Unit
 ) {
+    val s = LocalAppStrings.current
+    val locale = LocalAppLanguage.current.toLocale()
     val zone = uiState.activeZoneId
     val grouped = remember(uiState.scheduleReleases, uiState.calendarFormatFilter, uiState.calendarGenreFilter, uiState.calendarStudioFilter) {
         uiState.scheduleReleases.filter { item ->
@@ -721,7 +738,7 @@ private fun ListCalendarContent(
 
     if (grouped.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-            EmptyDayCard(dayName = "esta semana")
+            EmptyDayCard(dayName = s.calendarThisWeek)
         }
         return
     }
@@ -740,9 +757,9 @@ private fun ListCalendarContent(
     ) {
         grouped.forEach { (date, releases) ->
             item(key = "header_$date") {
-                val dayName = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale("es"))
-                    .replaceFirstChar { it.uppercase() }
-                val todayTag = if (date == LocalDate.now(zone)) " • HOY" else ""
+                val dayName = date.dayOfWeek.getDisplayName(TextStyle.FULL, locale)
+                    .replaceFirstChar { it.uppercase(locale) }
+                val todayTag = if (date == LocalDate.now(zone)) s.calendarTodayTag else ""
                 Text(
                     text = "$dayName ${date.dayOfMonth}$todayTag (${releases.size})",
                     style = MaterialTheme.typography.titleMedium,
@@ -775,7 +792,8 @@ private fun ScheduleListRowCard(
     showQuickActions: Boolean
 ) {
     val context = LocalContext.current
-    val countdown = anime.getCountdownStatus()
+    val s = LocalAppStrings.current
+    val countdown = AppLocalization.countdown(anime, s)
 
     val rowCorner = adaptiveCardCorner(14.dp, 20.dp)
     Surface(
@@ -826,7 +844,7 @@ private fun ScheduleListRowCard(
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
-                            text = "Ep ${anime.effectiveEpisodeNumber()}",
+                            text = "${s.episodeShortPrefix} ${anime.effectiveEpisodeNumber()}",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -834,7 +852,7 @@ private fun ScheduleListRowCard(
                         )
                     }
                     Text(
-                        text = anime.format,
+                        text = AppLocalization.formatLabel(anime.format, s),
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -856,10 +874,10 @@ private fun ScheduleListRowCard(
                     Icon(
                         imageVector = Icons.Default.Schedule,
                         contentDescription = null,
-                        tint = when (countdown) {
-                            is CountdownStatus.AiringNow -> AniAiringGreenBright
-                            is CountdownStatus.Upcoming -> MaterialTheme.colorScheme.primary
-                            is CountdownStatus.Aired -> MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = when (countdown.kind) {
+                            AppLocalization.CountdownKind.AIRING_NOW -> AniAiringGreenBright
+                            AppLocalization.CountdownKind.UPCOMING -> MaterialTheme.colorScheme.primary
+                            AppLocalization.CountdownKind.AIRED -> MaterialTheme.colorScheme.onSurfaceVariant
                         },
                         modifier = Modifier.size(13.dp)
                     )
@@ -867,10 +885,10 @@ private fun ScheduleListRowCard(
                         text = "${anime.getFormattedTime(zoneId)} • ${countdown.text}",
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = when (countdown) {
-                            is CountdownStatus.AiringNow -> AniAiringGreenBright
-                            is CountdownStatus.Upcoming -> MaterialTheme.colorScheme.primary
-                            is CountdownStatus.Aired -> MaterialTheme.colorScheme.onSurfaceVariant
+                        color = when (countdown.kind) {
+                            AppLocalization.CountdownKind.AIRING_NOW -> AniAiringGreenBright
+                            AppLocalization.CountdownKind.UPCOMING -> MaterialTheme.colorScheme.primary
+                            AppLocalization.CountdownKind.AIRED -> MaterialTheme.colorScheme.onSurfaceVariant
                         }
                     )
                 }
@@ -881,14 +899,14 @@ private fun ScheduleListRowCard(
                     IconButton(onClick = onToggleReminder) {
                         Icon(
                             imageVector = if (anime.hasReminder) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
-                            contentDescription = "Recordatorio",
+                            contentDescription = s.calendarReminderDesc,
                             tint = if (anime.hasReminder) AniGold else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     IconButton(onClick = onToggleWatched) {
                         Icon(
                             imageVector = if (anime.isWatched) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                            contentDescription = "Marcar como visto",
+                            contentDescription = s.calendarMarkWatchedDesc,
                             tint = if (anime.isWatched) AniAiringGreenBright else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -900,6 +918,7 @@ private fun ScheduleListRowCard(
 
 @Composable
 private fun EmptyDayCard(dayName: String) {
+    val s = LocalAppStrings.current
     Surface(
         shape = RoundedCornerShape(adaptiveCardCorner(16.dp, 22.dp)),
         color = adaptiveCardColor(),
@@ -918,12 +937,12 @@ private fun EmptyDayCard(dayName: String) {
                 modifier = Modifier.size(36.dp)
             )
             Text(
-                text = "Sin emisiones para $dayName",
+                text = s.calendarEmptyDayTitle(dayName),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Prueba otro día de la semana o limpia los filtros activos.",
+                text = s.calendarEmptyDaySubtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

@@ -36,13 +36,18 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -62,10 +67,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.backup.BackupOperationMode
+import com.example.backup.GoogleDriveBackupClient
 import com.example.backup.LocalBackupStorage
+import com.example.i18n.AppLocalization
+import com.example.i18n.LocalAppLanguage
+import com.example.i18n.LocalAppStrings
 import com.example.model.AppThemeMode
 import com.example.model.SynopsisLanguage
 import com.example.ui.components.BackupRestoreDialog
+import com.example.ui.theme.AniGlassSheetSurface
 import com.example.ui.theme.LocalBottomDockPadding
 import com.example.ui.theme.LocalIsLiquidGlass
 import com.example.ui.theme.adaptiveCardColor
@@ -99,8 +109,11 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val s = LocalAppStrings.current
+    val appLanguage = LocalAppLanguage.current
     val bottomDockPadding = LocalBottomDockPadding.current
     var activeBackupDialogMode by remember { mutableStateOf<BackupOperationMode?>(null) }
+    var languageMenuExpanded by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -121,7 +134,7 @@ fun SettingsScreen(
     ) {
         item {
             Text(
-                text = "Ajustes",
+                text = s.settingsTitle,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -131,16 +144,16 @@ fun SettingsScreen(
 
         // Notifications Section
         item {
-            SettingsCard(title = "Notificaciones de Estreno", icon = Icons.Default.NotificationsActive) {
+            SettingsCard(title = s.settingsNotifSection, icon = Icons.Default.NotificationsActive) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Alertas antes de emitir", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text(s.settingsAlertsTitle, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                         Text(
-                            "Recibe avisos locales antes de cada nuevo episodio",
+                            s.settingsAlertsSubtitle,
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -169,7 +182,7 @@ fun SettingsScreen(
                 if (uiState.notificationsEnabled) {
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "Anticipación por defecto",
+                        text = s.settingsDefaultLeadTime,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -179,7 +192,12 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        listOf(15 to "15 min", 30 to "30 min", 60 to "1 hora", 0 to "Al emitir").forEach { (mins, label) ->
+                        listOf(
+                            15 to s.settingsMinUnit(15),
+                            30 to s.settingsMinUnit(30),
+                            60 to s.settingsHourUnit,
+                            0 to s.settingsOnAiring
+                        ).forEach { (mins, label) ->
                             FilterChip(
                                 selected = uiState.defaultReminderMinutes == mins,
                                 onClick = { onSetDefaultReminderMinutes(mins) },
@@ -200,9 +218,9 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Modo Silencio Nocturno", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
+                            Text(s.settingsQuietHoursTitle, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
                             Text(
-                                "Evita vibración de 23:00 a 07:00",
+                                s.settingsQuietHoursSubtitle,
                                 fontSize = 11.5.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -216,18 +234,18 @@ fun SettingsScreen(
             }
         }
 
-        // Timezone & Language Section
+        // Timezone & App Language Section
         item {
-            SettingsCard(title = "Horario y Sinopsis", icon = Icons.Default.Public) {
+            SettingsCard(title = s.settingsRegionLangSection, icon = Icons.Default.Public) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Horario de Japón (JST)", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text(s.settingsJstTitle, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                         Text(
-                            if (uiState.isJapanTimeZone) "Mostrando horas de emisión en Asia/Tokyo" else "Usando zona horaria local del dispositivo",
+                            if (uiState.isJapanTimeZone) s.settingsJstSubtitleOn else s.settingsJstSubtitleOff,
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -244,10 +262,9 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
                 )
 
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -259,20 +276,72 @@ fun SettingsScreen(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
-                        Text("Idioma preferido", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Column {
+                            Text(s.settingsLanguageTitle, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text(
+                                text = s.settingsLanguageSubtitle,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        SynopsisLanguage.entries.forEach { lang ->
-                            FilterChip(
-                                selected = uiState.globalLanguage == lang,
-                                onClick = { onSetGlobalLanguage(lang) },
-                                label = { Text(lang.shortLabel, fontSize = 11.5.sp) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                    selectedLabelColor = Color.White
+                    ExposedDropdownMenuBox(
+                        expanded = languageMenuExpanded,
+                        onExpandedChange = { languageMenuExpanded = !languageMenuExpanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = appLanguage.nativeName,
+                            onValueChange = {},
+                            readOnly = true,
+                            singleLine = true,
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = languageMenuExpanded)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                            modifier = Modifier
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
+                                .fillMaxWidth()
+                                .testTag("settings_language_dropdown")
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = languageMenuExpanded,
+                            onDismissRequest = { languageMenuExpanded = false },
+                            containerColor = if (LocalIsLiquidGlass.current) AniGlassSheetSurface else MaterialTheme.colorScheme.surface
+                        ) {
+                            SynopsisLanguage.entries.forEach { lang ->
+                                val isSelected = uiState.globalLanguage == lang
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = lang.nativeName,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = lang.shortLabel,
+                                                fontSize = 11.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        languageMenuExpanded = false
+                                        onSetGlobalLanguage(lang)
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                                    modifier = Modifier.testTag("settings_lang_option_${lang.code}")
                                 )
-                            )
+                            }
                         }
                     }
                 }
@@ -281,7 +350,7 @@ fun SettingsScreen(
 
         // Appearance Section
         item {
-            SettingsCard(title = "Apariencia", icon = Icons.Default.Palette) {
+            SettingsCard(title = s.settingsAppearanceSection, icon = Icons.Default.Palette) {
                 val isGlass = LocalIsLiquidGlass.current
                 AppThemeMode.entries.forEach { mode ->
                     val selected = uiState.appThemeMode == mode
@@ -295,13 +364,13 @@ fun SettingsScreen(
                     ) {
                         Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
                             Text(
-                                text = mode.label,
+                                text = AppLocalization.themeModeLabel(mode, s),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.5.sp,
                                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = mode.description,
+                                text = AppLocalization.themeModeDescription(mode, s),
                                 fontSize = 11.5.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -313,9 +382,9 @@ fun SettingsScreen(
 
         // Offline Storage Section
         item {
-            SettingsCard(title = "Acceso Offline y Caché", icon = Icons.Default.CloudDownload) {
+            SettingsCard(title = s.settingsOfflineSection, icon = Icons.Default.CloudDownload) {
                 Text(
-                    text = "${uiState.cachedCount} series almacenadas localmente para consulta sin conexión.",
+                    text = s.settingsCachedSeriesCount(uiState.cachedCount),
                     fontSize = 12.5.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -329,7 +398,7 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Sincronizar ahora", fontSize = 12.sp)
+                        Text(s.settingsSyncNow, fontSize = 12.sp)
                     }
                     OutlinedButton(
                         onClick = onClearCache,
@@ -338,7 +407,7 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.size(4.dp))
-                        Text("Limpiar caché", fontSize = 12.sp)
+                        Text(s.settingsClearCache, fontSize = 12.sp)
                     }
                 }
             }
@@ -346,9 +415,12 @@ fun SettingsScreen(
 
         // Encrypted Backup & Restore Section (.avb)
         item {
-            SettingsCard(title = "Copias de Respaldo (.avb)", icon = Icons.Default.Backup) {
+            SettingsCard(title = s.settingsBackupSection, icon = Icons.Default.Backup) {
                 Text(
-                    text = "Exporta o restaura tus favoritos, Mi Lista, episodios vistos, calificaciones y preferencias en archivos cifrados AES-256 (.avb) en local (${LocalBackupStorage.BACKUP_FOLDER_NAME}) o en tu propio Google Drive (AniVexa).",
+                    text = s.settingsBackupDesc(
+                        LocalBackupStorage.BACKUP_FOLDER_NAME,
+                        GoogleDriveBackupClient.DRIVE_FOLDER_NAME
+                    ),
                     fontSize = 12.5.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 17.sp
@@ -371,7 +443,7 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.Backup, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.size(6.dp))
-                        Text("Respaldar", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text(s.settingsBackupBtn, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                     }
                     OutlinedButton(
                         onClick = {
@@ -386,7 +458,7 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.size(6.dp))
-                        Text("Restaurar", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text(s.settingsRestoreBtn, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -395,12 +467,12 @@ fun SettingsScreen(
         // Security & Device Integrity Section
         item {
             val sec = uiState.deviceSecurityReport
-            SettingsCard(title = "Seguridad e Integridad", icon = Icons.Default.Security) {
+            SettingsCard(title = s.settingsSecuritySection, icon = Icons.Default.Security) {
                 Text(
                     text = if (sec.isRooted) {
-                        "Entorno con acceso root detectado (${sec.rootIndicators.joinToString()}). AniVexa sigue funcionando con normalidad, pero otras apps con privilegios elevados podrían acceder al almacenamiento."
+                        s.settingsRootDetected(sec.rootIndicators.joinToString())
                     } else {
-                        "Entorno verificado: sin indicadores de root detectados."
+                        s.settingsNoRootDetected
                     },
                     fontSize = 12.5.sp,
                     color = if (sec.isRooted) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -408,14 +480,17 @@ fun SettingsScreen(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Play Integrity API: ${sec.playIntegrityStatus.label} • ${sec.playIntegrityStatus.detail}",
+                    text = s.settingsPlayIntegrityLine(
+                        AppLocalization.playIntegrityLabel(sec.playIntegrityStatus, s),
+                        AppLocalization.playIntegrityDetail(sec.playIntegrityStatus, s)
+                    ),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 16.sp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Copia de seguridad externa (allowBackup) desactivada y tráfico cifrado HTTPS obligatorio.",
+                    text = s.settingsHardeningInfo,
                     fontSize = 11.5.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -427,22 +502,22 @@ fun SettingsScreen(
                         .testTag("settings_security_check_button"),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Verificar seguridad ahora", fontSize = 12.sp)
+                    Text(s.settingsVerifySecurityBtn, fontSize = 12.sp)
                 }
             }
         }
 
         // About AniVexa
         item {
-            SettingsCard(title = "Acerca de AniVexa", icon = Icons.Default.Info) {
+            SettingsCard(title = s.settingsAboutSection, icon = Icons.Default.Info) {
                 Text(
-                    text = "AniVexa • Calendario y rastreador de episodios por temporada.",
+                    text = s.settingsAboutTagline,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Datos en tiempo real obtenidos mediante AniList GraphQL API. Sin registro ni cuentas requeridas: tus listas y progreso se guardan localmente de forma rápida y privada.",
+                    text = s.settingsAboutDesc,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 17.sp

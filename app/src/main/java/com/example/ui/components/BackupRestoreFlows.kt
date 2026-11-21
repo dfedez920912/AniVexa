@@ -64,6 +64,8 @@ import com.example.backup.BackupDestination
 import com.example.backup.BackupEntry
 import com.example.backup.BackupOperationMode
 import com.example.backup.LocalBackupStorage
+import com.example.i18n.AppStrings
+import com.example.i18n.LocalAppStrings
 import com.example.ui.AnimeUiState
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -94,6 +96,7 @@ fun BackupRestoreDialog(
     onClearMessages: () -> Unit,
     onCompletedContinue: (() -> Unit)? = null
 ) {
+    val s = LocalAppStrings.current
     var step by remember(mode) { mutableStateOf(BackupDialogStep.CHOOSE_DESTINATION) }
     var selectedDestination by remember(mode) { mutableStateOf<BackupDestination?>(null) }
     var selectedEntry by remember(mode) { mutableStateOf<BackupEntry?>(null) }
@@ -155,17 +158,17 @@ fun BackupRestoreDialog(
 
     val dialogTitle = when {
         uiState.backupStatusMessage != null ->
-            if (mode == BackupOperationMode.BACKUP) "Backup completado" else "Respaldo restaurado"
+            if (mode == BackupOperationMode.BACKUP) s.backupDoneTitle else s.restoreDoneTitle
         step == BackupDialogStep.CHOOSE_DESTINATION ->
-            if (mode == BackupOperationMode.BACKUP) "Crear copia de respaldo" else "Restaurar copia (.avb)"
+            if (mode == BackupOperationMode.BACKUP) s.backupChooseDestTitle else s.restoreChooseDestTitle
         step == BackupDialogStep.REQUEST_LOCAL_PERMISSION ->
-            "Permiso de almacenamiento"
+            s.backupLocalPermTitle
         step == BackupDialogStep.ENTER_BACKUP_PASSPHRASE ->
-            "Cifrar archivo .avb"
+            s.backupEncryptTitle
         step == BackupDialogStep.PICK_RESTORE_FILE ->
-            "Seleccionar copia .avb"
+            s.restorePickFileTitle
         else ->
-            "Descifrar y restaurar"
+            s.restoreDecryptTitle
     }
 
     AlertDialog(
@@ -252,9 +255,9 @@ fun BackupRestoreDialog(
                             CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.5.dp)
                             Text(
                                 text = if (mode == BackupOperationMode.BACKUP) {
-                                    "Cifrando y guardando respaldo (.avb)..."
+                                    s.backupBusyCreating
                                 } else {
-                                    "Leyendo y descifrando respaldo (.avb)..."
+                                    s.backupBusyRestoring
                                 },
                                 fontSize = 13.sp
                             )
@@ -265,17 +268,17 @@ fun BackupRestoreDialog(
                         BackupDialogStep.CHOOSE_DESTINATION -> {
                             Text(
                                 text = if (mode == BackupOperationMode.BACKUP) {
-                                    "Elige dónde guardar tus datos cifrados en formato .avb:"
+                                    s.backupChooseDestPrompt
                                 } else {
-                                    "Elige desde dónde deseas recuperar tu archivo cifrado .avb:"
+                                    s.restoreChooseDestPrompt
                                 },
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
                             DestinationOptionCard(
-                                title = "Almacenamiento Local",
-                                subtitle = "Carpeta ${LocalBackupStorage.BACKUP_FOLDER_NAME} en tu dispositivo (.avb)",
+                                title = s.backupLocalTitle,
+                                subtitle = s.backupLocalSubtitle(LocalBackupStorage.BACKUP_FOLDER_NAME),
                                 icon = Icons.Default.PhoneAndroid,
                                 testTag = "backup_dest_local",
                                 enabled = !uiState.isBackupBusy,
@@ -297,8 +300,8 @@ fun BackupRestoreDialog(
                             )
 
                             DestinationOptionCard(
-                                title = "Google Drive",
-                                subtitle = "Tu propia nube, carpeta AniVexa (.avb)",
+                                title = s.backupDriveTitle,
+                                subtitle = s.backupDriveSubtitle,
                                 icon = Icons.Default.CloudUpload,
                                 testTag = "backup_dest_drive",
                                 enabled = !uiState.isBackupBusy,
@@ -327,7 +330,7 @@ fun BackupRestoreDialog(
 
                         BackupDialogStep.REQUEST_LOCAL_PERMISSION -> {
                             Text(
-                                text = "Concede acceso a una ubicación de tu dispositivo (por ejemplo la raíz del almacenamiento o Documentos). AniVexa creará ahí la carpeta \"${LocalBackupStorage.BACKUP_FOLDER_NAME}\" para guardar y restaurar tus copias cifradas .avb.",
+                                text = s.backupLocalPermBody(LocalBackupStorage.BACKUP_FOLDER_NAME),
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 18.sp
@@ -355,7 +358,7 @@ fun BackupRestoreDialog(
                             ) {
                                 Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.size(8.dp))
-                                Text("Conceder permiso de carpeta")
+                                Text(s.backupGrantFolderBtn)
                             }
 
                             if (mode == BackupOperationMode.RESTORE) {
@@ -366,19 +369,19 @@ fun BackupRestoreDialog(
                                         .heightIn(min = 48.dp)
                                         .testTag("backup_pick_manual_file_button")
                                 ) {
-                                    Text("Seleccionar archivo .avb manualmente")
+                                    Text(s.restorePickManualBtn)
                                 }
                             }
                         }
 
                         BackupDialogStep.ENTER_BACKUP_PASSPHRASE -> {
                             val targetLabel = if (selectedDestination == BackupDestination.GOOGLE_DRIVE) {
-                                "Google Drive / AniVexa"
+                                s.backupTargetDrivePath
                             } else {
-                                "Dispositivo / ${LocalBackupStorage.BACKUP_FOLDER_NAME}"
+                                s.backupTargetLocalPath(LocalBackupStorage.BACKUP_FOLDER_NAME)
                             }
                             Text(
-                                text = "Destino: $targetLabel\nCrea una contraseña para cifrar el archivo .avb (AES-256). La necesitarás al restaurar.",
+                                text = s.backupEnterPassPrompt(targetLabel),
                                 fontSize = 12.5.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 17.sp
@@ -390,9 +393,11 @@ fun BackupRestoreDialog(
                                     passphrase = it
                                     localValidationError = null
                                 },
-                                label = "Contraseña de cifrado (mín. 4 caracteres)",
+                                label = s.backupPassLabel,
                                 showPassword = showPassword,
                                 onToggleVisibility = { showPassword = !showPassword },
+                                hideDesc = s.passHideDesc,
+                                showDesc = s.passShowDesc,
                                 testTag = "backup_password_input"
                             )
 
@@ -402,9 +407,11 @@ fun BackupRestoreDialog(
                                     confirmPassphrase = it
                                     localValidationError = null
                                 },
-                                label = "Confirmar contraseña",
+                                label = s.backupConfirmPassLabel,
                                 showPassword = showPassword,
                                 onToggleVisibility = { showPassword = !showPassword },
+                                hideDesc = s.passHideDesc,
+                                showDesc = s.passShowDesc,
                                 testTag = "backup_confirm_password_input"
                             )
                         }
@@ -416,9 +423,9 @@ fun BackupRestoreDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 val folderHint = if (selectedDestination == BackupDestination.GOOGLE_DRIVE) {
-                                    "Carpeta AniVexa en Drive"
+                                    s.restoreFolderHintDrive
                                 } else {
-                                    "Carpeta ${LocalBackupStorage.BACKUP_FOLDER_NAME}"
+                                    s.restoreFolderHintLocal(LocalBackupStorage.BACKUP_FOLDER_NAME)
                                 }
                                 Text(
                                     text = folderHint,
@@ -436,13 +443,13 @@ fun BackupRestoreDialog(
                                     },
                                     enabled = !uiState.isBackupBusy
                                 ) {
-                                    Icon(Icons.Default.Refresh, contentDescription = "Actualizar lista")
+                                    Icon(Icons.Default.Refresh, contentDescription = s.restoreRefreshListDesc)
                                 }
                             }
 
                             if (uiState.availableBackups.isEmpty() && !uiState.isBackupBusy) {
                                 Text(
-                                    text = "No se encontraron archivos .avb en esa carpeta todavía.",
+                                    text = s.restoreNoFilesFound,
                                     fontSize = 13.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -477,7 +484,7 @@ fun BackupRestoreDialog(
                                                 )
                                                 Spacer(modifier = Modifier.height(2.dp))
                                                 Text(
-                                                    text = formatEntryMeta(entry),
+                                                    text = formatEntryMeta(entry, s),
                                                     fontSize = 11.5.sp,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -495,7 +502,7 @@ fun BackupRestoreDialog(
                                         .heightIn(min = 48.dp)
                                         .testTag("restore_pick_other_file_button")
                                 ) {
-                                    Text("Buscar archivo .avb manualmente")
+                                    Text(s.restoreBrowseOtherBtn)
                                 }
                             }
                         }
@@ -503,7 +510,7 @@ fun BackupRestoreDialog(
                         BackupDialogStep.ENTER_RESTORE_PASSPHRASE -> {
                             val entry = selectedEntry
                             Text(
-                                text = "Archivo: ${entry?.fileName ?: "respaldo.avb"}\nAl restaurar se reemplazarán tus listas, favoritos, episodios vistos y ajustes actuales con los de este respaldo.",
+                                text = s.restoreWarningBody(entry?.fileName ?: "respaldo.avb"),
                                 fontSize = 12.5.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 17.sp
@@ -515,9 +522,11 @@ fun BackupRestoreDialog(
                                     passphrase = it
                                     localValidationError = null
                                 },
-                                label = "Contraseña del archivo .avb",
+                                label = s.restorePassLabel,
                                 showPassword = showPassword,
                                 onToggleVisibility = { showPassword = !showPassword },
+                                hideDesc = s.passHideDesc,
+                                showDesc = s.passShowDesc,
                                 testTag = "restore_password_input"
                             )
                         }
@@ -542,9 +551,9 @@ fun BackupRestoreDialog(
                     ) {
                         Text(
                             if (onCompletedContinue != null && mode == BackupOperationMode.RESTORE) {
-                                "Entrar a AniVexa"
+                                s.backupEnterAppBtn
                             } else {
-                                "Listo"
+                                s.backupDoneBtn
                             }
                         )
                     }
@@ -556,10 +565,10 @@ fun BackupRestoreDialog(
                         onClick = {
                             when {
                                 !BackupCrypto.isValidPassphrase(passphrase) -> {
-                                    localValidationError = "La contraseña debe tener al menos 4 caracteres."
+                                    localValidationError = s.backupErrorMinLength
                                 }
                                 passphrase.trim() != confirmPassphrase.trim() -> {
-                                    localValidationError = "Las contraseñas no coinciden."
+                                    localValidationError = s.backupErrorMismatch
                                 }
                                 selectedDestination == BackupDestination.GOOGLE_DRIVE -> {
                                     onCreateDriveBackup(passphrase)
@@ -573,7 +582,7 @@ fun BackupRestoreDialog(
                             .heightIn(min = 48.dp)
                             .testTag("backup_confirm_create_button")
                     ) {
-                        Text("Crear copia .avb")
+                        Text(s.backupCreateActionBtn)
                     }
                 }
 
@@ -583,7 +592,7 @@ fun BackupRestoreDialog(
                         onClick = {
                             val entry = selectedEntry ?: return@Button
                             if (!BackupCrypto.isValidPassphrase(passphrase)) {
-                                localValidationError = "Introduce la contraseña de tu archivo .avb."
+                                localValidationError = s.backupErrorEnterPassRestore
                                 return@Button
                             }
                             if (entry.source == BackupDestination.GOOGLE_DRIVE) {
@@ -596,7 +605,7 @@ fun BackupRestoreDialog(
                             .heightIn(min = 48.dp)
                             .testTag("restore_confirm_button")
                     ) {
-                        Text("Restaurar ahora")
+                        Text(s.restoreActionBtn)
                     }
                 }
             }
@@ -621,14 +630,14 @@ fun BackupRestoreDialog(
                                 }
                             }
                         ) {
-                            Text("Atrás")
+                            Text(s.dialogBackBtn)
                         }
                     }
                     TextButton(
                         enabled = !uiState.isBackupBusy,
                         onClick = onDismiss
                     ) {
-                        Text("Cerrar")
+                        Text(s.dialogCloseBtn)
                     }
                 }
             }
@@ -685,6 +694,8 @@ private fun PassphraseTextField(
     label: String,
     showPassword: Boolean,
     onToggleVisibility: () -> Unit,
+    hideDesc: String,
+    showDesc: String,
     testTag: String
 ) {
     OutlinedTextField(
@@ -698,7 +709,7 @@ private fun PassphraseTextField(
             IconButton(onClick = onToggleVisibility) {
                 Icon(
                     imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                    contentDescription = if (showPassword) "Ocultar contraseña" else "Mostrar contraseña"
+                    contentDescription = if (showPassword) hideDesc else showDesc
                 )
             }
         },
@@ -708,17 +719,17 @@ private fun PassphraseTextField(
     )
 }
 
-private fun formatEntryMeta(entry: BackupEntry): String {
+private fun formatEntryMeta(entry: BackupEntry, s: AppStrings): String {
     val dateStr = if (entry.modifiedMillis > 0L) {
         SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(entry.modifiedMillis))
     } else {
-        "Archivo .avb"
+        s.backupMetaFallback
     }
     val sizeStr = if (entry.sizeBytes > 0L) {
         val kb = (entry.sizeBytes / 1024.0).coerceAtLeast(0.1)
         String.format(Locale.US, "%.1f KB", kb)
     } else {
-        "Cifrado AES-256"
+        s.backupMetaEncrypted
     }
     return "$dateStr • $sizeStr"
 }

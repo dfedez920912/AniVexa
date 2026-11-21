@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.i18n.LocalAppStrings
 import com.example.model.AnimeRelease
 import com.example.ui.theme.AniAzure
 import com.example.ui.theme.AniGold
@@ -60,6 +61,7 @@ fun AnimePosterCard(
 ) {
     val context = LocalContext.current
     val isGlass = LocalIsLiquidGlass.current
+    val s = LocalAppStrings.current
     val cardRadius = adaptiveCardCorner(standard = 12.dp, glass = 18.dp)
     val cardShape = RoundedCornerShape(cardRadius)
 
@@ -106,8 +108,8 @@ fun AnimePosterCard(
 
                 // Top-right status pill ("Emisión" / "Pronto") matching reference screenshots
                 val badgeText = when {
-                    anime.isCurrentlyAiringStatus -> "Emisión"
-                    anime.status.equals("NOT_YET_RELEASED", ignoreCase = true) -> "Pronto"
+                    anime.isCurrentlyAiringStatus -> s.badgeAiring
+                    anime.status.equals("NOT_YET_RELEASED", ignoreCase = true) -> s.badgeSoon
                     else -> null
                 }
                 if (badgeText != null) {
@@ -139,7 +141,7 @@ fun AnimePosterCard(
                             .padding(6.dp)
                     ) {
                         Text(
-                            text = "Ep ${anime.effectiveEpisodeNumber()}",
+                            text = "${s.episodeShortPrefix} ${anime.effectiveEpisodeNumber()}",
                             fontSize = 9.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -170,7 +172,8 @@ fun AnimePosterCard(
 
                 // Rating • Year • Total episodes
                 val yearText = anime.seasonYear?.toString()
-                val epsText = anime.totalEpisodes?.let { "${it} eps" } ?: if (anime.format == "MOVIE") "Película" else null
+                val epsText = anime.totalEpisodes?.let { "$it ${s.episodesUnitShort}" }
+                    ?: if (anime.format.equals("MOVIE", ignoreCase = true)) s.formatMovie else null
                 val metaParts = listOfNotNull(yearText, epsText).joinToString(" • ")
 
                 Row(

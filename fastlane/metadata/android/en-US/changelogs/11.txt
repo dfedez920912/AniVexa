@@ -1,0 +1,3 @@
+- New global language dropdown in Settings supporting Español, English, Français, and 日本語.
+- Instant full-app localization across navigation, Home, Calendar, My List, Search, Anime Details, encrypted .avb backup dialogs, notifications, and widgets.
+- Security cleanup and static analysis compliance improvements.

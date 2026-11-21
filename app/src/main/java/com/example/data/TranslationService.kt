@@ -21,20 +21,23 @@ class TranslationService {
         .build()
 
     /**
-     * Translates text into target language code (e.g., "es" for Spanish, "en" for English).
+     * Translates text into target language code (es, en, fr, ja).
      * Translates the entire text fully and integrally.
      */
     suspend fun translate(text: String, targetLang: String = "es"): String = withContext(Dispatchers.IO) {
         if (text.isBlank()) return@withContext text
-        if (targetLang != "es") return@withContext text
+        val normalizedTarget = targetLang.trim().lowercase()
+        if (normalizedTarget == "en" || normalizedTarget !in setOf("es", "fr", "ja")) {
+            return@withContext text
+        }
 
-        val cacheKey = "${targetLang}_${text.hashCode()}"
+        val cacheKey = "${normalizedTarget}_${text.hashCode()}"
         cache[cacheKey]?.let { return@withContext it }
 
         // Attempt online translation first
         try {
             val encodedQuery = URLEncoder.encode(text, StandardCharsets.UTF_8.toString())
-            val url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=$targetLang&dt=t&q=$encodedQuery"
+            val url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=$normalizedTarget&dt=t&q=$encodedQuery"
 
             val request = Request.Builder()
                 .url(url)
@@ -66,13 +69,15 @@ class TranslationService {
                 }
             }
         } catch (e: Exception) {
-            AppLogger.w("TranslationService", "Translation API failed: ${e.message}")
+            AppLogger.w("TranslationService", "Translation API failed ($normalizedTarget): ${e.message}")
         }
 
-        // Comprehensive Full Spanish Translation Fallback (Ensures 100% integral translation)
-        val fullTranslation = getFullSpanishTranslation(text)
-        cache[cacheKey] = fullTranslation
-        fullTranslation
+        val fallback = when (normalizedTarget) {
+            "es" -> getFullSpanishTranslation(text)
+            else -> text
+        }
+        cache[cacheKey] = fallback
+        fallback
     }
 
     private fun getFullSpanishTranslation(englishText: String): String {

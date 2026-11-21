@@ -6,9 +6,25 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-enum class SynopsisLanguage(val code: String, val displayName: String, val shortLabel: String) {
-    SPANISH("es", "Español", "ES"),
-    ENGLISH("en", "Inglés (Original)", "EN")
+enum class SynopsisLanguage(
+    val code: String,
+    val displayName: String,
+    val shortLabel: String,
+    val nativeName: String
+) {
+    SPANISH("es", "Español", "ES", "Español"),
+    ENGLISH("en", "English", "EN", "English"),
+    FRENCH("fr", "Français", "FR", "Français"),
+    JAPANESE("ja", "日本語", "JA", "日本語");
+
+    fun toLocale(): Locale = Locale.forLanguageTag(code)
+
+    companion object {
+        fun fromCode(code: String?): SynopsisLanguage {
+            return entries.firstOrNull { it.code.equals(code?.trim(), ignoreCase = true) }
+                ?: SPANISH
+        }
+    }
 }
 
 enum class EpisodeFilter(val label: String, val shortLabel: String) {
@@ -66,6 +82,8 @@ data class AnimeRelease(
     val synopsis: String,
     val synopsisEs: String = "",
     val synopsisEn: String = "",
+    val synopsisFr: String = "",
+    val synopsisJa: String = "",
     val activeLanguage: SynopsisLanguage = SynopsisLanguage.SPANISH,
     val isTranslating: Boolean = false,
     val episode: Int,
@@ -125,13 +143,12 @@ data class AnimeRelease(
         }
 
     fun getActiveSynopsis(): String {
+        val fallback = synopsisEn.ifBlank { synopsis.ifBlank { synopsisEs } }
         return when (activeLanguage) {
-            SynopsisLanguage.SPANISH -> {
-                if (synopsisEs.isNotBlank()) synopsisEs else synopsis.ifBlank { synopsisEn }
-            }
-            SynopsisLanguage.ENGLISH -> {
-                if (synopsisEn.isNotBlank()) synopsisEn else synopsis.ifBlank { synopsisEs }
-            }
+            SynopsisLanguage.SPANISH -> synopsisEs.ifBlank { fallback }
+            SynopsisLanguage.ENGLISH -> synopsisEn.ifBlank { synopsis.ifBlank { synopsisEs } }
+            SynopsisLanguage.FRENCH -> synopsisFr.ifBlank { fallback }
+            SynopsisLanguage.JAPANESE -> synopsisJa.ifBlank { fallback }
         }
     }
 
@@ -159,9 +176,12 @@ data class AnimeRelease(
         return zonedDateTime.format(formatter)
     }
 
-    fun getFormattedDateTimeShort(zoneId: ZoneId = ZoneId.systemDefault()): String {
+    fun getFormattedDateTimeShort(
+        zoneId: ZoneId = ZoneId.systemDefault(),
+        fallback: String = "Sin fecha"
+    ): String {
         val ts = effectiveAiringSeconds()
-        if (ts <= 0L) return "Sin fecha"
+        if (ts <= 0L) return fallback
         val zonedDateTime = Instant.ofEpochSecond(ts).atZone(zoneId)
         val formatter = DateTimeFormatter.ofPattern("d/M HH:mm", Locale.getDefault())
         return zonedDateTime.format(formatter)

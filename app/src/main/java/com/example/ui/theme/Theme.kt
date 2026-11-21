@@ -11,7 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.example.i18n.AppLocalization
+import com.example.i18n.LocalAppLanguage
+import com.example.i18n.LocalAppStrings
 import com.example.model.AppThemeMode
+import com.example.model.SynopsisLanguage
 
 private val AniVexaDarkScheme = darkColorScheme(
     primary = AniAzureBright,
@@ -98,6 +102,7 @@ private val LiquidGlassColorScheme = darkColorScheme(
 @Composable
 fun AniVexaTheme(
     themeMode: AppThemeMode = AppThemeMode.ANIVEXA_DARK,
+    appLanguage: SynopsisLanguage = SynopsisLanguage.SPANISH,
     systemDarkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
@@ -120,7 +125,12 @@ fun AniVexaTheme(
         }
     }
 
-    CompositionLocalProvider(LocalIsLiquidGlass provides isLiquidGlass) {
+    val strings = AppLocalization.stringsFor(appLanguage)
+    CompositionLocalProvider(
+        LocalIsLiquidGlass provides isLiquidGlass,
+        LocalAppStrings provides strings,
+        LocalAppLanguage provides appLanguage
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,

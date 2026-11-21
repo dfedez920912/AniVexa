@@ -94,7 +94,7 @@ class EncryptedBackupTest {
         }
 
         val tampered = encryptedA.copyOf()
-        tampered[tampered.lastIndex] = (tampered[tampered.lastIndex].toInt() xor 0xFF).toByte()
+        tampered[tampered.lastIndex] = ((tampered[tampered.lastIndex].toInt() + 1) and 0xFF).toByte()
         try {
             BackupCrypto.decrypt(tampered, "MiClaveSegura99")
             fail("Expected BackupCryptoException for tampered ciphertext")

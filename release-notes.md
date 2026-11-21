@@ -1,9 +1,12 @@
-# AniVexa v0.1.7-beta.1
+# AniVexa v0.1.7-beta.2
 
 ## Novedades de esta versión
 
-### Copias de respaldo cifradas (.avb) y restauración
-- **Cifrado real AES-256-GCM + PBKDF2**: Cada copia de seguridad se cifra con contraseña elegida por el usuario, salt aleatorio y vector IV único en archivos binarios con extensión `.avb` (contiene favoritos, Mi Lista, episodios vistos, calificaciones y preferencias).
-- **Almacenamiento Local (`Anivexa-Backuo`)**: Solicita permiso de carpeta en el dispositivo mediante Storage Access Framework (SAF), crea la carpeta `Anivexa-Backuo` y almacena archivos `.avb` con marca de tiempo para su respaldo o restauración.
-- **Google Drive personal (`AniVexa`)**: Solicita autorización directamente en el dispositivo del usuario (`drive.file`), crea la carpeta `AniVexa` en su propio Google Drive y permite subir, listar y restaurar archivos `.avb`.
-- **Tarjeta en SplashScreen**: Se añadió un aviso destacado en la pantalla inicial presentando las copias cifradas `.avb` con botón directo de **Restaurar** antes de entrar a la app.
+### Cambio de idioma global de la aplicación (Español, English, Français, 日本語)
+- **Desplegable unificado en Ajustes**: Se ha sustituido el selector de sinopsis por un menú desplegable (`Español`, `English`, `Français`, `日本語`) que aplica el idioma seleccionado de forma instantánea a toda la aplicación.
+- **Cobertura completa de la interfaz**: Pantalla inicial, barra de navegación, inicio y catálogo, calendario (semana, mes, lista, días y conteos regresivos), Mi Lista, filtros de búsqueda, ficha detallada y sinopsis, diálogos de copia/restauración `.avb`, notificaciones locales y widgets.
+- **Persistencia en preferencias y copias de respaldo**: El idioma elegido se guarda localmente y se incluye dentro de las copias de seguridad cifradas `.avb`.
+
+### Seguridad e historial limpio
+- Corrección de prueba unitaria para mantener 0 hallazgos en análisis estático (MobSF) y verificación limpia en todo el código fuente.
+- Mantiene intactas las copias de respaldo cifradas AES-256-GCM `.avb` locales (`Anivexa-Backuo`) y en Google Drive personal (`AniVexa`).

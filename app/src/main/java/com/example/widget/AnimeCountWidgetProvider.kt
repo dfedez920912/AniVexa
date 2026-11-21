@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
 import com.example.MainActivity
+import com.example.i18n.AppLocalization
 import com.example.util.AppLogger
 import cu.daniel.anical.R
 import kotlinx.coroutines.CoroutineScope
@@ -24,9 +25,12 @@ class AnimeCountWidgetProvider : AppWidgetProvider() {
                 val (todayReleases, _) = WidgetDataHelper.getTodayRealReleases(context, forceNetwork = false)
                 val countText = todayReleases.size.toString()
 
+                val s = AppLocalization.stringsFor(context)
+
                 for (appWidgetId in appWidgetIds) {
                     val views = RemoteViews(context.packageName, R.layout.widget_anime_count_1x1)
                     views.setTextViewText(R.id.widget_count_text, countText)
+                    views.setTextViewText(R.id.widget_count_label, s.widgetCountLabel)
 
                     val intent = Intent(context, MainActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

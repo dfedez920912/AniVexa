@@ -48,6 +48,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.i18n.AppLocalization
+import com.example.i18n.LocalAppStrings
 import com.example.model.AnimeRelease
 import com.example.model.GenreHelper
 import com.example.model.MediaFormatFilter
@@ -78,6 +80,7 @@ fun SearchScreen(
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
+    val s = LocalAppStrings.current
     val isGlass = LocalIsLiquidGlass.current
     val bottomDockPadding = LocalBottomDockPadding.current
     val currentYear = LocalDate.now().year
@@ -88,13 +91,13 @@ fun SearchScreen(
             .fillMaxSize()
             .screenBackdrop()
     ) {
-        // Search Input Bar matching Screenshots 3 & 5
+        // Search Input Bar
         OutlinedTextField(
             value = uiState.searchQuery,
             onValueChange = onQueryChange,
             placeholder = {
                 Text(
-                    text = "Buscar anime...",
+                    text = s.searchPlaceholder,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp
                 )
@@ -102,7 +105,7 @@ fun SearchScreen(
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "Buscar",
+                    contentDescription = s.searchIconDesc,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
@@ -111,7 +114,7 @@ fun SearchScreen(
                     IconButton(onClick = { onQueryChange("") }) {
                         Icon(
                             imageVector = Icons.Default.Clear,
-                            contentDescription = "Limpiar búsqueda",
+                            contentDescription = s.searchClearDesc,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -144,7 +147,7 @@ fun SearchScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (uiState.showSearchFilters) "Ocultar Filtros" else "Mostrar Filtros",
+                text = if (uiState.showSearchFilters) s.searchHideFilters else s.searchShowFilters,
                 fontSize = 13.5.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
@@ -179,13 +182,13 @@ fun SearchScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Filtros de Descubrimiento",
+                            text = s.searchDiscoveryFilters,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Limpiar todo",
+                            text = s.searchClearAll,
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary,
@@ -193,7 +196,7 @@ fun SearchScreen(
                         )
                     }
 
-                    FilterLabel("Género")
+                    FilterLabel(s.searchLabelGenre)
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 14.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -203,7 +206,7 @@ fun SearchScreen(
                             FilterChip(
                                 selected = selected,
                                 onClick = { onToggleGenre(genre) },
-                                label = { Text(genre, fontSize = 11.sp) },
+                                label = { Text(AppLocalization.genreLabel(genre, s), fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primary,
                                     selectedLabelColor = Color.White
@@ -212,7 +215,7 @@ fun SearchScreen(
                         }
                     }
 
-                    FilterLabel("Temporada y Año")
+                    FilterLabel(s.searchLabelSeasonYear)
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 14.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -224,14 +227,14 @@ fun SearchScreen(
                                     onSelectSeason(null)
                                     onSelectYear(null)
                                 },
-                                label = { Text("Cualquiera", fontSize = 11.sp) }
+                                label = { Text(s.searchAnyChip, fontSize = 11.sp) }
                             )
                         }
                         items(MediaSeason.entries) { season ->
                             FilterChip(
                                 selected = uiState.searchSeason == season,
                                 onClick = { onSelectSeason(if (uiState.searchSeason == season) null else season) },
-                                label = { Text(season.labelEs, fontSize = 11.sp) },
+                                label = { Text(AppLocalization.seasonLabel(season, s), fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primary,
                                     selectedLabelColor = Color.White
@@ -251,7 +254,7 @@ fun SearchScreen(
                         }
                     }
 
-                    FilterLabel("Estado y Formato")
+                    FilterLabel(s.searchLabelStatusFormat)
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 14.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -260,7 +263,7 @@ fun SearchScreen(
                             FilterChip(
                                 selected = uiState.searchStatus == st,
                                 onClick = { onSelectStatus(st) },
-                                label = { Text(st.labelEs, fontSize = 11.sp) },
+                                label = { Text(AppLocalization.statusFilterLabel(st, s), fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primary,
                                     selectedLabelColor = Color.White
@@ -273,7 +276,7 @@ fun SearchScreen(
                                 onClick = {
                                     onSelectFormat(if (uiState.searchFormat == fmt) MediaFormatFilter.ALL else fmt)
                                 },
-                                label = { Text(fmt.labelEs, fontSize = 11.sp) },
+                                label = { Text(AppLocalization.formatFilterLabel(fmt, s), fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                     selectedLabelColor = MaterialTheme.colorScheme.primary
@@ -282,7 +285,7 @@ fun SearchScreen(
                         }
                     }
 
-                    FilterLabel("Estudio")
+                    FilterLabel(s.searchLabelStudio)
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 14.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -291,7 +294,7 @@ fun SearchScreen(
                             FilterChip(
                                 selected = uiState.searchStudio == null,
                                 onClick = { onSelectStudio(null) },
-                                label = { Text("Todos", fontSize = 11.sp) }
+                                label = { Text(s.searchAllChip, fontSize = 11.sp) }
                             )
                         }
                         items(GenreHelper.POPULAR_STUDIOS) { studio ->
@@ -326,12 +329,12 @@ fun SearchScreen(
                         modifier = Modifier.size(42.dp)
                     )
                     Text(
-                        text = "Sin resultados encontrados",
+                        text = s.searchNoResultsTitle,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Intenta con otro título o ajusta los filtros.",
+                        text = s.searchNoResultsSubtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

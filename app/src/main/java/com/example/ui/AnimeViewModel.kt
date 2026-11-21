@@ -17,6 +17,8 @@ import com.example.backup.LocalBackupStorage
 import com.example.data.AnimeRepository
 import com.example.data.local.WatchlistEntity
 import com.example.data.local.WatchlistStatus
+import com.example.i18n.AppLocalization
+import com.example.i18n.AppStrings
 import com.example.model.AnimeCharacter
 import com.example.model.AnimeRelease
 import com.example.model.AnimeReview
@@ -33,6 +35,7 @@ import com.example.notifications.AnimeEpisodeReminderWorker
 import com.example.notifications.AnimeNotificationHelper
 import com.example.security.DeviceSecurityManager
 import com.example.security.DeviceSecurityReport
+import com.example.widget.WidgetDataHelper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -177,11 +180,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             notificationsEnabled = prefs.getBoolean("notif_enabled", true),
             defaultReminderMinutes = prefs.getInt("default_reminder_min", 15),
             quietHoursEnabled = prefs.getBoolean("quiet_hours", false),
-            globalLanguage = if (prefs.getString("synopsis_lang", "es") == "en") {
-                SynopsisLanguage.ENGLISH
-            } else {
-                SynopsisLanguage.SPANISH
-            },
+            globalLanguage = SynopsisLanguage.fromCode(prefs.getString("synopsis_lang", "es")),
             hasLocalBackupFolder = LocalBackupStorage.getSavedTreeUri(application.applicationContext) != null
         )
     )
@@ -262,6 +261,8 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         executeSearch()
     }
 
+    private fun strings(): AppStrings = AppLocalization.stringsFor(_uiState.value.globalLanguage)
+
     fun refreshDeviceSecurity() {
         evaluateDeviceSecurity(showRootWarning = false, notifyResult = true)
     }
@@ -273,13 +274,12 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val report = DeviceSecurityManager.evaluateDeviceSecurity(getApplication())
             _uiState.update { state ->
+                val s = AppLocalization.stringsFor(state.globalLanguage)
+                val integrityLabel = AppLocalization.playIntegrityLabel(report.playIntegrityStatus, s)
                 val warningMsg = when {
-                    notifyResult && report.isRooted ->
-                        "Aviso: dispositivo con acceso root detectado. Los datos locales pueden quedar expuestos a otras apps con privilegios."
-                    notifyResult ->
-                        "Verificación de seguridad completada: entorno sin root (${report.playIntegrityStatus.label})."
-                    showRootWarning && report.isRooted ->
-                        "Aviso de seguridad: dispositivo rooteado detectado. La app sigue operativa, pero protege tus datos locales."
+                    notifyResult && report.isRooted -> s.vmSecurityWarningNotifyRoot
+                    notifyResult -> s.vmSecurityCleanNotify(integrityLabel)
+                    showRootWarning && report.isRooted -> s.vmSecurityWarningStartupRoot
                     else -> state.notificationMessage
                 }
                 state.copy(
@@ -647,6 +647,16 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         loadDetailFor(anime)
     }
 
+    private fun needsTranslation(anime: AnimeRelease, lang: SynopsisLanguage): Boolean {
+        if (anime.synopsisEn.isBlank()) return false
+        return when (lang) {
+            SynopsisLanguage.ENGLISH -> false
+            SynopsisLanguage.SPANISH -> anime.synopsisEs.isBlank()
+            SynopsisLanguage.FRENCH -> anime.synopsisFr.isBlank()
+            SynopsisLanguage.JAPANESE -> anime.synopsisJa.isBlank()
+        }
+    }
+
     private fun loadDetailFor(anime: AnimeRelease) {
         detailJob?.cancel()
         val preferredLang = _uiState.value.globalLanguage
@@ -660,19 +670,22 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 isLoadingDetail = true
             )
         }
-        if (preferredLang == SynopsisLanguage.SPANISH && decorated.synopsisEs.isBlank() && decorated.synopsisEn.isNotBlank()) {
-            translateDetailSynopsisInBackground(decorated.id, decorated.synopsisEn)
+        if (needsTranslation(decorated, preferredLang)) {
+            translateDetailSynopsisInBackground(decorated.id, decorated.synopsisEn, preferredLang)
         }
         detailJob = viewModelScope.launch {
             val bundle = repository.getAnimeDetailBundle(anime.id)
             if (_uiState.value.selectedAnimeForDetail?.id != anime.id) return@launch
             if (bundle != null) {
+                val activeLang = _uiState.value.globalLanguage
                 val mergedAnime = decorateItem(
                     bundle.anime.copy(
                         episode = if (anime.airingAtSeconds > 0L) anime.episode else bundle.anime.episode,
                         airingAtSeconds = if (anime.airingAtSeconds > 0L) anime.airingAtSeconds else bundle.anime.airingAtSeconds,
                         synopsisEs = bundle.anime.synopsisEs.ifBlank { anime.synopsisEs },
-                        activeLanguage = _uiState.value.globalLanguage
+                        synopsisFr = bundle.anime.synopsisFr.ifBlank { anime.synopsisFr },
+                        synopsisJa = bundle.anime.synopsisJa.ifBlank { anime.synopsisJa },
+                        activeLanguage = activeLang
                     ),
                     _uiState.value
                 )
@@ -685,11 +698,8 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                         isLoadingDetail = false
                     )
                 }
-                if (_uiState.value.globalLanguage == SynopsisLanguage.SPANISH &&
-                    mergedAnime.synopsisEs.isBlank() &&
-                    mergedAnime.synopsisEn.isNotBlank()
-                ) {
-                    translateDetailSynopsisInBackground(mergedAnime.id, mergedAnime.synopsisEn)
+                if (needsTranslation(mergedAnime, activeLang)) {
+                    translateDetailSynopsisInBackground(mergedAnime.id, mergedAnime.synopsisEn, activeLang)
                 }
             } else {
                 _uiState.update { it.copy(isLoadingDetail = false) }
@@ -697,7 +707,11 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun translateDetailSynopsisInBackground(animeId: Int, englishSynopsis: String) {
+    private fun translateDetailSynopsisInBackground(
+        animeId: Int,
+        englishSynopsis: String,
+        targetLang: SynopsisLanguage
+    ) {
         viewModelScope.launch {
             _uiState.update { state ->
                 val current = state.selectedAnimeForDetail
@@ -705,17 +719,17 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                     state.copy(selectedAnimeForDetail = current.copy(isTranslating = true))
                 } else state
             }
-            val translated = repository.translateSynopsis(englishSynopsis, SynopsisLanguage.SPANISH)
+            val translated = repository.translateSynopsis(englishSynopsis, targetLang)
             _uiState.update { state ->
                 val latest = state.selectedAnimeForDetail
                 if (latest?.id == animeId) {
-                    state.copy(
-                        selectedAnimeForDetail = latest.copy(
-                            synopsisEs = translated,
-                            activeLanguage = SynopsisLanguage.SPANISH,
-                            isTranslating = false
-                        )
-                    )
+                    val updatedDetail = when (targetLang) {
+                        SynopsisLanguage.SPANISH -> latest.copy(synopsisEs = translated, activeLanguage = targetLang, isTranslating = false)
+                        SynopsisLanguage.FRENCH -> latest.copy(synopsisFr = translated, activeLanguage = targetLang, isTranslating = false)
+                        SynopsisLanguage.JAPANESE -> latest.copy(synopsisJa = translated, activeLanguage = targetLang, isTranslating = false)
+                        SynopsisLanguage.ENGLISH -> latest.copy(activeLanguage = targetLang, isTranslating = false)
+                    }
+                    state.copy(selectedAnimeForDetail = updatedDetail)
                 } else state
             }
         }
@@ -758,12 +772,13 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleWatchlist(anime: AnimeRelease, status: WatchlistStatus = WatchlistStatus.PLAN_TO_WATCH) {
         viewModelScope.launch {
             val added = repository.toggleWatchlist(anime, status)
+            val s = strings()
             _uiState.update {
                 it.copy(
                     notificationMessage = if (added) {
-                        "Añadido '${anime.displayTitle}' a Mi Lista"
+                        s.vmWatchlistAdded(anime.displayTitle)
                     } else {
-                        "Eliminado '${anime.displayTitle}' de Mi Lista"
+                        s.vmWatchlistRemoved(anime.displayTitle)
                     }
                 )
             }
@@ -773,7 +788,9 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     fun updateWatchlistStatus(animeId: Int, status: WatchlistStatus) {
         viewModelScope.launch {
             repository.updateWatchlistStatus(animeId, status)
-            _uiState.update { it.copy(notificationMessage = "Estado actualizado: ${status.displayName}") }
+            val s = strings()
+            val statusLabel = AppLocalization.watchlistStatusDisplay(status, s)
+            _uiState.update { it.copy(notificationMessage = s.vmStatusUpdated(statusLabel)) }
         }
     }
 
@@ -808,7 +825,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     fun removeFromWatchlist(animeId: Int) {
         viewModelScope.launch {
             repository.removeFromWatchlist(animeId)
-            _uiState.update { it.copy(notificationMessage = "Anime eliminado de Mi Lista") }
+            _uiState.update { it.copy(notificationMessage = strings().vmWatchlistRemoved("")) }
         }
     }
 
@@ -816,12 +833,13 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val ep = anime.effectiveEpisodeNumber()
             val nowWatched = repository.toggleWatchedEpisode(anime.id, ep)
+            val s = strings()
             _uiState.update {
                 it.copy(
                     notificationMessage = if (nowWatched) {
-                        "Episodio $ep marcado como visto"
+                        s.vmEpisodeWatched(ep)
                     } else {
-                        "Episodio $ep marcado como no visto"
+                        s.vmEpisodeUnwatched(ep)
                     }
                 )
             }
@@ -839,12 +857,13 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             val defaultMins = _uiState.value.defaultReminderMinutes
             val targetAnime = anime.copy(reminderMinutesBefore = defaultMins)
             val added = repository.toggleFavorite(targetAnime)
+            val s = strings()
             _uiState.update {
                 it.copy(
                     notificationMessage = if (added) {
-                        "Recordatorio activado para '${anime.displayTitle}' ($defaultMins min antes)"
+                        s.vmReminderEnabled(anime.displayTitle, defaultMins)
                     } else {
-                        "Recordatorio desactivado para '${anime.displayTitle}'"
+                        s.vmReminderDisabled(anime.displayTitle)
                     }
                 )
             }
@@ -854,12 +873,13 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     fun updateReminder(anime: AnimeRelease, enabled: Boolean, minutesBefore: Int) {
         viewModelScope.launch {
             repository.updateReminder(anime, enabled, minutesBefore)
+            val s = strings()
             _uiState.update {
                 it.copy(
                     notificationMessage = if (enabled) {
-                        "Alerta programada $minutesBefore min antes para '${anime.displayTitle}'"
+                        s.vmAlertScheduled(minutesBefore, anime.displayTitle)
                     } else {
-                        "Alerta desactivada"
+                        s.vmAlertDisabled
                     }
                 )
             }
@@ -870,15 +890,16 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         val context = getApplication<Application>().applicationContext
         repository.sendTestNotification(anime, _uiState.value.defaultReminderMinutes)
         AnimeEpisodeReminderWorker.scheduleImmediateTest(context, anime)
-        _uiState.update { it.copy(notificationMessage = "Notificación de prueba enviada para '${anime.displayTitle}'") }
+        _uiState.update { it.copy(notificationMessage = strings().vmTestNotifSent(anime.displayTitle)) }
     }
 
     fun setUserRating(animeId: Int, rating: Int) {
         viewModelScope.launch {
             repository.setUserRating(animeId, rating)
+            val s = strings()
             _uiState.update {
                 it.copy(
-                    notificationMessage = if (rating > 0) "Calificación de $rating ★ guardada" else "Calificación eliminada"
+                    notificationMessage = if (rating > 0) s.vmRatingSaved(rating) else s.vmRatingRemoved
                 )
             }
         }
@@ -888,25 +909,8 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         val currentDetail = _uiState.value.selectedAnimeForDetail ?: return
         if (currentDetail.id != animeId) return
 
-        if (language == SynopsisLanguage.SPANISH && currentDetail.synopsisEs.isBlank() && currentDetail.synopsisEn.isNotBlank()) {
-            viewModelScope.launch {
-                _uiState.update {
-                    it.copy(selectedAnimeForDetail = currentDetail.copy(isTranslating = true))
-                }
-                val translated = repository.translateSynopsis(currentDetail.synopsisEn, SynopsisLanguage.SPANISH)
-                _uiState.update { state ->
-                    val latest = state.selectedAnimeForDetail
-                    if (latest?.id == animeId) {
-                        state.copy(
-                            selectedAnimeForDetail = latest.copy(
-                                synopsisEs = translated,
-                                activeLanguage = SynopsisLanguage.SPANISH,
-                                isTranslating = false
-                            )
-                        )
-                    } else state
-                }
-            }
+        if (needsTranslation(currentDetail, language)) {
+            translateDetailSynopsisInBackground(animeId, currentDetail.synopsisEn, language)
         } else {
             _uiState.update {
                 it.copy(selectedAnimeForDetail = currentDetail.copy(activeLanguage = language))
@@ -926,8 +930,8 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { state ->
             recomputeDerivedLists(state.copy(isJapanTimeZone = next))
         }
-        com.example.widget.WidgetDataHelper.clearTodaySnapshot(getApplication())
-        com.example.widget.WidgetDataHelper.notifyAllWidgets(getApplication())
+        WidgetDataHelper.clearTodaySnapshot(getApplication())
+        WidgetDataHelper.notifyAllWidgets(getApplication())
         loadTodayRealSchedule()
         loadWeekSchedule(_uiState.value.weekStartDate)
     }
@@ -950,13 +954,19 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setGlobalLanguage(lang: SynopsisLanguage) {
         prefs.edit().putString("synopsis_lang", lang.code).apply()
-        _uiState.update { it.copy(globalLanguage = lang) }
+        _uiState.update { state ->
+            recomputeDerivedLists(state.copy(globalLanguage = lang))
+        }
+        WidgetDataHelper.notifyAllWidgets(getApplication())
+        _uiState.value.selectedAnimeForDetail?.let { detail ->
+            setAnimeSynopsisLanguage(detail.id, lang)
+        }
     }
 
     fun clearOfflineCache() {
         viewModelScope.launch {
             repository.clearOfflineCache()
-            _uiState.update { it.copy(notificationMessage = "Caché local limpiada correctamente") }
+            _uiState.update { it.copy(notificationMessage = strings().vmCacheCleared) }
         }
     }
 
@@ -983,7 +993,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     fun onLocalBackupTreeGranted(treeUri: Uri?) {
         if (treeUri == null) {
             _uiState.update {
-                it.copy(backupErrorMessage = "Permiso de almacenamiento cancelado.")
+                it.copy(backupErrorMessage = strings().vmLocalPermCancelled)
             }
             return
         }
@@ -1003,7 +1013,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update {
                     it.copy(
                         backupErrorMessage = err.message
-                            ?: "No se pudo preparar la carpeta ${LocalBackupStorage.BACKUP_FOLDER_NAME}."
+                            ?: strings().vmLocalFolderPrepFailed(LocalBackupStorage.BACKUP_FOLDER_NAME)
                     )
                 }
             }
@@ -1017,14 +1027,14 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.update {
                 it.copy(
                     hasLocalBackupFolder = false,
-                    backupErrorMessage = "Concede acceso al almacenamiento para crear la carpeta ${LocalBackupStorage.BACKUP_FOLDER_NAME}."
+                    backupErrorMessage = strings().vmLocalPermRequired(LocalBackupStorage.BACKUP_FOLDER_NAME)
                 )
             }
             return
         }
         if (!BackupCrypto.isValidPassphrase(passphrase)) {
             _uiState.update {
-                it.copy(backupErrorMessage = "La contraseña debe tener al menos 4 caracteres.")
+                it.copy(backupErrorMessage = strings().backupErrorMinLength)
             }
             return
         }
@@ -1038,12 +1048,19 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 val entry = LocalBackupStorage.writeBackup(ctx, treeUri, fileName, encryptedBytes)
                 entry to stats
             }.onSuccess { (entry, stats) ->
-                val summary = "Copia cifrada guardada en ${LocalBackupStorage.BACKUP_FOLDER_NAME}/${entry.fileName} (${stats.watchlistCount} en lista, ${stats.favoritesCount} favoritos, ${stats.watchedEpisodesCount} episodios)."
+                val s = strings()
+                val summary = s.vmLocalBackupSuccess(
+                    LocalBackupStorage.BACKUP_FOLDER_NAME,
+                    entry.fileName,
+                    stats.watchlistCount,
+                    stats.favoritesCount,
+                    stats.watchedEpisodesCount
+                )
                 _uiState.update {
                     it.copy(
                         isBackupBusy = false,
                         backupStatusMessage = summary,
-                        notificationMessage = "Backup .avb guardado localmente"
+                        notificationMessage = s.vmLocalBackupToast
                     )
                 }
                 onSuccess(summary)
@@ -1051,7 +1068,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update {
                     it.copy(
                         isBackupBusy = false,
-                        backupErrorMessage = err.message ?: "Error al guardar la copia local."
+                        backupErrorMessage = err.message ?: strings().vmLocalBackupError
                     )
                 }
             }
@@ -1083,7 +1100,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update {
                     it.copy(
                         isBackupBusy = false,
-                        backupErrorMessage = err.message ?: "No se pudieron listar los backups locales."
+                        backupErrorMessage = err.message ?: strings().vmLocalListError
                     )
                 }
             }
@@ -1093,7 +1110,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     fun restoreLocalBackup(documentUri: Uri, passphrase: String, onSuccess: (String) -> Unit = {}) {
         if (!BackupCrypto.isValidPassphrase(passphrase)) {
             _uiState.update {
-                it.copy(backupErrorMessage = "Introduce la contraseña del archivo .avb.")
+                it.copy(backupErrorMessage = strings().backupErrorEnterPassRestore)
             }
             return
         }
@@ -1107,12 +1124,18 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 backupManager.restoreFromEncryptedBytes(bytes, passphrase)
             }.onSuccess { stats ->
                 reloadPreferencesAfterRestore()
-                val msg = "Respaldo restaurado: ${stats.watchlistCount} en lista, ${stats.favoritesCount} favoritos, ${stats.watchedEpisodesCount} episodios y ${stats.ratingsCount} calificaciones."
+                val s = strings()
+                val msg = s.vmRestoreSuccess(
+                    stats.watchlistCount,
+                    stats.favoritesCount,
+                    stats.watchedEpisodesCount,
+                    stats.ratingsCount
+                )
                 _uiState.update {
                     it.copy(
                         isBackupBusy = false,
                         backupStatusMessage = msg,
-                        notificationMessage = "Copia de seguridad restaurada correctamente"
+                        notificationMessage = s.vmRestoreToast
                     )
                 }
                 onSuccess(msg)
@@ -1120,7 +1143,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update {
                     it.copy(
                         isBackupBusy = false,
-                        backupErrorMessage = err.message ?: "No se pudo restaurar el archivo .avb."
+                        backupErrorMessage = err.message ?: strings().vmRestoreError
                     )
                 }
             }
@@ -1167,7 +1190,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         if (resultCode != Activity.RESULT_OK) {
             _uiState.update {
-                it.copy(backupErrorMessage = "Permiso de Google Drive denegado por el usuario.")
+                it.copy(backupErrorMessage = strings().vmDriveAuthRequired)
             }
             return
         }
@@ -1179,7 +1202,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             onAuthorized()
         } else {
             _uiState.update {
-                it.copy(backupErrorMessage = "No se pudo obtener autorización de Google Drive.")
+                it.copy(backupErrorMessage = strings().vmDriveAuthRequired)
             }
         }
     }
@@ -1188,13 +1211,13 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         val token = transientDriveToken
         if (token.isNullOrBlank()) {
             _uiState.update {
-                it.copy(backupErrorMessage = "Primero autoriza el acceso a tu Google Drive.")
+                it.copy(backupErrorMessage = strings().vmDriveAuthRequired)
             }
             return
         }
         if (!BackupCrypto.isValidPassphrase(passphrase)) {
             _uiState.update {
-                it.copy(backupErrorMessage = "La contraseña debe tener al menos 4 caracteres.")
+                it.copy(backupErrorMessage = strings().backupErrorMinLength)
             }
             return
         }
@@ -1208,12 +1231,18 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 val entry = driveBackupClient.uploadEncryptedBackup(token, fileName, encryptedBytes)
                 entry to stats
             }.onSuccess { (entry, stats) ->
-                val summary = "Copia cifrada subida a tu Google Drive (${GoogleDriveBackupClient.DRIVE_FOLDER_NAME}/${entry.fileName}): ${stats.watchlistCount} en lista, ${stats.favoritesCount} favoritos."
+                val s = strings()
+                val summary = s.vmDriveBackupSuccess(
+                    GoogleDriveBackupClient.DRIVE_FOLDER_NAME,
+                    entry.fileName,
+                    stats.watchlistCount,
+                    stats.favoritesCount
+                )
                 _uiState.update {
                     it.copy(
                         isBackupBusy = false,
                         backupStatusMessage = summary,
-                        notificationMessage = "Backup .avb subido a Google Drive"
+                        notificationMessage = s.vmDriveBackupToast
                     )
                 }
                 onSuccess(summary)
@@ -1224,7 +1253,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update {
                     it.copy(
                         isBackupBusy = false,
-                        backupErrorMessage = err.message ?: "Error al subir el respaldo a Google Drive."
+                        backupErrorMessage = err.message ?: strings().vmDriveBackupError
                     )
                 }
             }
@@ -1254,7 +1283,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update {
                     it.copy(
                         isBackupBusy = false,
-                        backupErrorMessage = err.message ?: "No se pudieron listar los backups en Google Drive."
+                        backupErrorMessage = err.message ?: strings().vmDriveListError
                     )
                 }
             }
@@ -1265,13 +1294,13 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         val token = transientDriveToken
         if (token.isNullOrBlank()) {
             _uiState.update {
-                it.copy(backupErrorMessage = "Autoriza primero el acceso a tu Google Drive.")
+                it.copy(backupErrorMessage = strings().vmDriveAuthRequired)
             }
             return
         }
         if (!BackupCrypto.isValidPassphrase(passphrase)) {
             _uiState.update {
-                it.copy(backupErrorMessage = "Introduce la contraseña del archivo .avb.")
+                it.copy(backupErrorMessage = strings().backupErrorEnterPassRestore)
             }
             return
         }
@@ -1284,12 +1313,17 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 backupManager.restoreFromEncryptedBytes(bytes, passphrase)
             }.onSuccess { stats ->
                 reloadPreferencesAfterRestore()
-                val msg = "Respaldo de Drive restaurado: ${stats.watchlistCount} en lista, ${stats.favoritesCount} favoritos, ${stats.watchedEpisodesCount} episodios."
+                val s = strings()
+                val msg = s.vmDriveRestoreSuccess(
+                    stats.watchlistCount,
+                    stats.favoritesCount,
+                    stats.watchedEpisodesCount
+                )
                 _uiState.update {
                     it.copy(
                         isBackupBusy = false,
                         backupStatusMessage = msg,
-                        notificationMessage = "Copia restaurada desde Google Drive"
+                        notificationMessage = s.vmDriveRestoreToast
                     )
                 }
                 onSuccess(msg)
@@ -1300,7 +1334,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update {
                     it.copy(
                         isBackupBusy = false,
-                        backupErrorMessage = err.message ?: "No se pudo restaurar el respaldo de Google Drive."
+                        backupErrorMessage = err.message ?: strings().vmDriveRestoreError
                     )
                 }
             }
@@ -1308,11 +1342,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun reloadPreferencesAfterRestore() {
-        val restoredLang = if (prefs.getString("synopsis_lang", "es") == "en") {
-            SynopsisLanguage.ENGLISH
-        } else {
-            SynopsisLanguage.SPANISH
-        }
+        val restoredLang = SynopsisLanguage.fromCode(prefs.getString("synopsis_lang", "es"))
         _uiState.update { state ->
             recomputeDerivedLists(
                 state.copy(
@@ -1325,6 +1355,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
         }
+        WidgetDataHelper.notifyAllWidgets(getApplication())
         loadTodayRealSchedule()
         loadWeekSchedule(_uiState.value.weekStartDate)
     }
@@ -1367,18 +1398,19 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         val decoratedSearch = state.searchResults.map { decorateItem(it, state) }
         val decoratedMonth = state.monthReleases.map { decorateItem(it, state) }
 
+        val locale = state.globalLanguage.toLocale()
         val tabs = (0..6).map { offset ->
             val date = state.weekStartDate.plusDays(offset.toLong())
             val isToday = date == today
             val isTomorrow = date == today.plusDays(1)
-            val shortDay = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("es"))
+            val shortDay = date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
                 .replace(".", "")
-                .replaceFirstChar { it.uppercase() }
+                .replaceFirstChar { it.uppercase(locale) }
                 .take(3)
-            val fullDay = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale("es"))
-                .replaceFirstChar { it.uppercase() }
-            val monthName = date.month.getDisplayName(TextStyle.SHORT, Locale("es"))
-                .replaceFirstChar { it.uppercase() }
+            val fullDay = date.dayOfWeek.getDisplayName(TextStyle.FULL, locale)
+                .replaceFirstChar { it.uppercase(locale) }
+            val monthName = date.month.getDisplayName(TextStyle.SHORT, locale)
+                .replaceFirstChar { it.uppercase(locale) }
 
             val dayItems = decoratedSchedule.filter { it.effectiveAiringSeconds() > 0L && it.getAiringLocalDate(zone) == date }
             DayScheduleTab(

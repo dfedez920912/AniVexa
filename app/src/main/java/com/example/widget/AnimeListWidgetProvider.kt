@@ -8,13 +8,17 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.RemoteViews
 import com.example.MainActivity
+import com.example.i18n.AppLocalization
 import cu.daniel.anical.R
 
 class AnimeListWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        val s = AppLocalization.stringsFor(context)
         for (appWidgetId in appWidgetIds) {
             try {
                 val views = RemoteViews(context.packageName, R.layout.widget_anime_list_3x2)
+                views.setTextViewText(R.id.widget_list_header, s.widgetListHeader)
+                views.setTextViewText(R.id.widget_list_empty, s.widgetListEmpty)
 
                 val serviceIntent = Intent(context, AnimeListWidgetService::class.java).apply {
                     putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)

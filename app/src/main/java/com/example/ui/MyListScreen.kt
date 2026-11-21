@@ -56,6 +56,8 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.data.local.WatchlistEntity
 import com.example.data.local.WatchlistStatus
+import com.example.i18n.AppLocalization
+import com.example.i18n.LocalAppStrings
 import com.example.model.AnimeRelease
 import com.example.model.WatchlistSortOrder
 import com.example.ui.theme.AniAiringGreenBright
@@ -81,6 +83,7 @@ fun MyListScreen(
     onExploreCatalog: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val s = LocalAppStrings.current
     var sortMenuOpen by remember { mutableStateOf(false) }
     val bottomDockPadding = LocalBottomDockPadding.current
 
@@ -89,7 +92,7 @@ fun MyListScreen(
             .fillMaxSize()
             .screenBackdrop()
     ) {
-        // Header: "Mi Lista" + Sort button
+        // Header: My List + Sort button
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -98,7 +101,7 @@ fun MyListScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Mi Lista",
+                text = s.myListTitle,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onBackground
@@ -111,7 +114,7 @@ fun MyListScreen(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Sort,
-                        contentDescription = "Ordenar lista",
+                        contentDescription = s.myListSortDesc,
                         tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
@@ -125,7 +128,7 @@ fun MyListScreen(
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    text = order.label,
+                                    text = AppLocalization.watchlistSortLabel(order, s),
                                     fontWeight = if (uiState.myListSortOrder == order) FontWeight.Bold else FontWeight.Normal,
                                     color = if (uiState.myListSortOrder == order) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                 )
@@ -150,7 +153,7 @@ fun MyListScreen(
             }
         }
 
-        // Filter Pill Tabs: Todos | Vistos | Sin ver | Viendo | Por ver
+        // Filter Pill Tabs
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -167,7 +170,7 @@ fun MyListScreen(
                         .testTag("mylist_tab_${tab.name.lowercase()}")
                 ) {
                     Text(
-                        text = tab.label,
+                        text = AppLocalization.myListTabLabel(tab, s),
                         fontSize = 13.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -204,16 +207,16 @@ fun MyListScreen(
                             modifier = Modifier.size(44.dp)
                         )
                         Text(
-                            text = if (uiState.watchlistItems.isEmpty()) "Tu lista está vacía" else "Sin animes en esta categoría",
+                            text = if (uiState.watchlistItems.isEmpty()) s.myListEmptyTitle else s.myListEmptyCategoryTitle,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         )
                         Text(
                             text = if (uiState.watchlistItems.isEmpty()) {
-                                "Añade tus series favoritas desde Inicio, Calendario o Búsqueda para seguir cada episodio."
+                                s.myListEmptyBody
                             } else {
-                                "Cambia el filtro superior para ver el resto de tu watchlist."
+                                s.myListEmptyCategoryBody
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -224,7 +227,7 @@ fun MyListScreen(
                                 onClick = onExploreCatalog,
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("Explorar Temporada", fontWeight = FontWeight.Bold)
+                                Text(s.myListExploreBtn, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -281,6 +284,7 @@ private fun MyListCard(
     onRemove: () -> Unit
 ) {
     val context = LocalContext.current
+    val s = LocalAppStrings.current
     var statusMenuOpen by remember { mutableStateOf(false) }
 
     val cardCorner = adaptiveCardCorner(14.dp, 20.dp)
@@ -338,7 +342,7 @@ private fun MyListCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "Quitar de Mi Lista",
+                            contentDescription = s.myListRemoveDesc,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)
                         )
@@ -358,10 +362,10 @@ private fun MyListCard(
                         ) {
                             Text(
                                 text = when {
-                                    item.statusEnum == WatchlistStatus.DROPPED -> "en pausa"
-                                    isFullyWatched -> "visto"
-                                    isInProgress -> "en proceso"
-                                    else -> "sin ver"
+                                    item.statusEnum == WatchlistStatus.DROPPED -> s.statusPillPaused
+                                    isFullyWatched -> s.statusPillWatched
+                                    isInProgress -> s.statusPillWatching
+                                    else -> s.statusPillUnwatched
                                 },
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -380,7 +384,7 @@ private fun MyListCard(
                         ) {
                             WatchlistStatus.entries.forEach { st ->
                                 DropdownMenuItem(
-                                    text = { Text(st.displayName) },
+                                    text = { Text(AppLocalization.watchlistStatusDisplay(st, s)) },
                                     onClick = {
                                         onStatusChange(st)
                                         statusMenuOpen = false
@@ -391,7 +395,7 @@ private fun MyListCard(
                     }
 
                     Text(
-                        text = "Ep $watchedCount / ${item.totalEpisodes ?: "?"}",
+                        text = "${s.episodeShortPrefix} $watchedCount / ${item.totalEpisodes ?: "?"}",
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -403,7 +407,7 @@ private fun MyListCard(
                         modifier = Modifier.clickable(onClick = onIncrementEpisode)
                     ) {
                         Text(
-                            text = "+1 Ep",
+                            text = s.myListPlusOneEp,
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -412,7 +416,7 @@ private fun MyListCard(
                     }
                 }
 
-                // Prominent status pill button: Visto (all episodes) / En proceso (partial) / Marcar como Visto (0)
+                // Prominent status pill button
                 Surface(
                     shape = RoundedCornerShape(20.dp),
                     color = when {
@@ -450,9 +454,9 @@ private fun MyListCard(
                         )
                         Text(
                             text = when {
-                                isFullyWatched -> "Visto"
-                                isInProgress -> "En proceso"
-                                else -> "Marcar como Visto"
+                                isFullyWatched -> s.statusPillWatched.replaceFirstChar { it.uppercase() }
+                                isInProgress -> s.statusPillWatching.replaceFirstChar { it.uppercase() }
+                                else -> s.myListMarkAsWatched
                             },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,

@@ -68,6 +68,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.i18n.AppLocalization
+import com.example.i18n.LocalAppStrings
 import com.example.ui.MainNavScreen
 import com.example.ui.theme.LocalIsLiquidGlass
 
@@ -118,6 +120,7 @@ private fun AppleLiquidGlassDock(
 ) {
     val dockShape = RoundedCornerShape(34.dp)
     val selectedIndex = navTabItems.indexOfFirst { it.screen == currentScreen }.coerceAtLeast(0)
+    val s = LocalAppStrings.current
 
     Box(
         modifier = modifier
@@ -303,6 +306,7 @@ private fun AppleLiquidGlassDock(
                             ) {
                                 DockItemIcon(
                                     item = item,
+                                    label = AppLocalization.navTitle(item.screen, s),
                                     isSelected = isSelected,
                                     watchlistCount = watchlistCount,
                                     tint = contentTint,
@@ -312,7 +316,7 @@ private fun AppleLiquidGlassDock(
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = item.screen.title,
+                                text = AppLocalization.navTitle(item.screen, s),
                                 fontSize = 10.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                 color = contentTint,
@@ -335,6 +339,7 @@ private fun StandardBottomNavigationBar(
     onSelectScreen: (MainNavScreen) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val s = LocalAppStrings.current
     Column(modifier = modifier) {
         HorizontalDivider(
             thickness = 0.7.dp,
@@ -347,12 +352,14 @@ private fun StandardBottomNavigationBar(
         ) {
             navTabItems.forEach { item ->
                 val isSelected = currentScreen == item.screen
+                val label = AppLocalization.navTitle(item.screen, s)
                 NavigationBarItem(
                     selected = isSelected,
                     onClick = { onSelectScreen(item.screen) },
                     icon = {
                         DockItemIcon(
                             item = item,
+                            label = label,
                             isSelected = isSelected,
                             watchlistCount = watchlistCount,
                             tint = if (isSelected) {
@@ -366,7 +373,7 @@ private fun StandardBottomNavigationBar(
                     },
                     label = {
                         Text(
-                            text = item.screen.title,
+                            text = label,
                             fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             maxLines = 1,
@@ -390,6 +397,7 @@ private fun StandardBottomNavigationBar(
 @Composable
 private fun DockItemIcon(
     item: NavTabItem,
+    label: String,
     isSelected: Boolean,
     watchlistCount: Int,
     tint: Color,
@@ -414,7 +422,7 @@ private fun DockItemIcon(
         ) {
             Icon(
                 imageVector = iconVector,
-                contentDescription = item.screen.title,
+                contentDescription = label,
                 tint = tint,
                 modifier = Modifier.size(21.dp)
             )
@@ -422,7 +430,7 @@ private fun DockItemIcon(
     } else {
         Icon(
             imageVector = iconVector,
-            contentDescription = item.screen.title,
+            contentDescription = label,
             tint = tint,
             modifier = Modifier.size(21.dp)
         )

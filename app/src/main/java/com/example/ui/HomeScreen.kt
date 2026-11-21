@@ -47,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.graphics.Color
+import com.example.i18n.AppLocalization
+import com.example.i18n.LocalAppStrings
 import com.example.model.AnimeRelease
 import com.example.model.MediaSeason
 import com.example.ui.components.AnimePosterCard
@@ -67,6 +69,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val isGlass = LocalIsLiquidGlass.current
+    val s = LocalAppStrings.current
     val bottomDockPadding = LocalBottomDockPadding.current
     val today = LocalDate.now(uiState.activeZoneId)
     val todayReleases = uiState.todayReleases.ifEmpty {
@@ -95,7 +98,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "AniVexa",
+                        text = s.appName,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -106,7 +109,7 @@ fun HomeScreen(
                         border = if (isGlass) glassCardBorder(glassWidth = 0.8.dp) else null
                     ) {
                         Text(
-                            text = "${uiState.currentSeason.labelEs} ${uiState.currentSeasonYear}",
+                            text = "${AppLocalization.seasonLabel(uiState.currentSeason, s)} ${uiState.currentSeasonYear}",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -125,12 +128,12 @@ fun HomeScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CloudOff,
-                                    contentDescription = "Sin conexión",
+                                    contentDescription = s.offlineContentDesc,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Text(
-                                    text = "Offline",
+                                    text = s.offlineBadge,
                                     fontSize = 10.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -152,7 +155,7 @@ fun HomeScreen(
                     } else {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "Actualizar",
+                            contentDescription = s.refreshContentDesc,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -160,11 +163,11 @@ fun HomeScreen(
             }
         }
 
-        // Section 1: This Season (Esta Temporada)
+        // Section 1: This Season
         item {
             SectionHeader(
-                title = "Esta Temporada",
-                actionLabel = "Ver todo",
+                title = s.homeThisSeason,
+                actionLabel = s.homeSeeAll,
                 onActionClick = onSeeAllSeason
             )
             Spacer(modifier = Modifier.height(10.dp))
@@ -196,11 +199,11 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(22.dp))
         }
 
-        // Section 2: Popular Ranking (Ranking Popular)
+        // Section 2: Popular Ranking
         item {
             SectionHeader(
-                title = "Ranking Popular",
-                actionLabel = "Ver todo",
+                title = s.homePopularRanking,
+                actionLabel = s.homeSeeAll,
                 onActionClick = onSeeAllPopular
             )
             Spacer(modifier = Modifier.height(10.dp))
@@ -236,8 +239,8 @@ fun HomeScreen(
         if (todayReleases.isNotEmpty()) {
             item {
                 SectionHeader(
-                    title = "Hoy en Emisión",
-                    actionLabel = "Calendario",
+                    title = s.homeAiringToday,
+                    actionLabel = s.homeGoCalendar,
                     onActionClick = onGoToCalendar
                 )
                 Spacer(modifier = Modifier.height(10.dp))
@@ -322,6 +325,7 @@ fun SeeAllCatalogScreen(
     val years = listOf(currentYear - 1, currentYear, currentYear + 1)
 
     val isGlass = LocalIsLiquidGlass.current
+    val s = LocalAppStrings.current
 
     Column(
         modifier = modifier
@@ -331,7 +335,7 @@ fun SeeAllCatalogScreen(
         TopAppBar(
             title = {
                 Text(
-                    text = mode.title,
+                    text = AppLocalization.seeAllTitle(mode, s),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -340,7 +344,7 @@ fun SeeAllCatalogScreen(
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver",
+                        contentDescription = s.backContentDesc,
                         tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
@@ -360,7 +364,7 @@ fun SeeAllCatalogScreen(
                     FilterChip(
                         selected = selected,
                         onClick = { onSelectSeason(season, uiState.seeAllYear) },
-                        label = { Text(season.labelEs, fontSize = 12.sp) },
+                        label = { Text(AppLocalization.seasonLabel(season, s), fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimary

@@ -93,10 +93,12 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.i18n.AppLocalization
+import com.example.i18n.LocalAppLanguage
+import com.example.i18n.LocalAppStrings
 import com.example.model.AnimeCharacter
 import com.example.model.AnimeRelease
 import com.example.model.AnimeReview
-import com.example.model.CountdownStatus
 import com.example.model.RelatedAnimeItem
 import com.example.model.SynopsisLanguage
 import com.example.ui.theme.AniAiringGreen
@@ -148,6 +150,8 @@ fun AnimeDetailScreen(
     BackHandler(onBack = onBack)
 
     val context = LocalContext.current
+    val s = LocalAppStrings.current
+    val appLanguage = LocalAppLanguage.current
     val scrollState = rememberScrollState()
     var isSynopsisExpanded by remember { mutableStateOf(false) }
     var activeSheet by remember { mutableStateOf(DetailSheetType.NONE) }
@@ -176,9 +180,9 @@ fun AnimeDetailScreen(
     }
 
     val activeSynopsis = anime.getActiveSynopsis()
-    val countdown = anime.getCountdownStatus()
-    val popularityFormatted = remember(anime.popularity) {
-        if (anime.popularity > 0) NumberFormat.getNumberInstance(Locale.US).format(anime.popularity) else null
+    val countdown = AppLocalization.countdown(anime, s)
+    val popularityFormatted = remember(anime.popularity, appLanguage) {
+        if (anime.popularity > 0) NumberFormat.getNumberInstance(appLanguage.toLocale()).format(anime.popularity) else null
     }
 
     val isGlass = LocalIsLiquidGlass.current
@@ -278,7 +282,7 @@ fun AnimeDetailScreen(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver",
+                                contentDescription = s.backContentDesc,
                                 tint = Color.White,
                                 modifier = Modifier.size(22.dp)
                             )
@@ -310,7 +314,7 @@ fun AnimeDetailScreen(
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = if (reminderEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
-                                    contentDescription = "Activar alerta",
+                                    contentDescription = s.detailAlertDesc,
                                     tint = if (reminderEnabled) AniGold else Color.White,
                                     modifier = Modifier.size(22.dp)
                                 )
@@ -325,19 +329,24 @@ fun AnimeDetailScreen(
                                 .size(48.dp)
                                 .clip(CircleShape)
                                 .clickable {
-                                    val shareText = "${anime.displayTitle} - Ep ${anime.effectiveEpisodeNumber()} (${anime.getFormattedDateTimeShort(zoneId)}) en AniVexa"
+                                    val formattedDt = anime.getFormattedDateTimeShort(zoneId, s.noDateText)
+                                    val shareText = s.detailShareTemplate(
+                                        anime.displayTitle,
+                                        anime.effectiveEpisodeNumber(),
+                                        formattedDt
+                                    )
                                     val sendIntent = Intent().apply {
                                         action = Intent.ACTION_SEND
                                         putExtra(Intent.EXTRA_TEXT, shareText)
                                         type = "text/plain"
                                     }
-                                    context.startActivity(Intent.createChooser(sendIntent, "Compartir anime"))
+                                    context.startActivity(Intent.createChooser(sendIntent, s.detailShareChooser))
                                 }
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Share,
-                                    contentDescription = "Compartir",
+                                    contentDescription = s.detailShareDesc,
                                     tint = Color.White,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -392,7 +401,7 @@ fun AnimeDetailScreen(
                                 modifier = Modifier.size(15.dp)
                             )
                             val scoreText = anime.score?.let { String.format("%.1f", it) } ?: "N/A"
-                            val popSuffix = popularityFormatted?.let { " ($it fans)" } ?: ""
+                            val popSuffix = popularityFormatted?.let { s.detailFansSuffix(it) } ?: ""
                             Text(
                                 text = "$scoreText$popSuffix",
                                 fontSize = 12.5.sp,
@@ -407,7 +416,7 @@ fun AnimeDetailScreen(
                         color = if (anime.isCurrentlyAiringStatus) AniAiringGreen else MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
-                            text = anime.statusLabelEs,
+                            text = AppLocalization.animeStatusLabel(anime.status, s),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (anime.isCurrentlyAiringStatus) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -418,7 +427,7 @@ fun AnimeDetailScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Synopsis with ES/EN pill & expand
+                // Synopsis with ES/EN/FR/JA pill & expand
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -429,7 +438,7 @@ fun AnimeDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "Sinopsis",
+                            text = s.detailSynopsisTitle,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground
@@ -458,11 +467,11 @@ fun AnimeDetailScreen(
                                 modifier = Modifier.clickable { onLanguageSelected(lang) }
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                                 ) {
-                                    if (lang == SynopsisLanguage.SPANISH) {
+                                    if (lang == appLanguage) {
                                         Icon(
                                             imageVector = Icons.Default.Translate,
                                             contentDescription = null,
@@ -498,7 +507,7 @@ fun AnimeDetailScreen(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = if (isSynopsisExpanded) "Mostrar menos" else "Leer más...",
+                        text = if (isSynopsisExpanded) s.detailShowLess else s.detailReadMore,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
@@ -508,7 +517,7 @@ fun AnimeDetailScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Primary Blue CTA: "+ Add to My List" matching Screenshot 1
+                // Primary Blue CTA: "+ Add to My List"
                 Button(
                     onClick = onToggleWatchlist,
                     shape = RoundedCornerShape(10.dp),
@@ -528,7 +537,7 @@ fun AnimeDetailScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = if (anime.isInWatchlist) "En Mi Lista (Tocar para quitar)" else "Añadir a Mi Lista",
+                        text = if (anime.isInWatchlist) s.detailInMyListRemove else s.detailAddToMyList,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -536,7 +545,7 @@ fun AnimeDetailScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Two Dark Navy Secondary Buttons: Reviews | Characters matching Screenshot 1
+                // Two Secondary Buttons: Reviews | Characters
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -568,7 +577,7 @@ fun AnimeDetailScreen(
                             )
                             Spacer(modifier = Modifier.width(7.dp))
                             Text(
-                                text = "Reseñas" + if (reviews.isNotEmpty()) " (${reviews.size})" else "",
+                                text = s.detailReviewsBtn + if (reviews.isNotEmpty()) " (${reviews.size})" else "",
                                 fontSize = 13.5.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary
@@ -599,7 +608,7 @@ fun AnimeDetailScreen(
                             )
                             Spacer(modifier = Modifier.width(7.dp))
                             Text(
-                                text = "Personajes" + if (characters.isNotEmpty()) " (${characters.size})" else "",
+                                text = s.detailCharactersBtn + if (characters.isNotEmpty()) " (${characters.size})" else "",
                                 fontSize = 13.5.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary
@@ -610,9 +619,9 @@ fun AnimeDetailScreen(
 
                 Spacer(modifier = Modifier.height(22.dp))
 
-                // Basic Info 3-column grid matching Screenshot 1
+                // Basic Info 3-column grid
                 Text(
-                    text = "Información Básica",
+                    text = s.detailBasicInfoTitle,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -623,18 +632,18 @@ fun AnimeDetailScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     BasicInfoCol(
-                        label = "Tipo",
-                        value = anime.format,
+                        label = s.detailTypeLabel,
+                        value = AppLocalization.formatLabel(anime.format, s),
                         modifier = Modifier.weight(1f)
                     )
                     BasicInfoCol(
-                        label = "Episodios",
-                        value = anime.totalEpisodes?.toString() ?: "Desconocido",
+                        label = s.detailEpisodesLabel,
+                        value = anime.totalEpisodes?.toString() ?: s.detailEpisodesUnknown,
                         modifier = Modifier.weight(1f)
                     )
                     BasicInfoCol(
-                        label = "Periodo de Emisión",
-                        value = anime.broadcastPeriodDisplay,
+                        label = s.detailBroadcastPeriodLabel,
+                        value = AppLocalization.broadcastPeriod(anime, s),
                         modifier = Modifier.weight(1.3f)
                     )
                 }
@@ -654,7 +663,7 @@ fun AnimeDetailScreen(
                                 color = MaterialTheme.colorScheme.primaryContainer
                             ) {
                                 Text(
-                                    text = "Estudio: $st",
+                                    text = s.detailStudioPrefix(st),
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
@@ -674,7 +683,7 @@ fun AnimeDetailScreen(
                                 color = MaterialTheme.colorScheme.surfaceVariant
                             ) {
                                 Text(
-                                    text = genre,
+                                    text = AppLocalization.genreLabel(genre, s),
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
@@ -710,15 +719,15 @@ fun AnimeDetailScreen(
                                 )
                                 Column {
                                     Text(
-                                        text = "Episodio ${anime.effectiveEpisodeNumber()}",
+                                        text = s.detailEpisodeLabel(anime.effectiveEpisodeNumber()),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         text = if (anime.effectiveAiringSeconds() > 0L) {
-                                            "${anime.getFormattedDateTimeShort(zoneId)} • ${countdown.text}"
+                                            "${anime.getFormattedDateTimeShort(zoneId, s.noDateText)} • ${countdown.text}"
                                         } else {
-                                            "Sin próximo horario programado"
+                                            s.detailNoUpcomingSchedule
                                         },
                                         fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.primary,
@@ -749,14 +758,14 @@ fun AnimeDetailScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                listOf(15 to "15m", 30 to "30m", 60 to "1h", 0 to "Al emitir").forEach { (mins, label) ->
+                                listOf(15 to "15m", 30 to "30m", 60 to "1h", 0 to s.settingsOnAiringShort).forEach { (mins, label) ->
                                     FilterChip(
                                         selected = reminderMinutes == mins,
                                         onClick = {
                                             reminderMinutes = mins
                                             onToggleReminder(true, mins)
                                         },
-                                        label = { Text(label, fontSize = 10.5.sp) },
+                                        label = { Text(label, fontSize = 10.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                         colors = FilterChipDefaults.filterChipColors(
                                             selectedContainerColor = MaterialTheme.colorScheme.primary,
                                             selectedLabelColor = Color.White
@@ -773,7 +782,7 @@ fun AnimeDetailScreen(
                             ) {
                                 Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Probar alerta ahora", fontSize = 12.sp)
+                                Text(s.detailTestAlertBtn, fontSize = 12.sp)
                             }
                         }
                     }
@@ -781,7 +790,7 @@ fun AnimeDetailScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Episode Tracker Grid (supports full season episode count with scrollable grid)
+                // Episode Tracker Grid
                 EpisodeTrackerSection(
                     animeId = anime.id,
                     totalEpisodes = anime.totalEpisodes,
@@ -804,7 +813,7 @@ fun AnimeDetailScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Tu Puntuación",
+                            text = s.detailYourRatingTitle,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -817,7 +826,7 @@ fun AnimeDetailScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Star,
-                                        contentDescription = "Calificar $star estrellas",
+                                        contentDescription = s.detailRateStarsDesc(star),
                                         tint = if (active) AniGold else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
                                         modifier = Modifier.size(28.dp)
                                     )
@@ -827,7 +836,7 @@ fun AnimeDetailScreen(
                     }
                 }
 
-                // Related Content (Prequel, Sequel, OVA, Movie, Spin-off...) at bottom of view
+                // Related Content
                 if (relatedAnime.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(22.dp))
                     Row(
@@ -836,7 +845,7 @@ fun AnimeDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Contenido Relacionado",
+                            text = s.detailRelatedTitle,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground
@@ -899,9 +908,12 @@ private fun RelatedAnimeCard(
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val s = LocalAppStrings.current
     val isGlass = LocalIsLiquidGlass.current
     val cardRadius = adaptiveCardCorner(standard = 12.dp, glass = 18.dp)
     val cardShape = RoundedCornerShape(cardRadius)
+    val relationLabel = AppLocalization.relationLabel(item.relationType, item.format, s)
+    val formatLabel = AppLocalization.formatLabel(item.format, s)
 
     val badgeColor = when (item.relationType.uppercase()) {
         "PREQUEL" -> Color(0xFF6366F1)
@@ -962,7 +974,7 @@ private fun RelatedAnimeCard(
                         .padding(6.dp)
                 ) {
                     Text(
-                        text = item.relationLabelEs,
+                        text = relationLabel,
                         fontSize = 9.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -971,7 +983,7 @@ private fun RelatedAnimeCard(
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
-                if (!item.relationLabelEs.equals(item.format, ignoreCase = true)) {
+                if (!relationLabel.equals(formatLabel, ignoreCase = true) && !relationLabel.equals(item.format, ignoreCase = true)) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
                         color = Color.Black.copy(alpha = 0.70f),
@@ -980,7 +992,7 @@ private fun RelatedAnimeCard(
                             .padding(6.dp)
                     ) {
                         Text(
-                            text = item.format,
+                            text = formatLabel,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color.White,
@@ -1009,7 +1021,7 @@ private fun RelatedAnimeCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 val metaParts = listOfNotNull(
                     item.seasonYear?.toString(),
-                    item.totalEpisodes?.let { "$it eps" }
+                    item.totalEpisodes?.let { "$it ${s.episodesUnitShort}" }
                 ).joinToString(" • ")
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1096,6 +1108,7 @@ private fun EpisodeTrackerSection(
     watchedEpisodeKeys: Set<String>,
     onToggleWatchedEpisodeNum: (Int) -> Unit
 ) {
+    val s = LocalAppStrings.current
     val isGlass = LocalIsLiquidGlass.current
     val metrics = remember(animeId, totalEpisodes, effectiveEpisode, watchedEpisodeKeys) {
         calculateEpisodeTrackerMetrics(
@@ -1124,7 +1137,7 @@ private fun EpisodeTrackerSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Seguimiento de Episodios",
+                    text = s.detailEpisodeTrackerTitle,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -1251,7 +1264,7 @@ private fun EpisodeTrackerSection(
 
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Desliza la lista para seleccionar entre los $totalEpCount episodios",
+                    text = s.detailSwipeEpisodesHint(totalEpCount),
                     fontSize = 10.5.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1267,6 +1280,7 @@ private fun EpisodeGridChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val s = LocalAppStrings.current
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = if (isWatched) AniAiringGreenBright.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant,
@@ -1291,7 +1305,7 @@ private fun EpisodeGridChip(
                 modifier = Modifier.size(14.dp)
             )
             Text(
-                text = "Ep $episodeNumber",
+                text = "${s.episodeShortPrefix} $episodeNumber",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -1328,13 +1342,14 @@ private fun ReviewsSheetContent(
     reviews: List<AnimeReview>,
     isLoading: Boolean
 ) {
+    val s = LocalAppStrings.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp, vertical = 8.dp)
     ) {
         Text(
-            text = "Reseñas de la Comunidad",
+            text = s.detailReviewsModalTitle,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
@@ -1348,7 +1363,7 @@ private fun ReviewsSheetContent(
             }
             reviews.isEmpty() -> {
                 Text(
-                    text = "Todavía no hay reseñas publicadas para este anime en AniList.",
+                    text = s.detailNoReviews,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 24.dp)
                 )
@@ -1423,6 +1438,7 @@ private fun CharactersSheetContent(
     isLoading: Boolean
 ) {
     val context = LocalContext.current
+    val s = LocalAppStrings.current
 
     Column(
         modifier = Modifier
@@ -1430,7 +1446,7 @@ private fun CharactersSheetContent(
             .padding(horizontal = 18.dp, vertical = 8.dp)
     ) {
         Text(
-            text = "Personajes y Voces (JP)",
+            text = s.detailCharactersModalTitle,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
@@ -1444,7 +1460,7 @@ private fun CharactersSheetContent(
             }
             characters.isEmpty() -> {
                 Text(
-                    text = "No se encontró información de personajes para este título.",
+                    text = s.detailNoCharacters,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 24.dp)
                 )
@@ -1487,7 +1503,7 @@ private fun CharactersSheetContent(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
-                                        text = if (ch.role == "MAIN") "Protagonista" else "Secundario",
+                                        text = if (ch.role == "MAIN") s.detailRoleMain else s.detailRoleSupporting,
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.SemiBold

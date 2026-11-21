@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.MainActivity
+import com.example.i18n.AppLocalization
 import com.example.model.AnimeRelease
 import com.example.util.AppLogger
 import cu.daniel.anical.R
@@ -20,7 +21,6 @@ import cu.daniel.anical.R
 object AnimeNotificationHelper {
 
     const val CHANNEL_ID = "anime_episode_reminders_channel"
-    const val CHANNEL_NAME = "Recordatorios de Estrenos Anime"
 
     const val EXTRA_ANIME_ID = "extra_anime_id"
     const val EXTRA_ANIME_TITLE = "extra_anime_title"
@@ -30,9 +30,10 @@ object AnimeNotificationHelper {
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val s = AppLocalization.stringsFor(context)
             val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance).apply {
-                description = "Notificaciones locales para alertar cuando se estrena un episodio de tus animes favoritos"
+            val channel = NotificationChannel(CHANNEL_ID, s.notifChannelName, importance).apply {
+                description = s.notifChannelDesc
                 enableVibration(true)
                 setShowBadge(true)
             }
@@ -185,16 +186,17 @@ object AnimeNotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val s = AppLocalization.stringsFor(context)
         val notificationTitle = if (minutesBefore <= 0) {
-            "¡Nuevo episodio disponible: $animeTitle!"
+            s.notifTitleAiringNow(animeTitle)
         } else {
-            "¡Próximo estreno: $animeTitle!"
+            s.notifTitleUpcoming(animeTitle)
         }
 
         val notificationText = if (minutesBefore <= 0) {
-            "El episodio $episode de '$animeTitle' ya se ha emitido ($airingTime). ¡Disponible para ver ahora!"
+            s.notifBodyAiringNow(episode, animeTitle, airingTime)
         } else {
-            "El episodio $episode se emitirá a las $airingTime (en $minutesBefore minutos). ¡Prepárate para verlo!"
+            s.notifBodyUpcoming(episode, airingTime, minutesBefore)
         }
 
         val prefs = context.getSharedPreferences("anivexa_prefs", Context.MODE_PRIVATE)

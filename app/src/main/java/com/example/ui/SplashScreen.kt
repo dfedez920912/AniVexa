@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.backup.BackupOperationMode
+import com.example.i18n.LocalAppStrings
 import com.example.ui.components.BackupRestoreDialog
 import com.example.ui.theme.LocalIsLiquidGlass
 import com.example.ui.theme.adaptiveCardColor
@@ -73,6 +74,7 @@ fun SplashScreen(
     onSplashFinished: () -> Unit
 ) {
     val isGlass = LocalIsLiquidGlass.current
+    val s = LocalAppStrings.current
     var startAnimation by remember { mutableStateOf(false) }
     var showRestoreDialog by remember { mutableStateOf(false) }
     var pauseAutoAdvance by remember { mutableStateOf(false) }
@@ -161,7 +163,7 @@ fun SplashScreen(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Calendario y seguimiento de anime",
+                text = s.splashSubtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -192,7 +194,7 @@ fun SplashScreen(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = "NOVEDAD",
+                                text = s.splashNewBadge,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -206,7 +208,7 @@ fun SplashScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "Copias de respaldo cifradas (.avb)",
+                            text = s.splashBackupTitle,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurface
@@ -214,7 +216,7 @@ fun SplashScreen(
                     }
 
                     Text(
-                        text = "Protege tu Mi Lista, favoritos, episodios vistos y ajustes con cifrado AES-256 en tu dispositivo o en tu Google Drive.",
+                        text = s.splashBackupDesc,
                         fontSize = 12.5.sp,
                         lineHeight = 17.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -242,7 +244,7 @@ fun SplashScreen(
                                 modifier = Modifier.size(17.dp)
                             )
                             Spacer(modifier = Modifier.size(6.dp))
-                            Text("Restaurar", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text(s.splashRestoreBtn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         }
 
                         Button(
@@ -256,7 +258,7 @@ fun SplashScreen(
                                 .heightIn(min = 48.dp)
                                 .testTag("splash_continue_button")
                         ) {
-                            Text("Continuar", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(s.splashContinueBtn, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
