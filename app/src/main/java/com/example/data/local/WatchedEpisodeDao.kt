@@ -33,6 +33,12 @@ interface WatchedEpisodeDao {
     @Query("SELECT episodeNumber FROM watched_episodes WHERE animeId = :animeId")
     suspend fun getWatchedEpisodeNumbersForAnime(animeId: Int): List<Int>
 
+    @Query("SELECT * FROM watched_episodes")
+    suspend fun getAllWatchedEntitiesList(): List<WatchedEpisodeEntity>
+
     @Query("DELETE FROM watched_episodes WHERE animeId = :animeId")
     suspend fun clearForAnime(animeId: Int)
+
+    @Query("DELETE FROM watched_episodes")
+    suspend fun clearAll()
 }

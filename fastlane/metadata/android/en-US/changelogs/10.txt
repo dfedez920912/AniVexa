@@ -1,0 +1,3 @@
+- Added AES-256-GCM encrypted backup & restore (.avb) with user-chosen passphrase protection.
+- Supports local storage backups inside Anivexa-Backuo and user-owned Google Drive backups inside AniVexa.
+- Added a SplashScreen announcement card with direct backup restore access on launch.

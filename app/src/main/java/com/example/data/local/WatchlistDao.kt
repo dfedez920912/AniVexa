@@ -43,6 +43,12 @@ interface WatchlistDao {
     @Query("UPDATE watchlist_anime SET watchedEpisodes = :episodes WHERE animeId = :animeId")
     suspend fun updateWatchedEpisodes(animeId: Int, episodes: Int)
 
+    @Query("SELECT * FROM watchlist_anime ORDER BY addedAt DESC")
+    suspend fun getAllWatchlistList(): List<WatchlistEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<WatchlistEntity>)
+
     @Query("DELETE FROM watchlist_anime WHERE animeId = :animeId")
     suspend fun deleteFromWatchlist(animeId: Int)
 

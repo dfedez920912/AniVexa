@@ -1,0 +1,3 @@
+- Copias de respaldo cifradas con AES-256-GCM en formato .avb y contraseña definida por el usuario.
+- Soporte para guardar y restaurar en almacenamiento local (carpeta Anivexa-Backuo) o en el Google Drive del propio usuario (carpeta AniVexa).
+- Nueva tarjeta de anuncio en la pantalla inicial (SplashScreen) con acceso directo para restaurar un respaldo .avb al instante.

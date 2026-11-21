@@ -1,9 +1,19 @@
 package com.example.ui
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.content.Intent
+import android.content.IntentSender
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.backup.BackupCrypto
+import com.example.backup.BackupEntry
+import com.example.backup.BackupManager
+import com.example.backup.DriveAuthResult
+import com.example.backup.GoogleDriveBackupClient
+import com.example.backup.LocalBackupStorage
 import com.example.data.AnimeRepository
 import com.example.data.local.WatchlistEntity
 import com.example.data.local.WatchlistStatus
@@ -139,7 +149,14 @@ data class AnimeUiState(
     val quietHoursEnabled: Boolean = false,
     val globalLanguage: SynopsisLanguage = SynopsisLanguage.SPANISH,
     val cachedCount: Int = 0,
-    val deviceSecurityReport: DeviceSecurityReport = DeviceSecurityReport()
+    val deviceSecurityReport: DeviceSecurityReport = DeviceSecurityReport(),
+
+    // Encrypted Backup & Restore (.avb)
+    val isBackupBusy: Boolean = false,
+    val backupStatusMessage: String? = null,
+    val backupErrorMessage: String? = null,
+    val availableBackups: List<BackupEntry> = emptyList(),
+    val hasLocalBackupFolder: Boolean = false
 ) {
     val activeZoneId: ZoneId
         get() = if (isJapanTimeZone) ZoneId.of("Asia/Tokyo") else ZoneId.systemDefault()
@@ -149,6 +166,9 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = AnimeRepository(application.applicationContext)
     private val prefs = application.getSharedPreferences("anivexa_prefs", Context.MODE_PRIVATE)
+    private val backupManager = BackupManager(application.applicationContext, repository, prefs)
+    private val driveBackupClient = GoogleDriveBackupClient()
+    private var transientDriveToken: String? = null
 
     private val _uiState = MutableStateFlow(
         AnimeUiState(
@@ -161,7 +181,8 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 SynopsisLanguage.ENGLISH
             } else {
                 SynopsisLanguage.SPANISH
-            }
+            },
+            hasLocalBackupFolder = LocalBackupStorage.getSavedTreeUri(application.applicationContext) != null
         )
     )
     val uiState: StateFlow<AnimeUiState> = _uiState.asStateFlow()
@@ -941,6 +962,371 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearNotificationMessage() {
         _uiState.update { it.copy(notificationMessage = null) }
+    }
+
+    // Encrypted Backup & Restore (.avb)
+    fun clearBackupMessages() {
+        _uiState.update {
+            it.copy(
+                backupStatusMessage = null,
+                backupErrorMessage = null
+            )
+        }
+    }
+
+    fun refreshLocalBackupAccess() {
+        val ctx = getApplication<Application>().applicationContext
+        val hasAccess = LocalBackupStorage.getSavedTreeUri(ctx) != null
+        _uiState.update { it.copy(hasLocalBackupFolder = hasAccess) }
+    }
+
+    fun onLocalBackupTreeGranted(treeUri: Uri?) {
+        if (treeUri == null) {
+            _uiState.update {
+                it.copy(backupErrorMessage = "Permiso de almacenamiento cancelado.")
+            }
+            return
+        }
+        viewModelScope.launch {
+            val ctx = getApplication<Application>().applicationContext
+            runCatching {
+                LocalBackupStorage.persistTreeUri(ctx, treeUri)
+                LocalBackupStorage.ensureBackupFolderUri(ctx, treeUri)
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        hasLocalBackupFolder = true,
+                        backupErrorMessage = null
+                    )
+                }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        backupErrorMessage = err.message
+                            ?: "No se pudo preparar la carpeta ${LocalBackupStorage.BACKUP_FOLDER_NAME}."
+                    )
+                }
+            }
+        }
+    }
+
+    fun createLocalBackup(passphrase: String, onSuccess: (String) -> Unit = {}) {
+        val ctx = getApplication<Application>().applicationContext
+        val treeUri = LocalBackupStorage.getSavedTreeUri(ctx)
+        if (treeUri == null) {
+            _uiState.update {
+                it.copy(
+                    hasLocalBackupFolder = false,
+                    backupErrorMessage = "Concede acceso al almacenamiento para crear la carpeta ${LocalBackupStorage.BACKUP_FOLDER_NAME}."
+                )
+            }
+            return
+        }
+        if (!BackupCrypto.isValidPassphrase(passphrase)) {
+            _uiState.update {
+                it.copy(backupErrorMessage = "La contraseña debe tener al menos 4 caracteres.")
+            }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isBackupBusy = true, backupErrorMessage = null, backupStatusMessage = null)
+            }
+            runCatching {
+                val (encryptedBytes, stats) = backupManager.exportEncryptedBackup(passphrase)
+                val fileName = backupManager.generateBackupFileName()
+                val entry = LocalBackupStorage.writeBackup(ctx, treeUri, fileName, encryptedBytes)
+                entry to stats
+            }.onSuccess { (entry, stats) ->
+                val summary = "Copia cifrada guardada en ${LocalBackupStorage.BACKUP_FOLDER_NAME}/${entry.fileName} (${stats.watchlistCount} en lista, ${stats.favoritesCount} favoritos, ${stats.watchedEpisodesCount} episodios)."
+                _uiState.update {
+                    it.copy(
+                        isBackupBusy = false,
+                        backupStatusMessage = summary,
+                        notificationMessage = "Backup .avb guardado localmente"
+                    )
+                }
+                onSuccess(summary)
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isBackupBusy = false,
+                        backupErrorMessage = err.message ?: "Error al guardar la copia local."
+                    )
+                }
+            }
+        }
+    }
+
+    fun loadLocalBackups() {
+        val ctx = getApplication<Application>().applicationContext
+        val treeUri = LocalBackupStorage.getSavedTreeUri(ctx)
+        if (treeUri == null) {
+            _uiState.update { it.copy(hasLocalBackupFolder = false, availableBackups = emptyList()) }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isBackupBusy = true, backupErrorMessage = null)
+            }
+            runCatching {
+                LocalBackupStorage.listBackups(ctx, treeUri)
+            }.onSuccess { list ->
+                _uiState.update {
+                    it.copy(
+                        isBackupBusy = false,
+                        hasLocalBackupFolder = true,
+                        availableBackups = list
+                    )
+                }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isBackupBusy = false,
+                        backupErrorMessage = err.message ?: "No se pudieron listar los backups locales."
+                    )
+                }
+            }
+        }
+    }
+
+    fun restoreLocalBackup(documentUri: Uri, passphrase: String, onSuccess: (String) -> Unit = {}) {
+        if (!BackupCrypto.isValidPassphrase(passphrase)) {
+            _uiState.update {
+                it.copy(backupErrorMessage = "Introduce la contraseña del archivo .avb.")
+            }
+            return
+        }
+        val ctx = getApplication<Application>().applicationContext
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isBackupBusy = true, backupErrorMessage = null, backupStatusMessage = null)
+            }
+            runCatching {
+                val bytes = LocalBackupStorage.readBytes(ctx, documentUri)
+                backupManager.restoreFromEncryptedBytes(bytes, passphrase)
+            }.onSuccess { stats ->
+                reloadPreferencesAfterRestore()
+                val msg = "Respaldo restaurado: ${stats.watchlistCount} en lista, ${stats.favoritesCount} favoritos, ${stats.watchedEpisodesCount} episodios y ${stats.ratingsCount} calificaciones."
+                _uiState.update {
+                    it.copy(
+                        isBackupBusy = false,
+                        backupStatusMessage = msg,
+                        notificationMessage = "Copia de seguridad restaurada correctamente"
+                    )
+                }
+                onSuccess(msg)
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isBackupBusy = false,
+                        backupErrorMessage = err.message ?: "No se pudo restaurar el archivo .avb."
+                    )
+                }
+            }
+        }
+    }
+
+    fun requestDriveAccess(
+        onAuthorized: () -> Unit,
+        onNeedsResolution: (IntentSender) -> Unit
+    ) {
+        val existingToken = transientDriveToken
+        if (!existingToken.isNullOrBlank()) {
+            onAuthorized()
+            return
+        }
+        val ctx = getApplication<Application>().applicationContext
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isBackupBusy = true, backupErrorMessage = null, backupStatusMessage = null)
+            }
+            when (val auth = driveBackupClient.authorizeDriveAccess(ctx)) {
+                is DriveAuthResult.Authorized -> {
+                    transientDriveToken = auth.accessToken
+                    _uiState.update { it.copy(isBackupBusy = false) }
+                    onAuthorized()
+                }
+                is DriveAuthResult.NeedsResolution -> {
+                    _uiState.update { it.copy(isBackupBusy = false) }
+                    onNeedsResolution(auth.intentSender)
+                }
+                is DriveAuthResult.Error -> {
+                    _uiState.update {
+                        it.copy(isBackupBusy = false, backupErrorMessage = auth.message)
+                    }
+                }
+            }
+        }
+    }
+
+    fun onDriveResolutionResult(
+        resultCode: Int,
+        data: Intent?,
+        onAuthorized: () -> Unit
+    ) {
+        if (resultCode != Activity.RESULT_OK) {
+            _uiState.update {
+                it.copy(backupErrorMessage = "Permiso de Google Drive denegado por el usuario.")
+            }
+            return
+        }
+        val ctx = getApplication<Application>().applicationContext
+        val token = driveBackupClient.extractAccessTokenFromIntent(ctx, data)
+        if (!token.isNullOrBlank()) {
+            transientDriveToken = token
+            _uiState.update { it.copy(backupErrorMessage = null) }
+            onAuthorized()
+        } else {
+            _uiState.update {
+                it.copy(backupErrorMessage = "No se pudo obtener autorización de Google Drive.")
+            }
+        }
+    }
+
+    fun createDriveBackup(passphrase: String, onSuccess: (String) -> Unit = {}) {
+        val token = transientDriveToken
+        if (token.isNullOrBlank()) {
+            _uiState.update {
+                it.copy(backupErrorMessage = "Primero autoriza el acceso a tu Google Drive.")
+            }
+            return
+        }
+        if (!BackupCrypto.isValidPassphrase(passphrase)) {
+            _uiState.update {
+                it.copy(backupErrorMessage = "La contraseña debe tener al menos 4 caracteres.")
+            }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isBackupBusy = true, backupErrorMessage = null, backupStatusMessage = null)
+            }
+            runCatching {
+                val (encryptedBytes, stats) = backupManager.exportEncryptedBackup(passphrase)
+                val fileName = backupManager.generateBackupFileName()
+                val entry = driveBackupClient.uploadEncryptedBackup(token, fileName, encryptedBytes)
+                entry to stats
+            }.onSuccess { (entry, stats) ->
+                val summary = "Copia cifrada subida a tu Google Drive (${GoogleDriveBackupClient.DRIVE_FOLDER_NAME}/${entry.fileName}): ${stats.watchlistCount} en lista, ${stats.favoritesCount} favoritos."
+                _uiState.update {
+                    it.copy(
+                        isBackupBusy = false,
+                        backupStatusMessage = summary,
+                        notificationMessage = "Backup .avb subido a Google Drive"
+                    )
+                }
+                onSuccess(summary)
+            }.onFailure { err ->
+                if (err.message?.contains("(401)") == true) {
+                    transientDriveToken = null
+                }
+                _uiState.update {
+                    it.copy(
+                        isBackupBusy = false,
+                        backupErrorMessage = err.message ?: "Error al subir el respaldo a Google Drive."
+                    )
+                }
+            }
+        }
+    }
+
+    fun loadDriveBackups() {
+        val token = transientDriveToken
+        if (token.isNullOrBlank()) {
+            _uiState.update { it.copy(availableBackups = emptyList()) }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isBackupBusy = true, backupErrorMessage = null)
+            }
+            runCatching {
+                driveBackupClient.listBackupFiles(token)
+            }.onSuccess { files ->
+                _uiState.update {
+                    it.copy(isBackupBusy = false, availableBackups = files)
+                }
+            }.onFailure { err ->
+                if (err.message?.contains("(401)") == true) {
+                    transientDriveToken = null
+                }
+                _uiState.update {
+                    it.copy(
+                        isBackupBusy = false,
+                        backupErrorMessage = err.message ?: "No se pudieron listar los backups en Google Drive."
+                    )
+                }
+            }
+        }
+    }
+
+    fun restoreDriveBackup(fileId: String, passphrase: String, onSuccess: (String) -> Unit = {}) {
+        val token = transientDriveToken
+        if (token.isNullOrBlank()) {
+            _uiState.update {
+                it.copy(backupErrorMessage = "Autoriza primero el acceso a tu Google Drive.")
+            }
+            return
+        }
+        if (!BackupCrypto.isValidPassphrase(passphrase)) {
+            _uiState.update {
+                it.copy(backupErrorMessage = "Introduce la contraseña del archivo .avb.")
+            }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isBackupBusy = true, backupErrorMessage = null, backupStatusMessage = null)
+            }
+            runCatching {
+                val bytes = driveBackupClient.downloadBackupBytes(token, fileId)
+                backupManager.restoreFromEncryptedBytes(bytes, passphrase)
+            }.onSuccess { stats ->
+                reloadPreferencesAfterRestore()
+                val msg = "Respaldo de Drive restaurado: ${stats.watchlistCount} en lista, ${stats.favoritesCount} favoritos, ${stats.watchedEpisodesCount} episodios."
+                _uiState.update {
+                    it.copy(
+                        isBackupBusy = false,
+                        backupStatusMessage = msg,
+                        notificationMessage = "Copia restaurada desde Google Drive"
+                    )
+                }
+                onSuccess(msg)
+            }.onFailure { err ->
+                if (err.message?.contains("(401)") == true) {
+                    transientDriveToken = null
+                }
+                _uiState.update {
+                    it.copy(
+                        isBackupBusy = false,
+                        backupErrorMessage = err.message ?: "No se pudo restaurar el respaldo de Google Drive."
+                    )
+                }
+            }
+        }
+    }
+
+    private fun reloadPreferencesAfterRestore() {
+        val restoredLang = if (prefs.getString("synopsis_lang", "es") == "en") {
+            SynopsisLanguage.ENGLISH
+        } else {
+            SynopsisLanguage.SPANISH
+        }
+        _uiState.update { state ->
+            recomputeDerivedLists(
+                state.copy(
+                    appThemeMode = loadSavedTheme(),
+                    isJapanTimeZone = prefs.getBoolean("jst_zone", false),
+                    notificationsEnabled = prefs.getBoolean("notif_enabled", true),
+                    defaultReminderMinutes = prefs.getInt("default_reminder_min", 15),
+                    quietHoursEnabled = prefs.getBoolean("quiet_hours", false),
+                    globalLanguage = restoredLang
+                )
+            )
+        }
+        loadTodayRealSchedule()
+        loadWeekSchedule(_uiState.value.weekStartDate)
     }
 
     private fun scheduleRemindersForFavorites(releases: List<AnimeRelease>, favIds: Set<Int>) {

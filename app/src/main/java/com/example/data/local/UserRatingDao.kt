@@ -24,6 +24,12 @@ interface UserRatingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateRating(ratingEntity: UserRatingEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(ratings: List<UserRatingEntity>)
+
     @Query("DELETE FROM user_ratings WHERE animeId = :animeId")
     suspend fun deleteRating(animeId: Int)
+
+    @Query("DELETE FROM user_ratings")
+    suspend fun clearAll()
 }

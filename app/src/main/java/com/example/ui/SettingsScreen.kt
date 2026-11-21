@@ -1,7 +1,10 @@
 package com.example.ui
 
 import android.Manifest
+import android.content.Intent
+import android.content.IntentSender
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,19 +19,23 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -40,6 +47,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -50,8 +61,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.example.backup.BackupOperationMode
+import com.example.backup.LocalBackupStorage
 import com.example.model.AppThemeMode
 import com.example.model.SynopsisLanguage
+import com.example.ui.components.BackupRestoreDialog
 import com.example.ui.theme.LocalBottomDockPadding
 import com.example.ui.theme.LocalIsLiquidGlass
 import com.example.ui.theme.adaptiveCardColor
@@ -72,10 +86,21 @@ fun SettingsScreen(
     onSyncNow: () -> Unit,
     onClearCache: () -> Unit,
     onCheckDeviceSecurity: () -> Unit = {},
+    onLocalTreeGranted: (Uri?) -> Unit = {},
+    onCreateLocalBackup: (String) -> Unit = {},
+    onLoadLocalBackups: () -> Unit = {},
+    onRestoreLocalBackup: (Uri, String) -> Unit = { _, _ -> },
+    onRequestDriveAccess: (() -> Unit, (IntentSender) -> Unit) -> Unit = { _, _ -> },
+    onDriveResolutionResult: (Int, Intent?, () -> Unit) -> Unit = { _, _, _ -> },
+    onCreateDriveBackup: (String) -> Unit = {},
+    onLoadDriveBackups: () -> Unit = {},
+    onRestoreDriveBackup: (String, String) -> Unit = { _, _ -> },
+    onClearBackupMessages: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val bottomDockPadding = LocalBottomDockPadding.current
+    var activeBackupDialogMode by remember { mutableStateOf<BackupOperationMode?>(null) }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -319,6 +344,54 @@ fun SettingsScreen(
             }
         }
 
+        // Encrypted Backup & Restore Section (.avb)
+        item {
+            SettingsCard(title = "Copias de Respaldo (.avb)", icon = Icons.Default.Backup) {
+                Text(
+                    text = "Exporta o restaura tus favoritos, Mi Lista, episodios vistos, calificaciones y preferencias en archivos cifrados AES-256 (.avb) en local (${LocalBackupStorage.BACKUP_FOLDER_NAME}) o en tu propio Google Drive (AniVexa).",
+                    fontSize = 12.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 17.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            onClearBackupMessages()
+                            activeBackupDialogMode = BackupOperationMode.BACKUP
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp)
+                            .testTag("settings_create_backup_button")
+                    ) {
+                        Icon(Icons.Default.Backup, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text("Respaldar", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            onClearBackupMessages()
+                            activeBackupDialogMode = BackupOperationMode.RESTORE
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp)
+                            .testTag("settings_restore_backup_button")
+                    ) {
+                        Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text("Restaurar", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+
         // Security & Device Integrity Section
         item {
             val sec = uiState.deviceSecurityReport
@@ -376,6 +449,27 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+
+    activeBackupDialogMode?.let { mode ->
+        BackupRestoreDialog(
+            mode = mode,
+            uiState = uiState,
+            onDismiss = {
+                activeBackupDialogMode = null
+                onClearBackupMessages()
+            },
+            onLocalTreeGranted = onLocalTreeGranted,
+            onCreateLocalBackup = onCreateLocalBackup,
+            onLoadLocalBackups = onLoadLocalBackups,
+            onRestoreLocalBackup = onRestoreLocalBackup,
+            onRequestDriveAccess = onRequestDriveAccess,
+            onDriveResolutionResult = onDriveResolutionResult,
+            onCreateDriveBackup = onCreateDriveBackup,
+            onLoadDriveBackups = onLoadDriveBackups,
+            onRestoreDriveBackup = onRestoreDriveBackup,
+            onClearMessages = onClearBackupMessages
+        )
     }
 }
 

@@ -73,7 +73,26 @@ class MainActivity : ComponentActivity() {
                     GlassHostContainer(isGlass = isGlass) {
                         when {
                             showSplash -> {
-                                SplashScreen(onSplashFinished = { showSplash = false })
+                                SplashScreen(
+                                    uiState = uiState,
+                                    onLocalTreeGranted = { viewModel.onLocalBackupTreeGranted(it) },
+                                    onLoadLocalBackups = { viewModel.loadLocalBackups() },
+                                    onRestoreLocalBackup = { uri, pass ->
+                                        viewModel.restoreLocalBackup(uri, pass)
+                                    },
+                                    onRequestDriveAccess = { onAuth, onNeedsRes ->
+                                        viewModel.requestDriveAccess(onAuth, onNeedsRes)
+                                    },
+                                    onDriveResolutionResult = { code, data, onAuth ->
+                                        viewModel.onDriveResolutionResult(code, data, onAuth)
+                                    },
+                                    onLoadDriveBackups = { viewModel.loadDriveBackups() },
+                                    onRestoreDriveBackup = { id, pass ->
+                                        viewModel.restoreDriveBackup(id, pass)
+                                    },
+                                    onClearBackupMessages = { viewModel.clearBackupMessages() },
+                                    onSplashFinished = { showSplash = false }
+                                )
                             }
 
                             uiState.selectedAnimeForDetail != null -> {
@@ -218,7 +237,25 @@ class MainActivity : ComponentActivity() {
                                                         onSetThemeMode = { viewModel.setThemeMode(it) },
                                                         onSyncNow = { viewModel.refreshAll() },
                                                         onClearCache = { viewModel.clearOfflineCache() },
-                                                        onCheckDeviceSecurity = { viewModel.refreshDeviceSecurity() }
+                                                        onCheckDeviceSecurity = { viewModel.refreshDeviceSecurity() },
+                                                        onLocalTreeGranted = { viewModel.onLocalBackupTreeGranted(it) },
+                                                        onCreateLocalBackup = { pass -> viewModel.createLocalBackup(pass) },
+                                                        onLoadLocalBackups = { viewModel.loadLocalBackups() },
+                                                        onRestoreLocalBackup = { uri, pass ->
+                                                            viewModel.restoreLocalBackup(uri, pass)
+                                                        },
+                                                        onRequestDriveAccess = { onAuth, onNeedsRes ->
+                                                            viewModel.requestDriveAccess(onAuth, onNeedsRes)
+                                                        },
+                                                        onDriveResolutionResult = { code, data, onAuth ->
+                                                            viewModel.onDriveResolutionResult(code, data, onAuth)
+                                                        },
+                                                        onCreateDriveBackup = { pass -> viewModel.createDriveBackup(pass) },
+                                                        onLoadDriveBackups = { viewModel.loadDriveBackups() },
+                                                        onRestoreDriveBackup = { id, pass ->
+                                                            viewModel.restoreDriveBackup(id, pass)
+                                                        },
+                                                        onClearBackupMessages = { viewModel.clearBackupMessages() }
                                                     )
                                                 }
                                             }

@@ -15,8 +15,8 @@ android {
     applicationId = "com.aistudio.anical.sched"
     minSdk = 24
     targetSdk = 36
-    versionCode = 9
-    versionName = "0.1.6"
+    versionCode = 10
+    versionName = "0.1.7-beta.1"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -130,6 +130,7 @@ dependencies {
   implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
   implementation(libs.play.integrity)
+  implementation(libs.play.services.auth)
   // implementation(libs.play.services.location)
   implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)

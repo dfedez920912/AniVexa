@@ -1,12 +1,9 @@
-# AniVexa v0.1.6
+# AniVexa v0.1.7-beta.1
 
 ## Novedades de esta versión
 
-### Seguridad y estabilidad
-- **Protección contra StrandHogg 2.0**: Se configuró `MainActivity` con `launchMode="singleInstance"` y `taskAffinity=""` para evitar secuestros de pila de tareas sin alterar el acceso desde notificaciones, widgets ni compartir.
-- **Tráfico HTTPS obligatorio y Certificate Transparency**: Se incorporó `network_security_config.xml` bloqueando tráfico HTTP sin cifrar y habilitando Certificate Transparency en Android 16+.
-- **Registros de depuración controlados**: Todos los logs quedaron centralizados en `AppLogger` y desactivados automáticamente en compilaciones `release`.
-- **Migraciones SQL endurecidas**: Se eliminó la interpolación dinámica en las migraciones de Room manteniendo intactos los datos y el progreso del usuario entre versiones.
-- **Copias externas desactivadas (`allowBackup="false"`)**: Se restringió la extracción externa de datos locales mediante `adb backup` y respaldo externo sin afectar las actualizaciones locales.
-- **Detección de Root y Google Play Integrity API**: Se añadió `DeviceSecurityManager` con diagnóstico de integridad no bloqueante visible en **Ajustes → Seguridad e Integridad**.
-- **Análisis de seguridad MobSF SAST y CI**: Se integraron las exclusiones documentadas en `.mobsf` y soporte completo en los workflows de pruebas unitarias, compilación y seguridad.
+### Copias de respaldo cifradas (.avb) y restauración
+- **Cifrado real AES-256-GCM + PBKDF2**: Cada copia de seguridad se cifra con contraseña elegida por el usuario, salt aleatorio y vector IV único en archivos binarios con extensión `.avb` (contiene favoritos, Mi Lista, episodios vistos, calificaciones y preferencias).
+- **Almacenamiento Local (`Anivexa-Backuo`)**: Solicita permiso de carpeta en el dispositivo mediante Storage Access Framework (SAF), crea la carpeta `Anivexa-Backuo` y almacena archivos `.avb` con marca de tiempo para su respaldo o restauración.
+- **Google Drive personal (`AniVexa`)**: Solicita autorización directamente en el dispositivo del usuario (`drive.file`), crea la carpeta `AniVexa` en su propio Google Drive y permite subir, listar y restaurar archivos `.avb`.
+- **Tarjeta en SplashScreen**: Se añadió un aviso destacado en la pantalla inicial presentando las copias cifradas `.avb` con botón directo de **Restaurar** antes de entrar a la app.

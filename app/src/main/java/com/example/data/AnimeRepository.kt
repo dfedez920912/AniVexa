@@ -3,6 +3,7 @@ package com.example.data
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.room.withTransaction
 import com.example.util.AppLogger
 import com.example.data.local.AppDatabase
 import com.example.data.local.CachedAnimeDao
@@ -31,11 +32,12 @@ import java.time.ZoneId
 
 class AnimeRepository(
     private val context: Context,
-    private val favoriteAnimeDao: FavoriteAnimeDao = AppDatabase.getDatabase(context).favoriteAnimeDao(),
-    private val watchedEpisodeDao: WatchedEpisodeDao = AppDatabase.getDatabase(context).watchedEpisodeDao(),
-    private val watchlistDao: WatchlistDao = AppDatabase.getDatabase(context).watchlistDao(),
-    private val cachedAnimeDao: CachedAnimeDao = AppDatabase.getDatabase(context).cachedAnimeDao(),
-    private val userRatingDao: UserRatingDao = AppDatabase.getDatabase(context).userRatingDao()
+    private val database: AppDatabase = AppDatabase.getDatabase(context),
+    private val favoriteAnimeDao: FavoriteAnimeDao = database.favoriteAnimeDao(),
+    private val watchedEpisodeDao: WatchedEpisodeDao = database.watchedEpisodeDao(),
+    private val watchlistDao: WatchlistDao = database.watchlistDao(),
+    private val cachedAnimeDao: CachedAnimeDao = database.cachedAnimeDao(),
+    private val userRatingDao: UserRatingDao = database.userRatingDao()
 ) {
     private val translationService = TranslationService()
     private val aniListClient = AniListClient()
@@ -454,6 +456,44 @@ class AnimeRepository(
         aniListClient.clearMemoryCache()
     }
 
+    suspend fun exportUserDatabaseSnapshot(): UserDatabaseBackupSnapshot = withContext(Dispatchers.IO) {
+        UserDatabaseBackupSnapshot(
+            favorites = favoriteAnimeDao.getAllFavoritesList(),
+            watchedEpisodes = watchedEpisodeDao.getAllWatchedEntitiesList(),
+            watchlist = watchlistDao.getAllWatchlistList(),
+            userRatings = userRatingDao.getAllRatingsList()
+        )
+    }
+
+    suspend fun replaceAllUserBackupData(
+        snapshot: UserDatabaseBackupSnapshot
+    ) = withContext(Dispatchers.IO) {
+        val previousFavoriteIds = favoriteAnimeDao.getFavoriteIdsList()
+        database.withTransaction {
+            favoriteAnimeDao.clearAll()
+            watchedEpisodeDao.clearAll()
+            watchlistDao.clearWatchlist()
+            userRatingDao.clearAll()
+
+            if (snapshot.favorites.isNotEmpty()) {
+                favoriteAnimeDao.insertAll(snapshot.favorites)
+            }
+            if (snapshot.watchedEpisodes.isNotEmpty()) {
+                watchedEpisodeDao.markAllWatched(snapshot.watchedEpisodes)
+            }
+            if (snapshot.watchlist.isNotEmpty()) {
+                watchlistDao.insertAll(snapshot.watchlist)
+            }
+            if (snapshot.userRatings.isNotEmpty()) {
+                userRatingDao.insertAll(snapshot.userRatings)
+            }
+        }
+        previousFavoriteIds.forEach { oldId ->
+            AnimeNotificationHelper.cancelAnimeReminder(context, oldId)
+        }
+        com.example.widget.WidgetDataHelper.notifyAllWidgets(context)
+    }
+
     private fun decorateReleases(
         items: List<AnimeRelease>,
         favIds: Set<Int>,
@@ -471,3 +511,10 @@ class AnimeRepository(
         }
     }
 }
+
+data class UserDatabaseBackupSnapshot(
+    val favorites: List<FavoriteAnimeEntity>,
+    val watchedEpisodes: List<WatchedEpisodeEntity>,
+    val watchlist: List<WatchlistEntity>,
+    val userRatings: List<UserRatingEntity>
+)

@@ -39,6 +39,12 @@ interface FavoriteAnimeDao {
     @Query("UPDATE favorite_anime SET reminderMinutesBefore = :minutes WHERE animeId = :animeId")
     suspend fun updateReminderMinutes(animeId: Int, minutes: Int)
 
+    @Query("SELECT * FROM favorite_anime ORDER BY addedAt DESC")
+    suspend fun getAllFavoritesList(): List<FavoriteAnimeEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(favorites: List<FavoriteAnimeEntity>)
+
     @Query("DELETE FROM favorite_anime")
     suspend fun clearAll()
 }
