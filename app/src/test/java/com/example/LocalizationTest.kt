@@ -3,6 +3,7 @@ package com.example
 import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -17,6 +18,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.unit.dp
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.backup.BackupManager
@@ -229,26 +231,27 @@ class LocalizationTest {
             AniVexaTheme(appLanguage = currentLanguage) {
                 com.example.ui.components.AnimePosterCard(
                     anime = baseAnime.copy(activeLanguage = currentLanguage),
-                    onClick = {}
+                    onClick = {},
+                    modifier = Modifier.width(170.dp)
                 )
             }
         }
 
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("poster_card_synopsis_42").assertIsDisplayed()
-        composeRule.onNodeWithText("Sinopsis en español").assertIsDisplayed()
+        composeRule.onNodeWithTag("poster_card_synopsis_42", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Sinopsis en español", useUnmergedTree = true).assertIsDisplayed()
 
         currentLanguage = SynopsisLanguage.ENGLISH
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("English synopsis preview").assertIsDisplayed()
+        composeRule.onNodeWithText("English synopsis preview", useUnmergedTree = true).assertIsDisplayed()
 
         currentLanguage = SynopsisLanguage.FRENCH
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Synopsis en français").assertIsDisplayed()
+        composeRule.onNodeWithText("Synopsis en français", useUnmergedTree = true).assertIsDisplayed()
 
         currentLanguage = SynopsisLanguage.JAPANESE
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("日本語のあらすじ").assertIsDisplayed()
+        composeRule.onNodeWithText("日本語のあらすじ", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test
