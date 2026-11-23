@@ -123,7 +123,8 @@ fun SettingsScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .screenBackdrop(),
+            .screenBackdrop()
+            .testTag("settings_list"),
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,

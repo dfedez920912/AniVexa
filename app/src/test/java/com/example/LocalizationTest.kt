@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.backup.BackupManager
@@ -153,7 +155,9 @@ class LocalizationTest {
         composeRule.onNodeWithText("Inicio").assertIsDisplayed()
 
         // Switch to English via dropdown
-        composeRule.onNodeWithTag("settings_language_dropdown").performScrollTo().performClick()
+        composeRule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("settings_language_dropdown"))
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("settings_language_dropdown").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("settings_lang_option_en").performClick()
         composeRule.waitForIdle()
@@ -162,7 +166,9 @@ class LocalizationTest {
         composeRule.onNodeWithText("Home").assertIsDisplayed()
 
         // Switch to French via dropdown
-        composeRule.onNodeWithTag("settings_language_dropdown").performScrollTo().performClick()
+        composeRule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("settings_language_dropdown"))
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("settings_language_dropdown").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("settings_lang_option_fr").performClick()
         composeRule.waitForIdle()
@@ -171,7 +177,9 @@ class LocalizationTest {
         composeRule.onNodeWithText("Accueil").assertIsDisplayed()
 
         // Switch to Japanese via dropdown
-        composeRule.onNodeWithTag("settings_language_dropdown").performScrollTo().performClick()
+        composeRule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("settings_language_dropdown"))
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("settings_language_dropdown").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("settings_lang_option_ja").performClick()
         composeRule.waitForIdle()
@@ -180,7 +188,9 @@ class LocalizationTest {
         composeRule.onNodeWithText("ホーム").assertIsDisplayed()
 
         // Switch back to Spanish via dropdown
-        composeRule.onNodeWithTag("settings_language_dropdown").performScrollTo().performClick()
+        composeRule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("settings_language_dropdown"))
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("settings_language_dropdown").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("settings_lang_option_es").performClick()
         composeRule.waitForIdle()

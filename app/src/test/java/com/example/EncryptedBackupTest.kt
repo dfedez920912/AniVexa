@@ -1,6 +1,9 @@
 package com.example
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -300,8 +303,8 @@ class EncryptedBackupTest {
 
     @Test
     fun `SplashScreen stays clean like main and auto advances while OnboardingScreen offers Restore`() {
-        var splashFinished = false
-        var onboardingFinished = false
+        var splashFinished by mutableStateOf(false)
+        var onboardingFinished by mutableStateOf(false)
 
         composeRule.setContent {
             AniVexaTheme {
@@ -315,7 +318,7 @@ class EncryptedBackupTest {
 
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("splash_screen_root").assertIsDisplayed()
-        assertEquals(0, composeRule.onAllNodes(androidx.compose.ui.test.hasTestTag("splash_backup_card")).fetchSemanticsNodes().size)
+        assertEquals(0, composeRule.onAllNodes(hasTestTag("splash_backup_card")).fetchSemanticsNodes().size)
 
         composeRule.mainClock.advanceTimeBy(1000L)
         composeRule.waitForIdle()
