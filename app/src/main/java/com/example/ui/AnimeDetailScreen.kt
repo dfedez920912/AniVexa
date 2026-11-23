@@ -54,7 +54,6 @@ import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -100,7 +99,6 @@ import com.example.model.AnimeCharacter
 import com.example.model.AnimeRelease
 import com.example.model.AnimeReview
 import com.example.model.RelatedAnimeItem
-import com.example.model.SynopsisLanguage
 import com.example.ui.theme.AniAiringGreen
 import com.example.ui.theme.AniAiringGreenBright
 import com.example.ui.theme.AniAzureBright
@@ -143,7 +141,6 @@ fun AnimeDetailScreen(
     onToggleReminder: (Boolean, Int) -> Unit,
     onTestNotification: () -> Unit,
     onToggleWatchedEpisodeNum: (Int) -> Unit,
-    onLanguageSelected: (SynopsisLanguage) -> Unit,
     onRatingChanged: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -427,67 +424,24 @@ fun AnimeDetailScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Synopsis with ES/EN/FR/JA pill & expand
+                // Synopsis & expand
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = s.detailSynopsisTitle,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
+                    Text(
+                        text = s.detailSynopsisTitle,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    if (anime.isTranslating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(13.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
                         )
-                        if (anime.isTranslating) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(13.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(2.dp),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        SynopsisLanguage.entries.forEach { lang ->
-                            val selected = anime.activeLanguage == lang
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                modifier = Modifier.clickable { onLanguageSelected(lang) }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    if (lang == appLanguage) {
-                                        Icon(
-                                            imageVector = Icons.Default.Translate,
-                                            contentDescription = null,
-                                            tint = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(11.dp)
-                                        )
-                                    }
-                                    Text(
-                                        text = lang.shortLabel,
-                                        fontSize = 10.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
                     }
                 }
 

@@ -218,7 +218,8 @@ fun CalendarScreen(
                 uiState = uiState,
                 onSelectDate = onSelectDate,
                 onShiftWeek = onShiftWeek,
-                onAnimeClick = onAnimeClick
+                onAnimeClick = onAnimeClick,
+                onToggleReminder = onToggleReminder
             )
             CalendarViewMode.MONTH -> MonthCalendarContent(
                 uiState = uiState,
@@ -355,7 +356,8 @@ private fun WeekCalendarContent(
     uiState: AnimeUiState,
     onSelectDate: (LocalDate) -> Unit,
     onShiftWeek: (Long) -> Unit,
-    onAnimeClick: (AnimeRelease) -> Unit
+    onAnimeClick: (AnimeRelease) -> Unit,
+    onToggleReminder: (AnimeRelease) -> Unit
 ) {
     val s = LocalAppStrings.current
     val locale = LocalAppLanguage.current.toLocale()
@@ -495,6 +497,7 @@ private fun WeekCalendarContent(
                     showAiringTime = true,
                     showEpisodeBadge = true,
                     zoneId = uiState.activeZoneId,
+                    onToggleReminder = { onToggleReminder(anime) },
                     modifier = Modifier.fillMaxWidth()
                 )
             }

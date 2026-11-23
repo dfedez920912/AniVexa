@@ -25,6 +25,8 @@ import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Button
@@ -63,6 +65,7 @@ import com.example.model.WatchlistSortOrder
 import com.example.ui.theme.AniAiringGreenBright
 import com.example.ui.theme.AniAzureSoft
 import com.example.ui.theme.AniGlassSheetSurface
+import com.example.ui.theme.AniGold
 import com.example.ui.theme.LocalBottomDockPadding
 import com.example.ui.theme.LocalIsLiquidGlass
 import com.example.ui.theme.adaptiveCardColor
@@ -81,6 +84,7 @@ fun MyListScreen(
     onIncrementEpisode: (WatchlistEntity) -> Unit,
     onRemoveItem: (Int) -> Unit,
     onExploreCatalog: () -> Unit,
+    onToggleReminder: (AnimeRelease) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val s = LocalAppStrings.current
@@ -254,13 +258,16 @@ fun MyListScreen(
                     val isFullyWatched = item.statusEnum == WatchlistStatus.COMPLETED ||
                         (item.totalEpisodes != null && item.totalEpisodes > 0 && watchedCount >= item.totalEpisodes)
                     val isInProgress = !isFullyWatched && (item.statusEnum == WatchlistStatus.WATCHING || watchedCount > 0)
+                    val hasReminder = uiState.favoriteIds.contains(item.animeId)
                     MyListCard(
                         item = item,
                         watchedCount = watchedCount,
                         isFullyWatched = isFullyWatched,
                         isInProgress = isInProgress,
+                        hasReminder = hasReminder,
                         onClick = { onItemClick(item.toAnimeRelease()) },
                         onToggleWatched = { onToggleWatchedItem(item) },
+                        onToggleReminder = { onToggleReminder(item.toAnimeRelease()) },
                         onStatusChange = { status -> onUpdateStatus(item.animeId, status) },
                         onIncrementEpisode = { onIncrementEpisode(item) },
                         onRemove = { onRemoveItem(item.animeId) }
@@ -277,8 +284,10 @@ private fun MyListCard(
     watchedCount: Int,
     isFullyWatched: Boolean,
     isInProgress: Boolean,
+    hasReminder: Boolean,
     onClick: () -> Unit,
     onToggleWatched: () -> Unit,
+    onToggleReminder: () -> Unit,
     onStatusChange: (WatchlistStatus) -> Unit,
     onIncrementEpisode: () -> Unit,
     onRemove: () -> Unit
@@ -336,16 +345,31 @@ private fun MyListCard(
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f)
                     )
-                    IconButton(
-                        onClick = onRemove,
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = s.myListRemoveDesc,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = onToggleReminder,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .testTag("mylist_reminder_bell_${item.animeId}")
+                        ) {
+                            Icon(
+                                imageVector = if (hasReminder) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
+                                contentDescription = s.calendarReminderDesc,
+                                tint = if (hasReminder) AniGold else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = onRemove,
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = s.myListRemoveDesc,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
 

@@ -129,9 +129,6 @@ class MainActivity : ComponentActivity() {
                                     onToggleWatchedEpisodeNum = { ep ->
                                         viewModel.toggleWatchedEpisodeNum(detailAnime.id, ep)
                                     },
-                                    onLanguageSelected = { lang ->
-                                        viewModel.setAnimeSynopsisLanguage(detailAnime.id, lang)
-                                    },
                                     onRatingChanged = { rating ->
                                         viewModel.setUserRating(detailAnime.id, rating)
                                     }
@@ -183,7 +180,8 @@ class MainActivity : ComponentActivity() {
                                                     onSelectSeason = { season, year ->
                                                         viewModel.selectSeeAllSeason(season, year)
                                                     },
-                                                    onAnimeClick = { viewModel.openDetail(it) }
+                                                    onAnimeClick = { viewModel.openDetail(it) },
+                                                    onToggleReminder = { viewModel.toggleFavoriteReminder(it) }
                                                 )
                                             } else {
                                                 when (uiState.currentNavScreen) {
@@ -193,7 +191,8 @@ class MainActivity : ComponentActivity() {
                                                         onSeeAllSeason = { viewModel.openSeeAll(SeeAllMode.THIS_SEASON) },
                                                         onSeeAllPopular = { viewModel.openSeeAll(SeeAllMode.POPULAR_RANKING) },
                                                         onGoToCalendar = { viewModel.setNavScreen(MainNavScreen.CALENDAR) },
-                                                        onRefresh = { viewModel.refreshAll() }
+                                                        onRefresh = { viewModel.refreshAll() },
+                                                        onToggleReminder = { viewModel.toggleFavoriteReminder(it) }
                                                     )
 
                                                     MainNavScreen.CALENDAR -> CalendarScreen(
@@ -223,7 +222,8 @@ class MainActivity : ComponentActivity() {
                                                             viewModel.updateWatchlistEpisodes(item.animeId, item.watchedEpisodes + 1)
                                                         },
                                                         onRemoveItem = { viewModel.removeFromWatchlist(it) },
-                                                        onExploreCatalog = { viewModel.setNavScreen(MainNavScreen.HOME) }
+                                                        onExploreCatalog = { viewModel.setNavScreen(MainNavScreen.HOME) },
+                                                        onToggleReminder = { viewModel.toggleFavoriteReminder(it) }
                                                     )
 
                                                     MainNavScreen.SEARCH -> SearchScreen(
@@ -237,7 +237,8 @@ class MainActivity : ComponentActivity() {
                                                         onSelectFormat = { viewModel.setSearchFormat(it) },
                                                         onSelectStudio = { viewModel.setSearchStudio(it) },
                                                         onClearFilters = { viewModel.clearSearchFilters() },
-                                                        onAnimeClick = { viewModel.openDetail(it) }
+                                                        onAnimeClick = { viewModel.openDetail(it) },
+                                                        onToggleReminder = { viewModel.toggleFavoriteReminder(it) }
                                                     )
 
                                                     MainNavScreen.SETTINGS -> SettingsScreen(

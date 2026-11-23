@@ -66,6 +66,7 @@ fun HomeScreen(
     onSeeAllPopular: () -> Unit,
     onGoToCalendar: () -> Unit,
     onRefresh: () -> Unit,
+    onToggleReminder: (AnimeRelease) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val isGlass = LocalIsLiquidGlass.current
@@ -191,6 +192,7 @@ fun HomeScreen(
                         AnimePosterCard(
                             anime = anime,
                             onClick = { onAnimeClick(anime) },
+                            onToggleReminder = { onToggleReminder(anime) },
                             modifier = Modifier.width(142.dp)
                         )
                     }
@@ -227,6 +229,7 @@ fun HomeScreen(
                         AnimePosterCard(
                             anime = anime,
                             onClick = { onAnimeClick(anime) },
+                            onToggleReminder = { onToggleReminder(anime) },
                             modifier = Modifier.width(142.dp)
                         )
                     }
@@ -256,6 +259,7 @@ fun HomeScreen(
                             showAiringTime = true,
                             showEpisodeBadge = true,
                             zoneId = uiState.activeZoneId,
+                            onToggleReminder = { onToggleReminder(anime) },
                             modifier = Modifier.width(142.dp)
                         )
                     }
@@ -315,6 +319,7 @@ fun SeeAllCatalogScreen(
     onBack: () -> Unit,
     onSelectSeason: (MediaSeason, Int) -> Unit,
     onAnimeClick: (AnimeRelease) -> Unit,
+    onToggleReminder: (AnimeRelease) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     BackHandler(onBack = onBack)
@@ -404,6 +409,7 @@ fun SeeAllCatalogScreen(
                     AnimePosterCard(
                         anime = anime,
                         onClick = { onAnimeClick(anime) },
+                        onToggleReminder = { onToggleReminder(anime) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

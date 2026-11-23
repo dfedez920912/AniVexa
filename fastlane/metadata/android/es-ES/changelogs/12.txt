@@ -1,0 +1,3 @@
+- Botón de campana de notificaciones añadido en tarjetas (Pantalla Principal, Búsqueda, Calendario y Mi Lista) para activar/desactivar recordatorios sin entrar al detalle.
+- Selección de idioma de sinopsis centralizada unívocamente desde los Ajustes de la aplicación.
+- Correcciones y optimizaciones en el flujo de respaldo cifrado en Google Drive.

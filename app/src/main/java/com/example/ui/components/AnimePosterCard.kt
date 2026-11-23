@@ -15,8 +15,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
@@ -57,7 +60,8 @@ fun AnimePosterCard(
     modifier: Modifier = Modifier,
     showAiringTime: Boolean = false,
     showEpisodeBadge: Boolean = false,
-    zoneId: ZoneId = ZoneId.systemDefault()
+    zoneId: ZoneId = ZoneId.systemDefault(),
+    onToggleReminder: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val isGlass = LocalIsLiquidGlass.current
@@ -147,6 +151,35 @@ fun AnimePosterCard(
                             color = Color.White,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
+                    }
+                }
+
+                // Interactive Bell Icon Button for toggling episode release reminders
+                if (onToggleReminder != null) {
+                    Surface(
+                        shape = CircleShape,
+                        color = if (anime.hasReminder) {
+                            if (isGlass) Color(0xCC0EA5E9) else AniAzure.copy(alpha = 0.94f)
+                        } else {
+                            Color.Black.copy(alpha = 0.58f)
+                        },
+                        border = if (isGlass) glassCardBorder(glassWidth = 0.75.dp, highContrast = true) else null,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(6.dp)
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = onToggleReminder)
+                            .testTag("poster_card_reminder_bell_${anime.id}")
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(
+                                imageVector = if (anime.hasReminder) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
+                                contentDescription = s.calendarReminderDesc,
+                                tint = if (anime.hasReminder) AniGold else Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
             }

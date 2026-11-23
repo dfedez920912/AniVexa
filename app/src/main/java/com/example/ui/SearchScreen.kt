@@ -77,6 +77,7 @@ fun SearchScreen(
     onSelectStudio: (String?) -> Unit,
     onClearFilters: () -> Unit,
     onAnimeClick: (AnimeRelease) -> Unit,
+    onToggleReminder: (AnimeRelease) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
@@ -359,6 +360,7 @@ fun SearchScreen(
                     AnimePosterCard(
                         anime = anime,
                         onClick = { onAnimeClick(anime) },
+                        onToggleReminder = { onToggleReminder(anime) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

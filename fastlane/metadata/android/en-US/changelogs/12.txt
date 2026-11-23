@@ -1,0 +1,3 @@
+- Added notification bell button directly on poster cards (Home, Search, Calendar) and Watchlist / My List cards to toggle episode reminders without opening details.
+- Centralized anime synopsis language selection exclusively from app Settings.
+- Improvements and bug fixes for encrypted Google Drive backups.

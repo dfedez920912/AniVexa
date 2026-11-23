@@ -935,19 +935,6 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setAnimeSynopsisLanguage(animeId: Int, language: SynopsisLanguage) {
-        val currentDetail = _uiState.value.selectedAnimeForDetail ?: return
-        if (currentDetail.id != animeId) return
-
-        if (needsTranslation(currentDetail, language)) {
-            translateDetailSynopsisInBackground(animeId, translationSourceText(currentDetail), language)
-        } else {
-            _uiState.update {
-                it.copy(selectedAnimeForDetail = currentDetail.copy(activeLanguage = language))
-            }
-        }
-    }
-
     // Settings Actions
     fun setThemeMode(mode: AppThemeMode) {
         prefs.edit().putString("theme_mode", mode.name).apply()
@@ -989,7 +976,9 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
         WidgetDataHelper.notifyAllWidgets(getApplication())
         _uiState.value.selectedAnimeForDetail?.let { detail ->
-            setAnimeSynopsisLanguage(detail.id, lang)
+            if (needsTranslation(detail, lang)) {
+                translateDetailSynopsisInBackground(detail.id, translationSourceText(detail), lang)
+            }
         }
         scheduleCardTranslations(lang)
     }
