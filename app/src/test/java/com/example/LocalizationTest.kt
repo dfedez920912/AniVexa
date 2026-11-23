@@ -149,7 +149,7 @@ class LocalizationTest {
         }
 
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Ajustes").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Ajustes").onFirst().assertIsDisplayed()
         composeRule.onNodeWithText("Inicio").assertIsDisplayed()
 
         // Switch to English via dropdown
@@ -200,13 +200,13 @@ class LocalizationTest {
         }
 
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("暗号化バックアップ (.avb)").assertIsDisplayed()
-        composeRule.onNodeWithText("復元").assertIsDisplayed()
+        composeRule.onNodeWithText("暗号化バックアップ (.avb)").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("復元").performScrollTo().assertIsDisplayed()
 
         currentLanguage = SynopsisLanguage.FRENCH
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Sauvegardes chiffrées (.avb)").assertIsDisplayed()
-        composeRule.onNodeWithText("Restaurer").assertIsDisplayed()
+        composeRule.onNodeWithText("Sauvegardes chiffrées (.avb)").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Restaurer").performScrollTo().assertIsDisplayed()
     }
 
     @Test

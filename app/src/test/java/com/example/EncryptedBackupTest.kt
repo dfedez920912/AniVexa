@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.backup.BackupCrypto
@@ -321,11 +322,11 @@ class EncryptedBackupTest {
         assertTrue(splashFinished)
 
         composeRule.onNodeWithTag("onboarding_screen_root").assertIsDisplayed()
-        composeRule.onNodeWithTag("onboarding_backup_card").assertIsDisplayed()
-        composeRule.onNodeWithTag("onboarding_restore_backup_button").assertIsDisplayed()
-        composeRule.onNodeWithTag("onboarding_continue_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("onboarding_backup_card").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("onboarding_restore_backup_button").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("onboarding_continue_button").performScrollTo().assertIsDisplayed()
 
-        composeRule.onNodeWithTag("onboarding_restore_backup_button").performClick()
+        composeRule.onNodeWithTag("onboarding_restore_backup_button").performScrollTo().performClick()
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("backup_dest_local").assertIsDisplayed()
@@ -334,7 +335,7 @@ class EncryptedBackupTest {
         composeRule.onNodeWithText("Cerrar").performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag("onboarding_continue_button").performClick()
+        composeRule.onNodeWithTag("onboarding_continue_button").performScrollTo().performClick()
         composeRule.waitForIdle()
         assertTrue(onboardingFinished)
     }

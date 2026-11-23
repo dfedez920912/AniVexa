@@ -114,11 +114,11 @@ fun OnboardingScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Surface(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(20.dp),
                     color = Color.Transparent,
                     border = if (isGlass) glassCardBorder(highContrast = true) else null,
                     shadowElevation = 10.dp,
-                    modifier = Modifier.size(84.dp)
+                    modifier = Modifier.size(68.dp)
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_splash_logo),
@@ -126,44 +126,28 @@ fun OnboardingScreen(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(RoundedCornerShape(24.dp))
+                            .clip(RoundedCornerShape(20.dp))
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
                     text = s.onboardingTitle,
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onBackground,
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
                     text = s.onboardingSubtitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    lineHeight = 20.sp
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                OnboardingFeatureCard(
-                    icon = Icons.Default.NotificationsActive,
-                    title = s.onboardingFeature1Title,
-                    description = s.onboardingFeature1Desc
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                OnboardingFeatureCard(
-                    icon = Icons.Default.BookmarkAdded,
-                    title = s.onboardingFeature2Title,
-                    description = s.onboardingFeature2Desc
+                    lineHeight = 18.sp
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -179,8 +163,8 @@ fun OnboardingScreen(
                         .testTag("onboarding_backup_card")
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -222,7 +206,7 @@ fun OnboardingScreen(
                         Text(
                             text = s.splashBackupDesc,
                             fontSize = 12.5.sp,
-                            lineHeight = 18.sp,
+                            lineHeight = 17.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
@@ -251,6 +235,22 @@ fun OnboardingScreen(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OnboardingFeatureCard(
+                    icon = Icons.Default.NotificationsActive,
+                    title = s.onboardingFeature1Title,
+                    description = s.onboardingFeature1Desc
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OnboardingFeatureCard(
+                    icon = Icons.Default.BookmarkAdded,
+                    title = s.onboardingFeature2Title,
+                    description = s.onboardingFeature2Desc
+                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
