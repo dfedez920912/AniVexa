@@ -26,7 +26,7 @@ class BackupManager(
         return "anivexa_backup_${formatter.format(Date(timestampMillis))}.${BackupCrypto.FILE_EXTENSION}"
     }
 
-    suspend fun exportEncryptedBackup(passphrase: String): Pair<ByteArray, BackupSummaryStats> =
+    suspend fun exportEncryptedBackup(): Pair<ByteArray, BackupSummaryStats> =
         withContext(Dispatchers.IO) {
             val dbSnapshot = repository.exportUserDatabaseSnapshot()
             val payload = AniVexaBackupPayload(
@@ -39,7 +39,7 @@ class BackupManager(
                 preferences = readPreferencesSnapshot()
             )
             val jsonBytes = BackupJsonSerializer.serialize(payload).toByteArray(StandardCharsets.UTF_8)
-            val encrypted = BackupCrypto.encrypt(jsonBytes, passphrase)
+            val encrypted = BackupCrypto.encrypt(jsonBytes)
             val stats = BackupSummaryStats(
                 favoritesCount = dbSnapshot.favorites.size,
                 watchlistCount = dbSnapshot.watchlist.size,
@@ -50,10 +50,9 @@ class BackupManager(
         }
 
     suspend fun restoreFromEncryptedBytes(
-        encryptedBytes: ByteArray,
-        passphrase: String
+        encryptedBytes: ByteArray
     ): BackupSummaryStats = withContext(Dispatchers.IO) {
-        val plainBytes = BackupCrypto.decrypt(encryptedBytes, passphrase)
+        val plainBytes = BackupCrypto.decrypt(encryptedBytes)
         val rawJson = String(plainBytes, StandardCharsets.UTF_8)
         val payload = BackupJsonSerializer.deserialize(rawJson)
 

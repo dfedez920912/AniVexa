@@ -27,7 +27,7 @@ class TranslationService {
     suspend fun translate(text: String, targetLang: String = "es"): String = withContext(Dispatchers.IO) {
         if (text.isBlank()) return@withContext text
         val normalizedTarget = targetLang.trim().lowercase()
-        if (normalizedTarget == "en" || normalizedTarget !in setOf("es", "fr", "ja")) {
+        if (normalizedTarget !in setOf("es", "en", "fr", "ja")) {
             return@withContext text
         }
 
@@ -45,25 +45,26 @@ class TranslationService {
                 .get()
                 .build()
 
-            val response = client.newCall(request).execute()
-            if (response.isSuccessful) {
-                val body = response.body?.string()
-                if (body != null) {
-                    val jsonArray = JSONArray(body)
-                    val sentencesArray = jsonArray.optJSONArray(0)
-                    if (sentencesArray != null) {
-                        val sb = StringBuilder()
-                        for (i in 0 until sentencesArray.length()) {
-                            val sentence = sentencesArray.optJSONArray(i)
-                            val translatedChunk = sentence?.optString(0)
-                            if (!translatedChunk.isNullOrEmpty()) {
-                                sb.append(translatedChunk)
+            client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    val body = response.body?.string()
+                    if (body != null) {
+                        val jsonArray = JSONArray(body)
+                        val sentencesArray = jsonArray.optJSONArray(0)
+                        if (sentencesArray != null) {
+                            val sb = StringBuilder()
+                            for (i in 0 until sentencesArray.length()) {
+                                val sentence = sentencesArray.optJSONArray(i)
+                                val translatedChunk = sentence?.optString(0)
+                                if (!translatedChunk.isNullOrEmpty()) {
+                                    sb.append(translatedChunk)
+                                }
                             }
-                        }
-                        val result = sb.toString().trim()
-                        if (result.isNotEmpty() && result != text) {
-                            cache[cacheKey] = result
-                            return@withContext result
+                            val result = sb.toString().trim()
+                            if (result.isNotEmpty() && result != text) {
+                                cache[cacheKey] = result
+                                return@withContext result
+                            }
                         }
                     }
                 }

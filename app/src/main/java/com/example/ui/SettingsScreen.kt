@@ -1,6 +1,7 @@
 package com.example.ui
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
@@ -96,15 +97,16 @@ fun SettingsScreen(
     onSyncNow: () -> Unit,
     onClearCache: () -> Unit,
     onCheckDeviceSecurity: () -> Unit = {},
-    onLocalTreeGranted: (Uri?) -> Unit = {},
-    onCreateLocalBackup: (String) -> Unit = {},
+    onLocalTreeGranted: (Uri?, () -> Unit) -> Unit = { _, _ -> },
+    onCreateLocalBackup: () -> Unit = {},
     onLoadLocalBackups: () -> Unit = {},
-    onRestoreLocalBackup: (Uri, String) -> Unit = { _, _ -> },
-    onRequestDriveAccess: (() -> Unit, (IntentSender) -> Unit) -> Unit = { _, _ -> },
-    onDriveResolutionResult: (Int, Intent?, () -> Unit, (IntentSender) -> Unit) -> Unit = { _, _, _, _ -> },
-    onCreateDriveBackup: (String) -> Unit = {},
+    onRestoreLocalBackup: (Uri) -> Unit = {},
+    onRequestDriveAccess: (Context, () -> Unit, (IntentSender) -> Unit, (Intent) -> Unit) -> Unit = { _, _, _, _ -> },
+    onDriveResolutionResult: (Context, Int, Intent?, () -> Unit, (IntentSender) -> Unit, (Intent) -> Unit) -> Unit = { _, _, _, _, _, _ -> },
+    onDriveActivityResult: (Context, Int, Intent?, () -> Unit, (Intent) -> Unit) -> Unit = { _, _, _, _, _ -> },
+    onCreateDriveBackup: () -> Unit = {},
     onLoadDriveBackups: () -> Unit = {},
-    onRestoreDriveBackup: (String, String) -> Unit = { _, _ -> },
+    onRestoreDriveBackup: (String) -> Unit = {},
     onClearBackupMessages: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -541,6 +543,7 @@ fun SettingsScreen(
             onRestoreLocalBackup = onRestoreLocalBackup,
             onRequestDriveAccess = onRequestDriveAccess,
             onDriveResolutionResult = onDriveResolutionResult,
+            onDriveActivityResult = onDriveActivityResult,
             onCreateDriveBackup = onCreateDriveBackup,
             onLoadDriveBackups = onLoadDriveBackups,
             onRestoreDriveBackup = onRestoreDriveBackup,

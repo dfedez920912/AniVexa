@@ -212,6 +212,21 @@ fun AnimePosterCard(
                     }
                 }
 
+                val synopsisPreview = anime.getActiveSynopsis()
+                if (synopsisPreview.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = synopsisPreview,
+                        fontSize = 10.5.sp,
+                        lineHeight = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        minLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.testTag("poster_card_synopsis_${anime.id}")
+                    )
+                }
+
                 if (showAiringTime && anime.effectiveAiringSeconds() > 0L) {
                     Spacer(modifier = Modifier.height(5.dp))
                     Row(

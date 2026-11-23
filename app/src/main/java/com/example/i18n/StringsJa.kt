@@ -12,15 +12,19 @@ object StringsJa : AppStrings {
     override val splashSubtitle = "アニメ放送スケジュール・視聴記録"
     override val splashNewBadge = "新機能"
     override val splashBackupTitle = "暗号化バックアップ (.avb)"
-    override val splashBackupDesc = "マイリスト、お気に入り、視聴済み話数、設定を AES-256 暗号化で端末または Google ドライブに保護します。"
+    override val splashBackupDesc = "マイリスト、お気に入り、視聴済み話数、設定をパスワード不要の AES-256 暗号化 (.avb) で端末または Google ドライブに安全に保護し、外部アプリからは読み取れない形式で保存します。"
     override val splashRestoreBtn = "復元"
     override val splashContinueBtn = "続行"
     override val onboardingTitle = "AniVexa へようこそ"
     override val onboardingSubtitle = "季節ごとの放送スケジュール、話数記録、マイリストをひとつにまとめました。"
     override val onboardingFeature1Title = "放送スケジュールと通知"
-    override val onboardingFeature1Desc = "現地時間または日本標準時 (JST) で今期アニメの放送時間を確認できます。"
-    override val onboardingFeature2Title = "マイリストと視聴進捗"
-    override val onboardingFeature2Desc = "視聴済み話数や評価、視聴予定を安全に記録して管理できます。"
+    override val onboardingFeature1Desc = "現地時間または日本標準時 (JST) で今期アニメの放送時間とカウントダウンを確認できます。"
+    override val onboardingFeature2Title = "マイリストと詳細検索"
+    override val onboardingFeature2Desc = "視聴済み話数や評価を記録し、ジャンル・制作会社・シーズン別に作品を検索できます。"
+    override val onboardingFeature3Title = "多言語対応とカスタムテーマ"
+    override val onboardingFeature3Desc = "アプリ全体とあらすじを日本語・英語・スペイン語・フランス語に即座に切り替え、Dark / OLED / Liquid Glass テーマも選べます。"
+    override val onboardingSkipBtn = "スキップ"
+    override val onboardingNextBtn = "次へ"
     override val onboardingStartBtn = "はじめる"
 
     override val offlineBadge = "オフライン"
@@ -257,12 +261,11 @@ object StringsJa : AppStrings {
     override val backupChooseDestTitle = "バックアップを作成"
     override val restoreChooseDestTitle = "バックアップを復元 (.avb)"
     override val backupLocalPermTitle = "ストレージ権限"
-    override val backupEncryptTitle = ".avb ファイルを暗号化"
     override val restorePickFileTitle = ".avb ファイルを選択"
-    override val restoreDecryptTitle = "復号して復元"
-    override val backupBusyCreating = "暗号化してバックアップを保存中 (.avb)..."
-    override val backupBusyRestoring = "バックアップを読み込み・復号中 (.avb)..."
-    override val backupChooseDestPrompt = "暗号化バックアップ (.avb) の保存先を選択してください："
+    override val restoreConfirmTitle = "復元の確認"
+    override val backupBusyCreating = "暗号化バックアップを作成中 (.avb)..."
+    override val backupBusyRestoring = "バックアップを復号・復元中 (.avb)..."
+    override val backupChooseDestPrompt = "自動暗号化バックアップ (.avb) の保存先を選択してください："
     override val restoreChooseDestPrompt = "暗号化バックアップ (.avb) の復元元を選択してください："
     override val backupLocalTitle = "ローカルストレージ"
     override val backupLocalSubtitle: (String) -> String = { folder -> "端末内の $folder フォルダ (.avb)" }
@@ -273,35 +276,21 @@ object StringsJa : AppStrings {
     }
     override val backupGrantFolderBtn = "フォルダへのアクセスを許可"
     override val restorePickManualBtn = ".avb ファイルを手動で選択"
-    override val backupTargetDrivePath = "Google ドライブ / AniVexa"
-    override val backupTargetLocalPath: (String) -> String = { folder -> "端末 / $folder" }
-    override val backupEnterPassPrompt: (String) -> String = { target ->
-        "保存先: $target\n.avb ファイルを AES-256 暗号化するためのパスワードを設定してください。復元時に必要になります。"
-    }
-    override val backupPassLabel = "暗号化パスワード（4文字以上）"
-    override val backupConfirmPassLabel = "パスワードの確認"
     override val restoreFolderHintDrive = "Google ドライブ / AniVexa"
     override val restoreFolderHintLocal: (String) -> String = { folder -> "$folder フォルダ" }
     override val restoreRefreshListDesc = "リストを更新"
     override val restoreNoFilesFound = "このフォルダに .avb ファイルはまだありません。"
     override val restoreBrowseOtherBtn = ".avb ファイルを手動で探す"
     override val restoreWarningBody: (String) -> String = { name ->
-        "ファイル: $name\n復元を実行すると、現在のマイリスト、お気に入り、視聴済み話数、設定がこのバックアップの内容で置き換わります。"
+        "ファイル: $name\n復元を実行すると、現在のマイリスト、お気に入り、視聴済み話数、設定がこの暗号化バックアップ (.avb) の内容で置き換わります。"
     }
-    override val restorePassLabel = ".avb ファイルのパスワード"
     override val backupEnterAppBtn = "AniVexa を開く"
     override val backupDoneBtn = "完了"
-    override val backupCreateActionBtn = ".avb を作成"
     override val restoreActionBtn = "今すぐ復元"
     override val dialogBackBtn = "戻る"
     override val dialogCloseBtn = "閉じる"
-    override val passHideDesc = "パスワードを隠す"
-    override val passShowDesc = "パスワードを表示"
     override val backupMetaFallback = ".avb ファイル"
     override val backupMetaEncrypted = "AES-256 暗号化"
-    override val backupErrorMinLength = "パスワードは4文字以上で入力してください。"
-    override val backupErrorMismatch = "パスワードが一致しません。"
-    override val backupErrorEnterPassRestore = ".avb ファイルのパスワードを入力してください。"
 
     override val vmSecurityWarningNotifyRoot = "警告: Root 化された端末が検出されました。ローカルデータが特権アプリに公開される恐れがあります。"
     override val vmSecurityCleanNotify: (String) -> String = { status -> "セキュリティ確認完了：正常な環境 ($status)" }
@@ -336,6 +325,7 @@ object StringsJa : AppStrings {
     override val vmDriveAuthRequired = "先に Google ドライブへのアクセスを許可してください。"
     override val vmDriveAuthCancelled = "Google ドライブの認証がキャンセルされました。"
     override val vmDriveAuthDevError = "Google OAuth 設定エラー (コード 10)。署名 SHA-1 とパッケージ com.aistudio.anical.sched が Google Cloud に登録されているか確認してください。"
+    override val vmDriveAuthCode8Error = "Google Play 開発者サービスの内部エラー (コード 8) が発生しました。Google アカウント、Google Drive API の有効化、および Android OAuth クライアント (com.aistudio.anical.sched + 署名 SHA-1) をご確認ください。"
     override val vmDriveAuthCodeError: (Int) -> String = { code -> "Google ドライブ認証エラー (コード $code)。Google Play 開発者サービスと通信状態をご確認ください。" }
     override val vmDriveBackupSuccess: (String, String, Int, Int) -> String = { folder, fileName, watchlistCount, favCount ->
         "暗号化バックアップを Google ドライブ ($folder/$fileName) にアップロードしました（リスト ${watchlistCount}件・お気に入り ${favCount}件）。"

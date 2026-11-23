@@ -1,5 +1,9 @@
 package com.example.ui.components
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
 import android.content.IntentSender
 import android.net.Uri
 import android.os.Build
@@ -20,7 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudUpload
@@ -29,8 +32,6 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,7 +39,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,15 +53,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.backup.BackupCrypto
 import com.example.backup.BackupDestination
 import com.example.backup.BackupEntry
 import com.example.backup.BackupOperationMode
@@ -76,9 +73,14 @@ import java.util.Locale
 private enum class BackupDialogStep {
     CHOOSE_DESTINATION,
     REQUEST_LOCAL_PERMISSION,
-    ENTER_BACKUP_PASSPHRASE,
     PICK_RESTORE_FILE,
-    ENTER_RESTORE_PASSPHRASE
+    CONFIRM_RESTORE
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 @Composable
@@ -86,28 +88,51 @@ fun BackupRestoreDialog(
     mode: BackupOperationMode,
     uiState: AnimeUiState,
     onDismiss: () -> Unit,
-    onLocalTreeGranted: (Uri?) -> Unit,
-    onCreateLocalBackup: (String) -> Unit,
+    onLocalTreeGranted: (Uri?, () -> Unit) -> Unit,
+    onCreateLocalBackup: () -> Unit,
     onLoadLocalBackups: () -> Unit,
-    onRestoreLocalBackup: (Uri, String) -> Unit,
-    onRequestDriveAccess: (onAuthorized: () -> Unit, onNeedsResolution: (IntentSender) -> Unit) -> Unit,
-    onDriveResolutionResult: (Int, android.content.Intent?, onAuthorized: () -> Unit, onNeedsResolution: (IntentSender) -> Unit) -> Unit,
-    onCreateDriveBackup: (String) -> Unit,
+    onRestoreLocalBackup: (Uri) -> Unit,
+    onRequestDriveAccess: (
+        context: Context,
+        onAuthorized: () -> Unit,
+        onNeedsResolution: (IntentSender) -> Unit,
+        onNeedsActivityResolution: (Intent) -> Unit
+    ) -> Unit,
+    onDriveResolutionResult: (
+        context: Context,
+        resultCode: Int,
+        data: Intent?,
+        onAuthorized: () -> Unit,
+        onNeedsResolution: (IntentSender) -> Unit,
+        onNeedsActivityResolution: (Intent) -> Unit
+    ) -> Unit,
+    onDriveActivityResult: (
+        context: Context,
+        resultCode: Int,
+        data: Intent?,
+        onAuthorized: () -> Unit,
+        onNeedsActivityResolution: (Intent) -> Unit
+    ) -> Unit,
+    onCreateDriveBackup: () -> Unit,
     onLoadDriveBackups: () -> Unit,
-    onRestoreDriveBackup: (String, String) -> Unit,
+    onRestoreDriveBackup: (String) -> Unit,
     onClearMessages: () -> Unit,
     onCompletedContinue: (() -> Unit)? = null
 ) {
     val s = LocalAppStrings.current
+    val context = LocalContext.current
+    val hostContext = remember(context) { context.findActivity() ?: context }
+
     var step by rememberSaveable(mode) { mutableStateOf(BackupDialogStep.CHOOSE_DESTINATION) }
     var selectedDestination by rememberSaveable(mode) { mutableStateOf<BackupDestination?>(null) }
     var selectedEntry by remember(mode) { mutableStateOf<BackupEntry?>(null) }
-    var passphrase by rememberSaveable(mode) { mutableStateOf("") }
-    var confirmPassphrase by rememberSaveable(mode) { mutableStateOf("") }
-    var showPassword by rememberSaveable(mode) { mutableStateOf(false) }
-    var localValidationError by remember(mode) { mutableStateOf<String?>(null) }
+
+    val currentOnCreateLocalBackup by rememberUpdatedState(onCreateLocalBackup)
+    val currentOnLoadLocalBackups by rememberUpdatedState(onLoadLocalBackups)
+    val currentOnCreateDriveBackup by rememberUpdatedState(onCreateDriveBackup)
     val currentOnLoadDriveBackups by rememberUpdatedState(onLoadDriveBackups)
     val currentOnDriveResolutionResult by rememberUpdatedState(onDriveResolutionResult)
+    val currentOnDriveActivityResult by rememberUpdatedState(onDriveActivityResult)
 
     LaunchedEffect(mode) {
         onClearMessages()
@@ -125,38 +150,68 @@ fun BackupRestoreDialog(
                 modifiedMillis = System.currentTimeMillis(),
                 source = BackupDestination.LOCAL
             )
-            localValidationError = null
             onClearMessages()
-            step = BackupDialogStep.ENTER_RESTORE_PASSPHRASE
+            step = BackupDialogStep.CONFIRM_RESTORE
         }
     }
 
     val localTreeLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { treeUri ->
-        onLocalTreeGranted(treeUri)
-        if (treeUri != null) {
+        if (treeUri == null) {
+            onLocalTreeGranted(null) {}
+        } else {
             selectedDestination = BackupDestination.LOCAL
-            if (mode == BackupOperationMode.BACKUP) {
-                step = BackupDialogStep.ENTER_BACKUP_PASSPHRASE
-            } else {
-                onLoadLocalBackups()
-                step = BackupDialogStep.PICK_RESTORE_FILE
+            onLocalTreeGranted(treeUri) {
+                if (mode == BackupOperationMode.BACKUP) {
+                    currentOnCreateLocalBackup()
+                } else {
+                    currentOnLoadLocalBackups()
+                    step = BackupDialogStep.PICK_RESTORE_FILE
+                }
             }
         }
     }
 
     lateinit var launchDriveResolution: (IntentSender) -> Unit
-    val driveResolutionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartIntentSenderForResult()
+    lateinit var launchDriveActivity: (Intent) -> Unit
+
+    val driveActivityLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
     ) { activityResult ->
-        currentOnDriveResolutionResult(
+        currentOnDriveActivityResult(
+            hostContext,
             activityResult.resultCode,
             activityResult.data,
             {
                 selectedDestination = BackupDestination.GOOGLE_DRIVE
                 if (mode == BackupOperationMode.BACKUP) {
-                    step = BackupDialogStep.ENTER_BACKUP_PASSPHRASE
+                    currentOnCreateDriveBackup()
+                } else {
+                    currentOnLoadDriveBackups()
+                    step = BackupDialogStep.PICK_RESTORE_FILE
+                }
+            },
+            { nextIntent ->
+                launchDriveActivity(nextIntent)
+            }
+        )
+    }
+    launchDriveActivity = { intent ->
+        driveActivityLauncher.launch(intent)
+    }
+
+    val driveResolutionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { activityResult ->
+        currentOnDriveResolutionResult(
+            hostContext,
+            activityResult.resultCode,
+            activityResult.data,
+            {
+                selectedDestination = BackupDestination.GOOGLE_DRIVE
+                if (mode == BackupOperationMode.BACKUP) {
+                    currentOnCreateDriveBackup()
                 } else {
                     currentOnLoadDriveBackups()
                     step = BackupDialogStep.PICK_RESTORE_FILE
@@ -164,6 +219,9 @@ fun BackupRestoreDialog(
             },
             { nextIntentSender ->
                 launchDriveResolution(nextIntentSender)
+            },
+            { nextIntent ->
+                launchDriveActivity(nextIntent)
             }
         )
     }
@@ -178,12 +236,10 @@ fun BackupRestoreDialog(
             if (mode == BackupOperationMode.BACKUP) s.backupChooseDestTitle else s.restoreChooseDestTitle
         step == BackupDialogStep.REQUEST_LOCAL_PERMISSION ->
             s.backupLocalPermTitle
-        step == BackupDialogStep.ENTER_BACKUP_PASSPHRASE ->
-            s.backupEncryptTitle
         step == BackupDialogStep.PICK_RESTORE_FILE ->
             s.restorePickFileTitle
         else ->
-            s.restoreDecryptTitle
+            s.restoreConfirmTitle
     }
 
     AlertDialog(
@@ -232,7 +288,7 @@ fun BackupRestoreDialog(
                         }
                     }
                 } else {
-                    val activeError = localValidationError ?: uiState.backupErrorMessage
+                    val activeError = uiState.backupErrorMessage
                     if (activeError != null) {
                         Surface(
                             color = MaterialTheme.colorScheme.errorContainer,
@@ -299,13 +355,12 @@ fun BackupRestoreDialog(
                                 enabled = !uiState.isBackupBusy,
                                 onClick = {
                                     onClearMessages()
-                                    localValidationError = null
                                     selectedDestination = BackupDestination.LOCAL
                                     if (uiState.hasLocalBackupFolder) {
                                         if (mode == BackupOperationMode.BACKUP) {
-                                            step = BackupDialogStep.ENTER_BACKUP_PASSPHRASE
+                                            currentOnCreateLocalBackup()
                                         } else {
-                                            onLoadLocalBackups()
+                                            currentOnLoadLocalBackups()
                                             step = BackupDialogStep.PICK_RESTORE_FILE
                                         }
                                     } else {
@@ -322,21 +377,22 @@ fun BackupRestoreDialog(
                                 enabled = !uiState.isBackupBusy,
                                 onClick = {
                                     onClearMessages()
-                                    localValidationError = null
                                     selectedDestination = BackupDestination.GOOGLE_DRIVE
                                     onRequestDriveAccess(
+                                        hostContext,
                                         {
                                             if (mode == BackupOperationMode.BACKUP) {
-                                                step = BackupDialogStep.ENTER_BACKUP_PASSPHRASE
+                                                currentOnCreateDriveBackup()
                                             } else {
-                                                onLoadDriveBackups()
+                                                currentOnLoadDriveBackups()
                                                 step = BackupDialogStep.PICK_RESTORE_FILE
                                             }
                                         },
                                         { intentSender ->
-                                            driveResolutionLauncher.launch(
-                                                IntentSenderRequest.Builder(intentSender).build()
-                                            )
+                                            launchDriveResolution(intentSender)
+                                        },
+                                        { intent ->
+                                            launchDriveActivity(intent)
                                         }
                                     )
                                 }
@@ -389,48 +445,6 @@ fun BackupRestoreDialog(
                             }
                         }
 
-                        BackupDialogStep.ENTER_BACKUP_PASSPHRASE -> {
-                            val targetLabel = if (selectedDestination == BackupDestination.GOOGLE_DRIVE) {
-                                s.backupTargetDrivePath
-                            } else {
-                                s.backupTargetLocalPath(LocalBackupStorage.BACKUP_FOLDER_NAME)
-                            }
-                            Text(
-                                text = s.backupEnterPassPrompt(targetLabel),
-                                fontSize = 12.5.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 17.sp
-                            )
-
-                            PassphraseTextField(
-                                value = passphrase,
-                                onValueChange = {
-                                    passphrase = it
-                                    localValidationError = null
-                                },
-                                label = s.backupPassLabel,
-                                showPassword = showPassword,
-                                onToggleVisibility = { showPassword = !showPassword },
-                                hideDesc = s.passHideDesc,
-                                showDesc = s.passShowDesc,
-                                testTag = "backup_password_input"
-                            )
-
-                            PassphraseTextField(
-                                value = confirmPassphrase,
-                                onValueChange = {
-                                    confirmPassphrase = it
-                                    localValidationError = null
-                                },
-                                label = s.backupConfirmPassLabel,
-                                showPassword = showPassword,
-                                onToggleVisibility = { showPassword = !showPassword },
-                                hideDesc = s.passHideDesc,
-                                showDesc = s.passShowDesc,
-                                testTag = "backup_confirm_password_input"
-                            )
-                        }
-
                         BackupDialogStep.PICK_RESTORE_FILE -> {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -451,9 +465,9 @@ fun BackupRestoreDialog(
                                 IconButton(
                                     onClick = {
                                         if (selectedDestination == BackupDestination.GOOGLE_DRIVE) {
-                                            onLoadDriveBackups()
+                                            currentOnLoadDriveBackups()
                                         } else {
-                                            onLoadLocalBackups()
+                                            currentOnLoadLocalBackups()
                                         }
                                     },
                                     enabled = !uiState.isBackupBusy
@@ -484,9 +498,8 @@ fun BackupRestoreDialog(
                                                 .fillMaxWidth()
                                                 .clickable(enabled = !uiState.isBackupBusy) {
                                                     selectedEntry = entry
-                                                    localValidationError = null
                                                     onClearMessages()
-                                                    step = BackupDialogStep.ENTER_RESTORE_PASSPHRASE
+                                                    step = BackupDialogStep.CONFIRM_RESTORE
                                                 }
                                         ) {
                                             Column(modifier = Modifier.padding(12.dp)) {
@@ -522,27 +535,13 @@ fun BackupRestoreDialog(
                             }
                         }
 
-                        BackupDialogStep.ENTER_RESTORE_PASSPHRASE -> {
+                        BackupDialogStep.CONFIRM_RESTORE -> {
                             val entry = selectedEntry
                             Text(
                                 text = s.restoreWarningBody(entry?.fileName ?: "respaldo.avb"),
-                                fontSize = 12.5.sp,
+                                fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 17.sp
-                            )
-
-                            PassphraseTextField(
-                                value = passphrase,
-                                onValueChange = {
-                                    passphrase = it
-                                    localValidationError = null
-                                },
-                                label = s.restorePassLabel,
-                                showPassword = showPassword,
-                                onToggleVisibility = { showPassword = !showPassword },
-                                hideDesc = s.passHideDesc,
-                                showDesc = s.passShowDesc,
-                                testTag = "restore_password_input"
+                                lineHeight = 18.sp
                             )
                         }
                     }
@@ -574,46 +573,15 @@ fun BackupRestoreDialog(
                     }
                 }
 
-                step == BackupDialogStep.ENTER_BACKUP_PASSPHRASE -> {
-                    Button(
-                        enabled = !uiState.isBackupBusy,
-                        onClick = {
-                            when {
-                                !BackupCrypto.isValidPassphrase(passphrase) -> {
-                                    localValidationError = s.backupErrorMinLength
-                                }
-                                passphrase.trim() != confirmPassphrase.trim() -> {
-                                    localValidationError = s.backupErrorMismatch
-                                }
-                                selectedDestination == BackupDestination.GOOGLE_DRIVE -> {
-                                    onCreateDriveBackup(passphrase)
-                                }
-                                else -> {
-                                    onCreateLocalBackup(passphrase)
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .heightIn(min = 48.dp)
-                            .testTag("backup_confirm_create_button")
-                    ) {
-                        Text(s.backupCreateActionBtn)
-                    }
-                }
-
-                step == BackupDialogStep.ENTER_RESTORE_PASSPHRASE -> {
+                step == BackupDialogStep.CONFIRM_RESTORE -> {
                     Button(
                         enabled = !uiState.isBackupBusy && selectedEntry != null,
                         onClick = {
                             val entry = selectedEntry ?: return@Button
-                            if (!BackupCrypto.isValidPassphrase(passphrase)) {
-                                localValidationError = s.backupErrorEnterPassRestore
-                                return@Button
-                            }
                             if (entry.source == BackupDestination.GOOGLE_DRIVE) {
-                                onRestoreDriveBackup(entry.id, passphrase)
+                                onRestoreDriveBackup(entry.id)
                             } else {
-                                onRestoreLocalBackup(Uri.parse(entry.id), passphrase)
+                                onRestoreLocalBackup(Uri.parse(entry.id))
                             }
                         },
                         modifier = Modifier
@@ -632,9 +600,8 @@ fun BackupRestoreDialog(
                         TextButton(
                             onClick = {
                                 onClearMessages()
-                                localValidationError = null
                                 step = when (step) {
-                                    BackupDialogStep.ENTER_RESTORE_PASSPHRASE -> {
+                                    BackupDialogStep.CONFIRM_RESTORE -> {
                                         if (uiState.availableBackups.isNotEmpty()) {
                                             BackupDialogStep.PICK_RESTORE_FILE
                                         } else {
@@ -700,38 +667,6 @@ private fun DestinationOptionCard(
             }
         }
     }
-}
-
-@Composable
-private fun PassphraseTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    showPassword: Boolean,
-    onToggleVisibility: () -> Unit,
-    hideDesc: String,
-    showDesc: String,
-    testTag: String
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, fontSize = 12.5.sp) },
-        singleLine = true,
-        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-        trailingIcon = {
-            IconButton(onClick = onToggleVisibility) {
-                Icon(
-                    imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                    contentDescription = if (showPassword) hideDesc else showDesc
-                )
-            }
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(testTag)
-    )
 }
 
 private fun formatEntryMeta(entry: BackupEntry, s: AppStrings): String {

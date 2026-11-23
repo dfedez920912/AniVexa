@@ -12,15 +12,19 @@ object StringsEs : AppStrings {
     override val splashSubtitle = "Calendario y seguimiento de anime"
     override val splashNewBadge = "NOVEDAD"
     override val splashBackupTitle = "Copias de respaldo cifradas (.avb)"
-    override val splashBackupDesc = "Protege tu Mi Lista, favoritos, episodios vistos y ajustes con cifrado AES-256 en tu dispositivo o en tu Google Drive."
+    override val splashBackupDesc = "Protege automáticamente tu Mi Lista, favoritos, episodios vistos y ajustes con cifrado AES-256 (.avb) en tu dispositivo o en tu Google Drive, sin contraseñas que recordar ni lectura externa."
     override val splashRestoreBtn = "Restaurar"
     override val splashContinueBtn = "Continuar"
     override val onboardingTitle = "Bienvenido a AniVexa"
     override val onboardingSubtitle = "Tu calendario de estrenos, seguimiento de episodios y biblioteca personal en un solo lugar."
     override val onboardingFeature1Title = "Estrenos y recordatorios en vivo"
-    override val onboardingFeature1Desc = "Consulta los horarios de emisión de la temporada en tu zona horaria o en hora de Japón (JST)."
-    override val onboardingFeature2Title = "Mi Lista y progreso sincronizado"
-    override val onboardingFeature2Desc = "Lleva la cuenta de tus episodios vistos, calificaciones y series pendientes sin perder nada."
+    override val onboardingFeature1Desc = "Consulta los horarios de emisión de la temporada en tu zona horaria o en hora de Japón (JST) con cuenta regresiva."
+    override val onboardingFeature2Title = "Mi Lista, seguimiento y búsqueda"
+    override val onboardingFeature2Desc = "Lleva la cuenta de tus episodios vistos, calificaciones y descubre series por género, estudio o temporada."
+    override val onboardingFeature3Title = "Multilenguaje completo y temas"
+    override val onboardingFeature3Desc = "Cambia al instante entre Español, English, Français o 日本語 en toda la app y sus sinopsis, con temas Dark, OLED y Liquid Glass."
+    override val onboardingSkipBtn = "Saltar"
+    override val onboardingNextBtn = "Siguiente"
     override val onboardingStartBtn = "Comenzar"
 
     override val offlineBadge = "Offline"
@@ -257,12 +261,11 @@ object StringsEs : AppStrings {
     override val backupChooseDestTitle = "Crear copia de respaldo"
     override val restoreChooseDestTitle = "Restaurar copia (.avb)"
     override val backupLocalPermTitle = "Permiso de almacenamiento"
-    override val backupEncryptTitle = "Cifrar archivo .avb"
     override val restorePickFileTitle = "Seleccionar copia .avb"
-    override val restoreDecryptTitle = "Descifrar y restaurar"
-    override val backupBusyCreating = "Cifrando y guardando respaldo (.avb)..."
-    override val backupBusyRestoring = "Leyendo y descifrando respaldo (.avb)..."
-    override val backupChooseDestPrompt = "Elige dónde guardar tus datos cifrados en formato .avb:"
+    override val restoreConfirmTitle = "Confirmar restauración"
+    override val backupBusyCreating = "Generando y cifrando respaldo (.avb)..."
+    override val backupBusyRestoring = "Descifrando y restaurando respaldo (.avb)..."
+    override val backupChooseDestPrompt = "Elige dónde guardar tus datos cifrados automáticamente en formato .avb:"
     override val restoreChooseDestPrompt = "Elige desde dónde deseas recuperar tu archivo cifrado .avb:"
     override val backupLocalTitle = "Almacenamiento Local"
     override val backupLocalSubtitle: (String) -> String = { folder -> "Carpeta $folder en tu dispositivo (.avb)" }
@@ -273,35 +276,21 @@ object StringsEs : AppStrings {
     }
     override val backupGrantFolderBtn = "Conceder permiso de carpeta"
     override val restorePickManualBtn = "Seleccionar archivo .avb manualmente"
-    override val backupTargetDrivePath = "Google Drive / AniVexa"
-    override val backupTargetLocalPath: (String) -> String = { folder -> "Dispositivo / $folder" }
-    override val backupEnterPassPrompt: (String) -> String = { target ->
-        "Destino: $target\nCrea una contraseña para cifrar el archivo .avb (AES-256). La necesitarás al restaurar."
-    }
-    override val backupPassLabel = "Contraseña de cifrado (mín. 4 caracteres)"
-    override val backupConfirmPassLabel = "Confirmar contraseña"
     override val restoreFolderHintDrive = "Carpeta AniVexa en Drive"
     override val restoreFolderHintLocal: (String) -> String = { folder -> "Carpeta $folder" }
     override val restoreRefreshListDesc = "Actualizar lista"
     override val restoreNoFilesFound = "No se encontraron archivos .avb en esa carpeta todavía."
     override val restoreBrowseOtherBtn = "Buscar archivo .avb manualmente"
     override val restoreWarningBody: (String) -> String = { name ->
-        "Archivo: $name\nAl restaurar se reemplazarán tus listas, favoritos, episodios vistos y ajustes actuales con los de este respaldo."
+        "Archivo: $name\nAl restaurar se reemplazarán tus listas, favoritos, episodios vistos y ajustes actuales con los de este respaldo cifrado .avb."
     }
-    override val restorePassLabel = "Contraseña del archivo .avb"
     override val backupEnterAppBtn = "Entrar a AniVexa"
     override val backupDoneBtn = "Listo"
-    override val backupCreateActionBtn = "Crear copia .avb"
     override val restoreActionBtn = "Restaurar ahora"
     override val dialogBackBtn = "Atrás"
     override val dialogCloseBtn = "Cerrar"
-    override val passHideDesc = "Ocultar contraseña"
-    override val passShowDesc = "Mostrar contraseña"
     override val backupMetaFallback = "Archivo .avb"
     override val backupMetaEncrypted = "Cifrado AES-256"
-    override val backupErrorMinLength = "La contraseña debe tener al menos 4 caracteres."
-    override val backupErrorMismatch = "Las contraseñas no coinciden."
-    override val backupErrorEnterPassRestore = "Introduce la contraseña de tu archivo .avb."
 
     override val vmSecurityWarningNotifyRoot = "Aviso: dispositivo con acceso root detectado. Los datos locales pueden quedar expuestos a otras apps con privilegios."
     override val vmSecurityCleanNotify: (String) -> String = { status -> "Verificación de seguridad completada: entorno sin root ($status)." }
@@ -336,6 +325,7 @@ object StringsEs : AppStrings {
     override val vmDriveAuthRequired = "Autoriza primero el acceso a tu Google Drive."
     override val vmDriveAuthCancelled = "Autorización de Google Drive cancelada por el usuario."
     override val vmDriveAuthDevError = "Error de configuración de Google OAuth (código 10). Verifica que el SHA-1 de la firma de la app y el paquete com.aistudio.anical.sched estén registrados en Google Cloud."
+    override val vmDriveAuthCode8Error = "Error interno de Google Play Services (código 8) al autorizar Google Drive. Asegúrate de tener cuenta Google activa, la API de Google Drive habilitada y el cliente OAuth Android (com.aistudio.anical.sched + SHA-1) configurado en Google Cloud."
     override val vmDriveAuthCodeError: (Int) -> String = { code -> "Error al autorizar Google Drive (código $code). Verifica tus Servicios de Google Play y conexión." }
     override val vmDriveBackupSuccess: (String, String, Int, Int) -> String = { folder, fileName, watchlistCount, favCount ->
         "Copia cifrada subida a tu Google Drive ($folder/$fileName): $watchlistCount en lista, $favCount favoritos."

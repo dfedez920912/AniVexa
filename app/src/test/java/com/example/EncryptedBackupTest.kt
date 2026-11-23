@@ -83,21 +83,23 @@ class EncryptedBackupTest {
     }
 
     @Test
-    fun `BackupCrypto encrypts into AVB1 envelope and rejects wrong password or tampered data`() {
+    fun `BackupCrypto encrypts into AVB2 envelope without password and rejects tampered or legacy data`() {
         val secretPayload = """{"appName":"AniVexa","test":123}""".toByteArray()
-        val encryptedA = BackupCrypto.encrypt(secretPayload, "MiClaveSegura99")
-        val encryptedB = BackupCrypto.encrypt(secretPayload, "MiClaveSegura99")
+        val encryptedA = BackupCrypto.encrypt(secretPayload)
+        val encryptedB = BackupCrypto.encrypt(secretPayload)
 
-        assertTrue("Encrypted payload should start with AVB1 header", BackupCrypto.hasAvbMagicHeader(encryptedA))
+        assertTrue("Encrypted payload should start with AVB2 header", BackupCrypto.hasAvbMagicHeader(encryptedA))
         assertFalse("Ciphertext must not expose raw JSON", String(encryptedA).contains("AniVexa"))
         assertFalse("Each encryption must use a fresh random salt & IV", encryptedA.contentEquals(encryptedB))
 
-        val decrypted = BackupCrypto.decrypt(encryptedA, "MiClaveSegura99")
+        val decrypted = BackupCrypto.decrypt(encryptedA)
         assertArrayEquals(secretPayload, decrypted)
 
+        // Legacy AVB1 envelope should be cleanly rejected with a clear message
+        val legacyAvb1 = byteArrayOf(0x41, 0x56, 0x42, 0x31, 0x01) + ByteArray(64)
         try {
-            BackupCrypto.decrypt(encryptedA, "ClaveIncorrecta")
-            fail("Expected BackupCryptoException for wrong password")
+            BackupCrypto.decrypt(legacyAvb1)
+            fail("Expected BackupCryptoException for legacy AVB1 payload")
         } catch (_: BackupCryptoException) {
             // Expected
         }
@@ -105,7 +107,7 @@ class EncryptedBackupTest {
         val tampered = encryptedA.copyOf()
         tampered[tampered.lastIndex] = ((tampered[tampered.lastIndex].toInt() + 1) and 0xFF).toByte()
         try {
-            BackupCrypto.decrypt(tampered, "MiClaveSegura99")
+            BackupCrypto.decrypt(tampered)
             fail("Expected BackupCryptoException for tampered ciphertext")
         } catch (_: BackupCryptoException) {
             // Expected
@@ -188,7 +190,7 @@ class EncryptedBackupTest {
         assertTrue(fileName.startsWith("anivexa_backup_"))
         assertTrue(fileName.endsWith(".avb"))
 
-        val (encryptedBytes, exportStats) = manager.exportEncryptedBackup("AniVexa2026!")
+        val (encryptedBytes, exportStats) = manager.exportEncryptedBackup()
         assertTrue(BackupCrypto.hasAvbMagicHeader(encryptedBytes))
         assertEquals(1, exportStats.favoritesCount)
         assertEquals(1, exportStats.watchlistCount)
@@ -205,7 +207,7 @@ class EncryptedBackupTest {
         assertTrue(db.favoriteAnimeDao().getAllFavoritesList().isEmpty())
         assertTrue(db.watchlistDao().getAllWatchlistList().isEmpty())
 
-        val restoredStats = manager.restoreFromEncryptedBytes(encryptedBytes, "AniVexa2026!")
+        val restoredStats = manager.restoreFromEncryptedBytes(encryptedBytes)
         assertEquals(1, restoredStats.favoritesCount)
         assertEquals(1, restoredStats.watchlistCount)
         assertEquals(2, restoredStats.watchedEpisodesCount)
@@ -231,7 +233,7 @@ class EncryptedBackupTest {
     fun `GoogleDriveBackupClient creates AniVexa folder uploads lists and downloads avb files`() = runBlocking {
         var folderCreated = false
         var uploadedBytes = ByteArray(0)
-        val mockFileContent = BackupCrypto.encrypt("""{"appName":"AniVexa"}""".toByteArray(), "TestPass")
+        val mockFileContent = BackupCrypto.encrypt("""{"appName":"AniVexa"}""".toByteArray())
 
         val mockHttp = OkHttpClient.Builder()
             .addInterceptor { chain ->
@@ -302,7 +304,7 @@ class EncryptedBackupTest {
     }
 
     @Test
-    fun `SplashScreen stays clean like main and auto advances while OnboardingScreen offers Restore`() {
+    fun `SplashScreen stays clean like main while OnboardingScreen shows multi-page carousel and passwordless Restore`() {
         var splashFinished by mutableStateOf(false)
         var onboardingFinished by mutableStateOf(false)
 
@@ -324,21 +326,40 @@ class EncryptedBackupTest {
         composeRule.waitForIdle()
         assertTrue(splashFinished)
 
+        // Page 0: First feature slide + Skip & Next controls
         composeRule.onNodeWithTag("onboarding_screen_root").assertIsDisplayed()
+        composeRule.onNodeWithTag("onboarding_slide_0").assertIsDisplayed()
+        composeRule.onNodeWithTag("onboarding_skip_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("onboarding_next_button").assertIsDisplayed()
+
+        // Advance through slides 1 and 2 to slide 3 (Backup & Restore)
+        composeRule.onNodeWithTag("onboarding_next_button").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("onboarding_slide_1").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("onboarding_next_button").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("onboarding_slide_2").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("onboarding_next_button").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("onboarding_slide_3").assertIsDisplayed()
         composeRule.onNodeWithTag("onboarding_backup_card").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("onboarding_restore_backup_button").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithTag("onboarding_continue_button").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("onboarding_continue_button").assertIsDisplayed()
 
         composeRule.onNodeWithTag("onboarding_restore_backup_button").performScrollTo().performClick()
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("backup_dest_local").assertIsDisplayed()
         composeRule.onNodeWithTag("backup_dest_drive").assertIsDisplayed()
+        assertEquals(0, composeRule.onAllNodes(hasTestTag("backup_password_input")).fetchSemanticsNodes().size)
+        assertEquals(0, composeRule.onAllNodes(hasTestTag("restore_password_input")).fetchSemanticsNodes().size)
 
         composeRule.onNodeWithText("Cerrar").performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag("onboarding_continue_button").performScrollTo().performClick()
+        composeRule.onNodeWithTag("onboarding_continue_button").performClick()
         composeRule.waitForIdle()
         assertTrue(onboardingFinished)
     }

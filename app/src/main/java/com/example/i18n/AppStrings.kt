@@ -39,6 +39,10 @@ interface AppStrings {
     val onboardingFeature1Desc: String
     val onboardingFeature2Title: String
     val onboardingFeature2Desc: String
+    val onboardingFeature3Title: String
+    val onboardingFeature3Desc: String
+    val onboardingSkipBtn: String
+    val onboardingNextBtn: String
     val onboardingStartBtn: String
 
     // Home & Catalog
@@ -282,9 +286,8 @@ interface AppStrings {
     val backupChooseDestTitle: String
     val restoreChooseDestTitle: String
     val backupLocalPermTitle: String
-    val backupEncryptTitle: String
     val restorePickFileTitle: String
-    val restoreDecryptTitle: String
+    val restoreConfirmTitle: String
     val backupBusyCreating: String
     val backupBusyRestoring: String
     val backupChooseDestPrompt: String
@@ -296,31 +299,19 @@ interface AppStrings {
     val backupLocalPermBody: (String) -> String
     val backupGrantFolderBtn: String
     val restorePickManualBtn: String
-    val backupTargetDrivePath: String
-    val backupTargetLocalPath: (String) -> String
-    val backupEnterPassPrompt: (String) -> String
-    val backupPassLabel: String
-    val backupConfirmPassLabel: String
     val restoreFolderHintDrive: String
     val restoreFolderHintLocal: (String) -> String
     val restoreRefreshListDesc: String
     val restoreNoFilesFound: String
     val restoreBrowseOtherBtn: String
     val restoreWarningBody: (String) -> String
-    val restorePassLabel: String
     val backupEnterAppBtn: String
     val backupDoneBtn: String
-    val backupCreateActionBtn: String
     val restoreActionBtn: String
     val dialogBackBtn: String
     val dialogCloseBtn: String
-    val passHideDesc: String
-    val passShowDesc: String
     val backupMetaFallback: String
     val backupMetaEncrypted: String
-    val backupErrorMinLength: String
-    val backupErrorMismatch: String
-    val backupErrorEnterPassRestore: String
 
     // ViewModel Messages
     val vmSecurityWarningNotifyRoot: String
@@ -352,6 +343,7 @@ interface AppStrings {
     val vmDriveAuthRequired: String
     val vmDriveAuthCancelled: String
     val vmDriveAuthDevError: String
+    val vmDriveAuthCode8Error: String
     val vmDriveAuthCodeError: (Int) -> String
     val vmDriveBackupSuccess: (String, String, Int, Int) -> String
     val vmDriveBackupToast: String

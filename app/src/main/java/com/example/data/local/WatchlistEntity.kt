@@ -50,7 +50,7 @@ data class WatchlistEntity(
             coverImageUrl = coverImageUrl,
             bannerImageUrl = bannerImageUrl,
             synopsis = synopsis,
-            synopsisEs = synopsis,
+            synopsisEs = "",
             synopsisEn = "",
             episode = watchedEpisodes.coerceAtLeast(1),
             totalEpisodes = totalEpisodes,

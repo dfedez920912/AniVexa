@@ -8,7 +8,6 @@ import android.content.IntentSender
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.backup.BackupCrypto
 import com.example.backup.BackupEntry
 import com.example.backup.BackupManager
 import com.example.backup.DriveAuthResult
@@ -37,13 +36,19 @@ import com.example.notifications.AnimeNotificationHelper
 import com.example.security.DeviceSecurityManager
 import com.example.security.DeviceSecurityReport
 import com.example.widget.WidgetDataHelper
+import com.google.android.gms.common.api.CommonStatusCodes
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -51,6 +56,7 @@ import java.time.ZoneId
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 enum class MainNavScreen(val title: String) {
     HOME("Inicio"),
@@ -192,6 +198,9 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     private var searchJob: Job? = null
     private var detailJob: Job? = null
     private var seeAllSeasonJob: Job? = null
+    private var cardTranslationJob: Job? = null
+    private val cardTranslationCache = ConcurrentHashMap<String, String>()
+    private val translationSemaphore = Semaphore(4)
     private val detailBackStack = mutableListOf<AnimeRelease>()
 
     init {
@@ -342,6 +351,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             )
             recomputeDerivedLists(updated)
         }
+        scheduleCardTranslations(_uiState.value.globalLanguage)
     }
 
     fun selectSeeAllSeason(season: MediaSeason, year: Int) {
@@ -368,6 +378,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 )
                 recomputeDerivedLists(updated)
             }
+            scheduleCardTranslations(_uiState.value.globalLanguage)
         }
     }
 
@@ -403,6 +414,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 recomputeDerivedLists(updated)
             }
             scheduleRemindersForFavorites(releases, _uiState.value.favoriteIds)
+            scheduleCardTranslations(_uiState.value.globalLanguage)
         }.onFailure { err ->
             _uiState.update { it.copy(errorMessage = err.message) }
         }
@@ -425,6 +437,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.update { s ->
                 recomputeDerivedLists(s.copy(todayReleases = todayOnly))
             }
+            scheduleCardTranslations(_uiState.value.globalLanguage)
         }
     }
 
@@ -487,6 +500,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                     val updated = state.copy(monthReleases = list)
                     recomputeDerivedLists(updated)
                 }
+                scheduleCardTranslations(_uiState.value.globalLanguage)
             }
         }
     }
@@ -630,6 +644,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 )
                 recomputeDerivedLists(updated)
             }
+            scheduleCardTranslations(_uiState.value.globalLanguage)
         }
     }
 
@@ -651,13 +666,18 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun needsTranslation(anime: AnimeRelease, lang: SynopsisLanguage): Boolean {
-        if (anime.synopsisEn.isBlank()) return false
+        val source = anime.synopsisEn.ifBlank { anime.synopsis.ifBlank { anime.synopsisEs } }
+        if (source.isBlank()) return false
         return when (lang) {
-            SynopsisLanguage.ENGLISH -> false
+            SynopsisLanguage.ENGLISH -> anime.synopsisEn.isBlank()
             SynopsisLanguage.SPANISH -> anime.synopsisEs.isBlank()
             SynopsisLanguage.FRENCH -> anime.synopsisFr.isBlank()
             SynopsisLanguage.JAPANESE -> anime.synopsisJa.isBlank()
         }
+    }
+
+    private fun translationSourceText(anime: AnimeRelease): String {
+        return anime.synopsisEn.ifBlank { anime.synopsis.ifBlank { anime.synopsisEs } }
     }
 
     private fun loadDetailFor(anime: AnimeRelease) {
@@ -674,7 +694,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
         if (needsTranslation(decorated, preferredLang)) {
-            translateDetailSynopsisInBackground(decorated.id, decorated.synopsisEn, preferredLang)
+            translateDetailSynopsisInBackground(decorated.id, translationSourceText(decorated), preferredLang)
         }
         detailJob = viewModelScope.launch {
             val bundle = repository.getAnimeDetailBundle(anime.id)
@@ -702,7 +722,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
                 if (needsTranslation(mergedAnime, activeLang)) {
-                    translateDetailSynopsisInBackground(mergedAnime.id, mergedAnime.synopsisEn, activeLang)
+                    translateDetailSynopsisInBackground(mergedAnime.id, translationSourceText(mergedAnime), activeLang)
                 }
             } else {
                 _uiState.update { it.copy(isLoadingDetail = false) }
@@ -712,9 +732,10 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun translateDetailSynopsisInBackground(
         animeId: Int,
-        englishSynopsis: String,
+        sourceSynopsis: String,
         targetLang: SynopsisLanguage
     ) {
+        if (sourceSynopsis.isBlank()) return
         viewModelScope.launch {
             _uiState.update { state ->
                 val current = state.selectedAnimeForDetail
@@ -722,18 +743,24 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                     state.copy(selectedAnimeForDetail = current.copy(isTranslating = true))
                 } else state
             }
-            val translated = repository.translateSynopsis(englishSynopsis, targetLang)
+            val translated = repository.translateSynopsis(sourceSynopsis, targetLang)
+            if (translated.isNotBlank()) {
+                cardTranslationCache["${animeId}_${targetLang.code}"] = translated
+            }
             _uiState.update { state ->
                 val latest = state.selectedAnimeForDetail
+                val refreshed = recomputeDerivedLists(state)
                 if (latest?.id == animeId) {
                     val updatedDetail = when (targetLang) {
                         SynopsisLanguage.SPANISH -> latest.copy(synopsisEs = translated, activeLanguage = targetLang, isTranslating = false)
                         SynopsisLanguage.FRENCH -> latest.copy(synopsisFr = translated, activeLanguage = targetLang, isTranslating = false)
                         SynopsisLanguage.JAPANESE -> latest.copy(synopsisJa = translated, activeLanguage = targetLang, isTranslating = false)
-                        SynopsisLanguage.ENGLISH -> latest.copy(activeLanguage = targetLang, isTranslating = false)
+                        SynopsisLanguage.ENGLISH -> latest.copy(synopsisEn = translated, activeLanguage = targetLang, isTranslating = false)
                     }
-                    state.copy(selectedAnimeForDetail = updatedDetail)
-                } else state
+                    refreshed.copy(selectedAnimeForDetail = updatedDetail)
+                } else {
+                    refreshed
+                }
             }
         }
     }
@@ -913,7 +940,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         if (currentDetail.id != animeId) return
 
         if (needsTranslation(currentDetail, language)) {
-            translateDetailSynopsisInBackground(animeId, currentDetail.synopsisEn, language)
+            translateDetailSynopsisInBackground(animeId, translationSourceText(currentDetail), language)
         } else {
             _uiState.update {
                 it.copy(selectedAnimeForDetail = currentDetail.copy(activeLanguage = language))
@@ -958,11 +985,58 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     fun setGlobalLanguage(lang: SynopsisLanguage) {
         prefs.edit().putString("synopsis_lang", lang.code).apply()
         _uiState.update { state ->
-            recomputeDerivedLists(state.copy(globalLanguage = lang))
+            recomputeDerivedLists(state.copy(globalLanguage = lang), forceGlobalLanguageOnDetail = true)
         }
         WidgetDataHelper.notifyAllWidgets(getApplication())
         _uiState.value.selectedAnimeForDetail?.let { detail ->
             setAnimeSynopsisLanguage(detail.id, lang)
+        }
+        scheduleCardTranslations(lang)
+    }
+
+    private fun scheduleCardTranslations(targetLang: SynopsisLanguage) {
+        cardTranslationJob?.cancel()
+        val state = _uiState.value
+        val prioritized = (
+            state.seasonalAnime.take(15) +
+                state.popularAnime.take(15) +
+                state.todayReleases +
+                state.filteredDayReleases +
+                state.searchResults.take(20) +
+                state.seeAllSeasonAnime.take(20) +
+                state.monthReleases.take(20)
+            ).distinctBy { it.id }
+
+        val pending = prioritized.filter { item ->
+            val decorated = decorateItem(item, state)
+            needsTranslation(decorated, targetLang) &&
+                !cardTranslationCache.containsKey("${decorated.id}_${targetLang.code}")
+        }
+        if (pending.isEmpty()) return
+
+        cardTranslationJob = viewModelScope.launch {
+            pending.chunked(8).forEach { batch ->
+                if (_uiState.value.globalLanguage != targetLang) return@launch
+                coroutineScope {
+                    batch.map { anime ->
+                        async {
+                            val decorated = decorateItem(anime, _uiState.value)
+                            val source = translationSourceText(decorated)
+                            if (source.isBlank()) return@async
+                            val translated = translationSemaphore.withPermit {
+                                runCatching { repository.translateSynopsis(source, targetLang) }
+                                    .getOrNull()
+                            }
+                            if (!translated.isNullOrBlank()) {
+                                cardTranslationCache["${anime.id}_${targetLang.code}"] = translated
+                            }
+                        }
+                    }.awaitAll()
+                }
+                if (_uiState.value.globalLanguage == targetLang) {
+                    _uiState.update { latest -> recomputeDerivedLists(latest) }
+                }
+            }
         }
     }
 
@@ -998,7 +1072,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(hasLocalBackupFolder = hasAccess) }
     }
 
-    fun onLocalBackupTreeGranted(treeUri: Uri?) {
+    fun onLocalBackupTreeGranted(treeUri: Uri?, onReady: () -> Unit = {}) {
         if (treeUri == null) {
             _uiState.update {
                 it.copy(backupErrorMessage = strings().vmLocalPermCancelled)
@@ -1017,6 +1091,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                         backupErrorMessage = null
                     )
                 }
+                onReady()
             }.onFailure { err ->
                 _uiState.update {
                     it.copy(
@@ -1028,7 +1103,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun createLocalBackup(passphrase: String, onSuccess: (String) -> Unit = {}) {
+    fun createLocalBackup(onSuccess: (String) -> Unit = {}) {
         val ctx = getApplication<Application>().applicationContext
         val treeUri = LocalBackupStorage.getSavedTreeUri(ctx)
         if (treeUri == null) {
@@ -1040,18 +1115,12 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             }
             return
         }
-        if (!BackupCrypto.isValidPassphrase(passphrase)) {
-            _uiState.update {
-                it.copy(backupErrorMessage = strings().backupErrorMinLength)
-            }
-            return
-        }
         viewModelScope.launch {
             _uiState.update {
                 it.copy(isBackupBusy = true, backupErrorMessage = null, backupStatusMessage = null)
             }
             runCatching {
-                val (encryptedBytes, stats) = backupManager.exportEncryptedBackup(passphrase)
+                val (encryptedBytes, stats) = backupManager.exportEncryptedBackup()
                 val fileName = backupManager.generateBackupFileName()
                 val entry = LocalBackupStorage.writeBackup(ctx, treeUri, fileName, encryptedBytes)
                 entry to stats
@@ -1115,13 +1184,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun restoreLocalBackup(documentUri: Uri, passphrase: String, onSuccess: (String) -> Unit = {}) {
-        if (!BackupCrypto.isValidPassphrase(passphrase)) {
-            _uiState.update {
-                it.copy(backupErrorMessage = strings().backupErrorEnterPassRestore)
-            }
-            return
-        }
+    fun restoreLocalBackup(documentUri: Uri, onSuccess: (String) -> Unit = {}) {
         val ctx = getApplication<Application>().applicationContext
         viewModelScope.launch {
             _uiState.update {
@@ -1129,7 +1192,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             }
             runCatching {
                 val bytes = LocalBackupStorage.readBytes(ctx, documentUri)
-                backupManager.restoreFromEncryptedBytes(bytes, passphrase)
+                backupManager.restoreFromEncryptedBytes(bytes)
             }.onSuccess { stats ->
                 reloadPreferencesAfterRestore()
                 val s = strings()
@@ -1159,20 +1222,21 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun requestDriveAccess(
+        hostContext: Context,
         onAuthorized: () -> Unit,
-        onNeedsResolution: (IntentSender) -> Unit
+        onNeedsResolution: (IntentSender) -> Unit,
+        onNeedsActivityResolution: (Intent) -> Unit = {}
     ) {
         val existingToken = transientDriveToken
         if (!existingToken.isNullOrBlank()) {
             onAuthorized()
             return
         }
-        val ctx = getApplication<Application>().applicationContext
         viewModelScope.launch {
             _uiState.update {
                 it.copy(isBackupBusy = true, backupErrorMessage = null, backupStatusMessage = null)
             }
-            when (val auth = driveBackupClient.authorizeDriveAccess(ctx)) {
+            when (val auth = driveBackupClient.authorizeDriveAccess(hostContext)) {
                 is DriveAuthResult.Authorized -> {
                     transientDriveToken = auth.accessToken
                     _uiState.update { it.copy(isBackupBusy = false) }
@@ -1181,6 +1245,10 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 is DriveAuthResult.NeedsResolution -> {
                     _uiState.update { it.copy(isBackupBusy = false) }
                     onNeedsResolution(auth.intentSender)
+                }
+                is DriveAuthResult.NeedsActivityResolution -> {
+                    _uiState.update { it.copy(isBackupBusy = false) }
+                    onNeedsActivityResolution(auth.intent)
                 }
                 is DriveAuthResult.Error -> {
                     val localizedMsg = formatDriveAuthErrorMessage(auth.statusCode, auth.message)
@@ -1193,13 +1261,14 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onDriveResolutionResult(
+        hostContext: Context,
         resultCode: Int,
         data: Intent?,
         onAuthorized: () -> Unit,
-        onNeedsResolution: (IntentSender) -> Unit = {}
+        onNeedsResolution: (IntentSender) -> Unit = {},
+        onNeedsActivityResolution: (Intent) -> Unit = {}
     ) {
-        val ctx = getApplication<Application>().applicationContext
-        when (val outcome = driveBackupClient.extractAuthorizationOutcome(ctx, resultCode, data)) {
+        when (val outcome = driveBackupClient.extractAuthorizationOutcome(hostContext, resultCode, data)) {
             is DriveResolutionOutcome.Authorized -> {
                 transientDriveToken = outcome.accessToken
                 _uiState.update { it.copy(isBackupBusy = false, backupErrorMessage = null) }
@@ -1208,6 +1277,10 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             is DriveResolutionOutcome.NeedsResolution -> {
                 _uiState.update { it.copy(isBackupBusy = false, backupErrorMessage = null) }
                 onNeedsResolution(outcome.intentSender)
+            }
+            is DriveResolutionOutcome.NeedsActivityResolution -> {
+                _uiState.update { it.copy(isBackupBusy = false, backupErrorMessage = null) }
+                onNeedsActivityResolution(outcome.intent)
             }
             is DriveResolutionOutcome.Cancelled -> {
                 _uiState.update {
@@ -1218,12 +1291,42 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             is DriveResolutionOutcome.Error -> {
-                if (resultCode == Activity.RESULT_OK && outcome.statusCode == null) {
-                    // Some Play Services versions grant scope without embedding the token inside the result intent;
-                    // performing one silent authorize() check fetches the newly minted token cleanly.
+                if (outcome.statusCode == CommonStatusCodes.INTERNAL_ERROR) {
+                    // Play Services GIS threw INTERNAL_ERROR (code 8) after consent UI;
+                    // recover automatically using GoogleSignIn + GoogleAuthUtil.
                     viewModelScope.launch {
                         _uiState.update { it.copy(isBackupBusy = true, backupErrorMessage = null) }
-                        when (val retry = driveBackupClient.authorizeDriveAccess(ctx)) {
+                        when (val fallback = driveBackupClient.authorizeViaLegacySignIn(hostContext)) {
+                            is DriveAuthResult.Authorized -> {
+                                transientDriveToken = fallback.accessToken
+                                _uiState.update { it.copy(isBackupBusy = false, backupErrorMessage = null) }
+                                onAuthorized()
+                            }
+                            is DriveAuthResult.NeedsActivityResolution -> {
+                                _uiState.update { it.copy(isBackupBusy = false) }
+                                onNeedsActivityResolution(fallback.intent)
+                            }
+                            is DriveAuthResult.NeedsResolution -> {
+                                _uiState.update { it.copy(isBackupBusy = false) }
+                                onNeedsResolution(fallback.intentSender)
+                            }
+                            is DriveAuthResult.Error -> {
+                                _uiState.update {
+                                    it.copy(
+                                        isBackupBusy = false,
+                                        backupErrorMessage = formatDriveAuthErrorMessage(
+                                            fallback.statusCode ?: CommonStatusCodes.INTERNAL_ERROR,
+                                            fallback.message
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else if (resultCode == Activity.RESULT_OK && outcome.statusCode == null) {
+                    viewModelScope.launch {
+                        _uiState.update { it.copy(isBackupBusy = true, backupErrorMessage = null) }
+                        when (val retry = driveBackupClient.authorizeDriveAccess(hostContext)) {
                             is DriveAuthResult.Authorized -> {
                                 transientDriveToken = retry.accessToken
                                 _uiState.update { it.copy(isBackupBusy = false, backupErrorMessage = null) }
@@ -1232,6 +1335,10 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                             is DriveAuthResult.NeedsResolution -> {
                                 _uiState.update { it.copy(isBackupBusy = false) }
                                 onNeedsResolution(retry.intentSender)
+                            }
+                            is DriveAuthResult.NeedsActivityResolution -> {
+                                _uiState.update { it.copy(isBackupBusy = false) }
+                                onNeedsActivityResolution(retry.intent)
                             }
                             is DriveAuthResult.Error -> {
                                 _uiState.update {
@@ -1255,9 +1362,57 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun onDriveActivityResult(
+        hostContext: Context,
+        resultCode: Int,
+        data: Intent?,
+        onAuthorized: () -> Unit,
+        onNeedsActivityResolution: (Intent) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBackupBusy = true, backupErrorMessage = null) }
+            when (val outcome = driveBackupClient.extractLegacySignInOutcome(hostContext, resultCode, data)) {
+                is DriveResolutionOutcome.Authorized -> {
+                    transientDriveToken = outcome.accessToken
+                    _uiState.update { it.copy(isBackupBusy = false, backupErrorMessage = null) }
+                    onAuthorized()
+                }
+                is DriveResolutionOutcome.NeedsActivityResolution -> {
+                    _uiState.update { it.copy(isBackupBusy = false, backupErrorMessage = null) }
+                    onNeedsActivityResolution(outcome.intent)
+                }
+                is DriveResolutionOutcome.Cancelled -> {
+                    _uiState.update {
+                        it.copy(
+                            isBackupBusy = false,
+                            backupErrorMessage = strings().vmDriveAuthCancelled
+                        )
+                    }
+                }
+                is DriveResolutionOutcome.NeedsResolution -> {
+                    _uiState.update {
+                        it.copy(
+                            isBackupBusy = false,
+                            backupErrorMessage = strings().vmDriveAuthRequired
+                        )
+                    }
+                }
+                is DriveResolutionOutcome.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isBackupBusy = false,
+                            backupErrorMessage = formatDriveAuthErrorMessage(outcome.statusCode, outcome.detail)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     private fun formatDriveAuthErrorMessage(statusCode: Int?, fallback: String?): String {
         val s = strings()
         return when (statusCode) {
+            CommonStatusCodes.INTERNAL_ERROR -> s.vmDriveAuthCode8Error
             10 -> s.vmDriveAuthDevError
             16, 12501 -> s.vmDriveAuthCancelled
             null -> fallback?.takeIf { it.isNotBlank() } ?: s.vmDriveAuthRequired
@@ -1265,17 +1420,11 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun createDriveBackup(passphrase: String, onSuccess: (String) -> Unit = {}) {
+    fun createDriveBackup(onSuccess: (String) -> Unit = {}) {
         val token = transientDriveToken
         if (token.isNullOrBlank()) {
             _uiState.update {
                 it.copy(backupErrorMessage = strings().vmDriveAuthRequired)
-            }
-            return
-        }
-        if (!BackupCrypto.isValidPassphrase(passphrase)) {
-            _uiState.update {
-                it.copy(backupErrorMessage = strings().backupErrorMinLength)
             }
             return
         }
@@ -1284,7 +1433,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                 it.copy(isBackupBusy = true, backupErrorMessage = null, backupStatusMessage = null)
             }
             runCatching {
-                val (encryptedBytes, stats) = backupManager.exportEncryptedBackup(passphrase)
+                val (encryptedBytes, stats) = backupManager.exportEncryptedBackup()
                 val fileName = backupManager.generateBackupFileName()
                 val entry = driveBackupClient.uploadEncryptedBackup(token, fileName, encryptedBytes)
                 entry to stats
@@ -1348,17 +1497,11 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun restoreDriveBackup(fileId: String, passphrase: String, onSuccess: (String) -> Unit = {}) {
+    fun restoreDriveBackup(fileId: String, onSuccess: (String) -> Unit = {}) {
         val token = transientDriveToken
         if (token.isNullOrBlank()) {
             _uiState.update {
                 it.copy(backupErrorMessage = strings().vmDriveAuthRequired)
-            }
-            return
-        }
-        if (!BackupCrypto.isValidPassphrase(passphrase)) {
-            _uiState.update {
-                it.copy(backupErrorMessage = strings().backupErrorEnterPassRestore)
             }
             return
         }
@@ -1368,7 +1511,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             }
             runCatching {
                 val bytes = driveBackupClient.downloadBackupBytes(token, fileId)
-                backupManager.restoreFromEncryptedBytes(bytes, passphrase)
+                backupManager.restoreFromEncryptedBytes(bytes)
             }.onSuccess { stats ->
                 reloadPreferencesAfterRestore()
                 val s = strings()
@@ -1410,9 +1553,11 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                     defaultReminderMinutes = prefs.getInt("default_reminder_min", 15),
                     quietHoursEnabled = prefs.getBoolean("quiet_hours", false),
                     globalLanguage = restoredLang
-                )
+                ),
+                forceGlobalLanguageOnDetail = true
             )
         }
+        scheduleCardTranslations(restoredLang)
         WidgetDataHelper.notifyAllWidgets(getApplication())
         loadTodayRealSchedule()
         loadWeekSchedule(_uiState.value.weekStartDate)
@@ -1429,13 +1574,26 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun decorateItem(item: AnimeRelease, state: AnimeUiState): AnimeRelease {
+    private fun decorateItem(
+        item: AnimeRelease,
+        state: AnimeUiState,
+        preserveActiveLanguage: Boolean = false
+    ): AnimeRelease {
         val ep = item.effectiveEpisodeNumber()
         val isFav = state.favoriteIds.contains(item.id)
         val isWatched = state.watchedEpisodeKeys.contains("${item.id}_$ep")
         val isInWatchlist = state.watchlistIds.contains(item.id)
         val rating = state.userRatings[item.id] ?: item.userRating
+        val cachedEs = cardTranslationCache["${item.id}_es"]
+        val cachedEn = cardTranslationCache["${item.id}_en"]
+        val cachedFr = cardTranslationCache["${item.id}_fr"]
+        val cachedJa = cardTranslationCache["${item.id}_ja"]
         return item.copy(
+            synopsisEs = item.synopsisEs.ifBlank { cachedEs.orEmpty() },
+            synopsisEn = item.synopsisEn.ifBlank { cachedEn.orEmpty() },
+            synopsisFr = item.synopsisFr.ifBlank { cachedFr.orEmpty() },
+            synopsisJa = item.synopsisJa.ifBlank { cachedJa.orEmpty() },
+            activeLanguage = if (preserveActiveLanguage) item.activeLanguage else state.globalLanguage,
             isFavorite = isFav,
             isWatched = isWatched,
             isInWatchlist = isInWatchlist,
@@ -1444,7 +1602,10 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    private fun recomputeDerivedLists(state: AnimeUiState): AnimeUiState {
+    private fun recomputeDerivedLists(
+        state: AnimeUiState,
+        forceGlobalLanguageOnDetail: Boolean = false
+    ): AnimeUiState {
         val zone = state.activeZoneId
         val today = LocalDate.now(zone)
 
@@ -1520,7 +1681,9 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        val updatedDetail = state.selectedAnimeForDetail?.let { decorateItem(it, state) }
+        val updatedDetail = state.selectedAnimeForDetail?.let {
+            decorateItem(it, state, preserveActiveLanguage = !forceGlobalLanguageOnDetail)
+        }
 
         return state.copy(
             scheduleReleases = decoratedSchedule,

@@ -77,8 +77,12 @@ class LocalizationTest {
             assertTrue(s.navHome.isNotBlank())
             assertTrue(s.settingsTitle.isNotBlank())
             assertTrue(s.onboardingTitle.isNotBlank())
+            assertTrue(s.onboardingFeature3Title.isNotBlank())
+            assertTrue(s.onboardingNextBtn.isNotBlank())
+            assertTrue(s.onboardingSkipBtn.isNotBlank())
             assertTrue(s.splashBackupTitle.isNotBlank())
             assertTrue(s.vmDriveAuthDevError.isNotBlank())
+            assertTrue(s.vmDriveAuthCode8Error.isNotBlank())
             assertTrue(s.calendarEmptyDayTitle(s.calendarThisDay).isNotBlank())
             assertTrue(AppLocalization.genreLabel("Acción", s).isNotBlank())
             assertTrue(AppLocalization.countdown(sampleAnime, s).text.isNotBlank())
@@ -108,12 +112,12 @@ class LocalizationTest {
             listOf(SynopsisLanguage.FRENCH, SynopsisLanguage.JAPANESE).forEach { lang ->
                 prefs.edit().putString("synopsis_lang", lang.code).commit()
                 val manager = BackupManager(context, repository, prefs)
-                val (encrypted, _) = manager.exportEncryptedBackup("LangPass2026")
+                val (encrypted, _) = manager.exportEncryptedBackup()
 
                 prefs.edit().clear().commit()
                 assertEquals("es", prefs.getString("synopsis_lang", "es"))
 
-                manager.restoreFromEncryptedBytes(encrypted, "LangPass2026")
+                manager.restoreFromEncryptedBytes(encrypted)
                 assertEquals(lang.code, prefs.getString("synopsis_lang", "es"))
             }
         } finally {
@@ -200,7 +204,55 @@ class LocalizationTest {
     }
 
     @Test
-    fun `OnboardingScreen backup card reflects active global language`() {
+    fun `AnimePosterCard renders localized synopsis preview matching active global language`() {
+        var currentLanguage by mutableStateOf(SynopsisLanguage.SPANISH)
+        val baseAnime = AnimeRelease(
+            id = 42,
+            airingId = 42,
+            titleRomaji = "Test Anime",
+            titleEnglish = "Test Anime",
+            coverImageUrl = "https://example.com/a.jpg",
+            bannerImageUrl = null,
+            synopsis = "English synopsis preview",
+            synopsisEs = "Sinopsis en español",
+            synopsisFr = "Synopsis en français",
+            synopsisJa = "日本語のあらすじ",
+            episode = 3,
+            totalEpisodes = 12,
+            airingAtSeconds = (System.currentTimeMillis() / 1000L) + 5400L,
+            genres = listOf("Acción", "Fantasía"),
+            score = 8.4,
+            studio = "Madhouse"
+        )
+
+        composeRule.setContent {
+            AniVexaTheme(appLanguage = currentLanguage) {
+                com.example.ui.components.AnimePosterCard(
+                    anime = baseAnime.copy(activeLanguage = currentLanguage),
+                    onClick = {}
+                )
+            }
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("poster_card_synopsis_42").assertIsDisplayed()
+        composeRule.onNodeWithText("Sinopsis en español").assertIsDisplayed()
+
+        currentLanguage = SynopsisLanguage.ENGLISH
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("English synopsis preview").assertIsDisplayed()
+
+        currentLanguage = SynopsisLanguage.FRENCH
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Synopsis en français").assertIsDisplayed()
+
+        currentLanguage = SynopsisLanguage.JAPANESE
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("日本語のあらすじ").assertIsDisplayed()
+    }
+
+    @Test
+    fun `OnboardingScreen backup card reflects active global language on final slide`() {
         var currentLanguage by mutableStateOf(SynopsisLanguage.JAPANESE)
 
         composeRule.setContent {
@@ -210,6 +262,11 @@ class LocalizationTest {
         }
 
         composeRule.waitForIdle()
+        repeat(3) {
+            composeRule.onNodeWithTag("onboarding_next_button").performClick()
+            composeRule.waitForIdle()
+        }
+
         composeRule.onNodeWithText("暗号化バックアップ (.avb)").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("復元").performScrollTo().assertIsDisplayed()
 

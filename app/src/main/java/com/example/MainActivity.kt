@@ -83,20 +83,25 @@ class MainActivity : ComponentActivity() {
                             !uiState.hasCompletedOnboarding -> {
                                 OnboardingScreen(
                                     uiState = uiState,
-                                    onLocalTreeGranted = { viewModel.onLocalBackupTreeGranted(it) },
+                                    onLocalTreeGranted = { uri, onReady ->
+                                        viewModel.onLocalBackupTreeGranted(uri, onReady)
+                                    },
                                     onLoadLocalBackups = { viewModel.loadLocalBackups() },
-                                    onRestoreLocalBackup = { uri, pass ->
-                                        viewModel.restoreLocalBackup(uri, pass)
+                                    onRestoreLocalBackup = { uri ->
+                                        viewModel.restoreLocalBackup(uri)
                                     },
-                                    onRequestDriveAccess = { onAuth, onNeedsRes ->
-                                        viewModel.requestDriveAccess(onAuth, onNeedsRes)
+                                    onRequestDriveAccess = { ctx, onAuth, onNeedsRes, onNeedsAct ->
+                                        viewModel.requestDriveAccess(ctx, onAuth, onNeedsRes, onNeedsAct)
                                     },
-                                    onDriveResolutionResult = { code, data, onAuth, onNeedsRes ->
-                                        viewModel.onDriveResolutionResult(code, data, onAuth, onNeedsRes)
+                                    onDriveResolutionResult = { ctx, code, data, onAuth, onNeedsRes, onNeedsAct ->
+                                        viewModel.onDriveResolutionResult(ctx, code, data, onAuth, onNeedsRes, onNeedsAct)
+                                    },
+                                    onDriveActivityResult = { ctx, code, data, onAuth, onNeedsAct ->
+                                        viewModel.onDriveActivityResult(ctx, code, data, onAuth, onNeedsAct)
                                     },
                                     onLoadDriveBackups = { viewModel.loadDriveBackups() },
-                                    onRestoreDriveBackup = { id, pass ->
-                                        viewModel.restoreDriveBackup(id, pass)
+                                    onRestoreDriveBackup = { id ->
+                                        viewModel.restoreDriveBackup(id)
                                     },
                                     onClearBackupMessages = { viewModel.clearBackupMessages() },
                                     onOnboardingFinished = { viewModel.completeOnboarding() }
@@ -246,22 +251,27 @@ class MainActivity : ComponentActivity() {
                                                         onSyncNow = { viewModel.refreshAll() },
                                                         onClearCache = { viewModel.clearOfflineCache() },
                                                         onCheckDeviceSecurity = { viewModel.refreshDeviceSecurity() },
-                                                        onLocalTreeGranted = { viewModel.onLocalBackupTreeGranted(it) },
-                                                        onCreateLocalBackup = { pass -> viewModel.createLocalBackup(pass) },
+                                                        onLocalTreeGranted = { uri, onReady ->
+                                                            viewModel.onLocalBackupTreeGranted(uri, onReady)
+                                                        },
+                                                        onCreateLocalBackup = { viewModel.createLocalBackup() },
                                                         onLoadLocalBackups = { viewModel.loadLocalBackups() },
-                                                        onRestoreLocalBackup = { uri, pass ->
-                                                            viewModel.restoreLocalBackup(uri, pass)
+                                                        onRestoreLocalBackup = { uri ->
+                                                            viewModel.restoreLocalBackup(uri)
                                                         },
-                                                        onRequestDriveAccess = { onAuth, onNeedsRes ->
-                                                            viewModel.requestDriveAccess(onAuth, onNeedsRes)
+                                                        onRequestDriveAccess = { ctx, onAuth, onNeedsRes, onNeedsAct ->
+                                                            viewModel.requestDriveAccess(ctx, onAuth, onNeedsRes, onNeedsAct)
                                                         },
-                                                        onDriveResolutionResult = { code, data, onAuth, onNeedsRes ->
-                                                            viewModel.onDriveResolutionResult(code, data, onAuth, onNeedsRes)
+                                                        onDriveResolutionResult = { ctx, code, data, onAuth, onNeedsRes, onNeedsAct ->
+                                                            viewModel.onDriveResolutionResult(ctx, code, data, onAuth, onNeedsRes, onNeedsAct)
                                                         },
-                                                        onCreateDriveBackup = { pass -> viewModel.createDriveBackup(pass) },
+                                                        onDriveActivityResult = { ctx, code, data, onAuth, onNeedsAct ->
+                                                            viewModel.onDriveActivityResult(ctx, code, data, onAuth, onNeedsAct)
+                                                        },
+                                                        onCreateDriveBackup = { viewModel.createDriveBackup() },
                                                         onLoadDriveBackups = { viewModel.loadDriveBackups() },
-                                                        onRestoreDriveBackup = { id, pass ->
-                                                            viewModel.restoreDriveBackup(id, pass)
+                                                        onRestoreDriveBackup = { id ->
+                                                            viewModel.restoreDriveBackup(id)
                                                         },
                                                         onClearBackupMessages = { viewModel.clearBackupMessages() }
                                                     )

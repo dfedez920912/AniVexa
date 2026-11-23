@@ -1,11 +1,17 @@
 package com.example.backup
 
+import android.accounts.Account
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import com.example.util.AppLogger
+import com.google.android.gms.auth.GoogleAuthException
+import com.google.android.gms.auth.GoogleAuthUtil
+import com.google.android.gms.auth.UserRecoverableAuthException
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Scope
@@ -27,12 +33,36 @@ import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 
+@Suppress("DEPRECATION")
 class GoogleDriveBackupClient(
     private val okHttpClient: OkHttpClient = defaultHttpClient()
 ) {
 
-    suspend fun authorizeDriveAccess(context: Context): DriveAuthResult =
-        suspendCancellableCoroutine<DriveAuthResult> { cont ->
+    suspend fun authorizeDriveAccess(context: Context): DriveAuthResult {
+        val primaryResult = requestIdentityAuthorization(context)
+        return if (primaryResult is DriveAuthResult.Error &&
+            (primaryResult.statusCode == CommonStatusCodes.INTERNAL_ERROR || primaryResult.statusCode == null)
+        ) {
+            AppLogger.w(
+                "GoogleDriveBackup",
+                "Primary GIS authorize returned code=${primaryResult.statusCode}; trying GoogleSignIn fallback"
+            )
+            val fallbackResult = authorizeViaLegacySignIn(context)
+            if (fallbackResult is DriveAuthResult.Error && primaryResult.statusCode == CommonStatusCodes.INTERNAL_ERROR) {
+                DriveAuthResult.Error(
+                    message = fallbackResult.message,
+                    statusCode = fallbackResult.statusCode ?: CommonStatusCodes.INTERNAL_ERROR
+                )
+            } else {
+                fallbackResult
+            }
+        } else {
+            primaryResult
+        }
+    }
+
+    private suspend fun requestIdentityAuthorization(context: Context): DriveAuthResult =
+        suspendCancellableCoroutine { cont ->
             val request = AuthorizationRequest.builder()
                 .setRequestedScopes(listOf(Scope(DRIVE_FILE_SCOPE)))
                 .build()
@@ -67,6 +97,102 @@ class GoogleDriveBackupClient(
                     cont.resume(DriveAuthResult.Error(friendly, statusCode))
                 }
         }
+
+    suspend fun authorizeViaLegacySignIn(context: Context): DriveAuthResult {
+        val driveScope = Scope(DRIVE_FILE_SCOPE)
+        val existing = GoogleSignIn.getLastSignedInAccount(context)
+        val existingAccount = existing?.account
+        if (existing != null && existingAccount != null && GoogleSignIn.hasPermissions(existing, driveScope)) {
+            when (val tokenOutcome = fetchOAuthTokenForAccount(context, existingAccount)) {
+                is DriveResolutionOutcome.Authorized -> return DriveAuthResult.Authorized(tokenOutcome.accessToken)
+                is DriveResolutionOutcome.NeedsActivityResolution ->
+                    return DriveAuthResult.NeedsActivityResolution(tokenOutcome.intent)
+                else -> Unit
+            }
+        }
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestScopes(driveScope)
+            .build()
+        val signInClient = GoogleSignIn.getClient(context, gso)
+        return DriveAuthResult.NeedsActivityResolution(signInClient.signInIntent)
+    }
+
+    suspend fun extractLegacySignInOutcome(
+        context: Context,
+        resultCode: Int,
+        intent: Intent?
+    ): DriveResolutionOutcome {
+        if (resultCode == Activity.RESULT_CANCELED && intent == null) {
+            return DriveResolutionOutcome.Cancelled
+        }
+        val signInAccount = if (intent != null) {
+            try {
+                GoogleSignIn.getSignedInAccountFromIntent(intent).getResult(ApiException::class.java)
+            } catch (e: ApiException) {
+                if (e.statusCode == CommonStatusCodes.CANCELED || e.statusCode == SIGN_IN_CANCELLED_CODE) {
+                    return DriveResolutionOutcome.Cancelled
+                }
+                // If returning from a UserRecoverableAuthException consent activity, data won't carry
+                // a GoogleSignInAccount payload; fall back to the cached signed-in account if present.
+                val cached = GoogleSignIn.getLastSignedInAccount(context)
+                if (resultCode == Activity.RESULT_OK && cached?.account != null) {
+                    cached
+                } else {
+                    AppLogger.w(
+                        "GoogleDriveBackup",
+                        "Legacy GoogleSignIn failed (code=${e.statusCode}): ${e.message}"
+                    )
+                    return DriveResolutionOutcome.Error(statusCode = e.statusCode, detail = e.message)
+                }
+            }
+        } else {
+            GoogleSignIn.getLastSignedInAccount(context)
+        }
+
+        val account = signInAccount?.account
+            ?: GoogleSignIn.getLastSignedInAccount(context)?.account
+            ?: return if (resultCode == Activity.RESULT_CANCELED) {
+                DriveResolutionOutcome.Cancelled
+            } else {
+                DriveResolutionOutcome.Error(
+                    statusCode = CommonStatusCodes.INTERNAL_ERROR,
+                    detail = "No Google account available after sign-in."
+                )
+            }
+
+        return fetchOAuthTokenForAccount(context, account)
+    }
+
+    private suspend fun fetchOAuthTokenForAccount(
+        context: Context,
+        account: Account
+    ): DriveResolutionOutcome = withContext(Dispatchers.IO) {
+        try {
+            val token = GoogleAuthUtil.getToken(context, account, "oauth2:$DRIVE_FILE_SCOPE")
+            if (token.isNotBlank()) {
+                DriveResolutionOutcome.Authorized(token)
+            } else {
+                DriveResolutionOutcome.Error(detail = "Empty OAuth token from GoogleAuthUtil")
+            }
+        } catch (recoverable: UserRecoverableAuthException) {
+            val recoveryIntent = recoverable.intent
+            if (recoveryIntent != null) {
+                DriveResolutionOutcome.NeedsActivityResolution(recoveryIntent)
+            } else {
+                DriveResolutionOutcome.Error(detail = recoverable.message)
+            }
+        } catch (authEx: GoogleAuthException) {
+            AppLogger.w("GoogleDriveBackup", "GoogleAuthException: ${authEx.message}")
+            DriveResolutionOutcome.Error(
+                statusCode = CommonStatusCodes.INTERNAL_ERROR,
+                detail = authEx.message
+            )
+        } catch (ioEx: IOException) {
+            AppLogger.w("GoogleDriveBackup", "IOException fetching token: ${ioEx.message}")
+            DriveResolutionOutcome.Error(detail = ioEx.message)
+        }
+    }
 
     fun extractAuthorizationOutcome(
         context: Context,

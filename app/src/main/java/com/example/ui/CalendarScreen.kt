@@ -892,6 +892,19 @@ private fun ScheduleListRowCard(
                         }
                     )
                 }
+
+                val activeSynopsis = anime.getActiveSynopsis()
+                if (activeSynopsis.isNotBlank()) {
+                    Text(
+                        text = activeSynopsis,
+                        fontSize = 11.sp,
+                        lineHeight = 14.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.testTag("schedule_card_synopsis_${anime.id}")
+                    )
+                }
             }
 
             if (showQuickActions) {
