@@ -12,6 +12,7 @@ import com.example.backup.BackupCrypto
 import com.example.backup.BackupEntry
 import com.example.backup.BackupManager
 import com.example.backup.DriveAuthResult
+import com.example.backup.DriveResolutionOutcome
 import com.example.backup.GoogleDriveBackupClient
 import com.example.backup.LocalBackupStorage
 import com.example.data.AnimeRepository
@@ -154,7 +155,8 @@ data class AnimeUiState(
     val cachedCount: Int = 0,
     val deviceSecurityReport: DeviceSecurityReport = DeviceSecurityReport(),
 
-    // Encrypted Backup & Restore (.avb)
+    // Encrypted Backup & Restore (.avb) & Onboarding
+    val hasCompletedOnboarding: Boolean = false,
     val isBackupBusy: Boolean = false,
     val backupStatusMessage: String? = null,
     val backupErrorMessage: String? = null,
@@ -181,6 +183,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
             defaultReminderMinutes = prefs.getInt("default_reminder_min", 15),
             quietHoursEnabled = prefs.getBoolean("quiet_hours", false),
             globalLanguage = SynopsisLanguage.fromCode(prefs.getString("synopsis_lang", "es")),
+            hasCompletedOnboarding = prefs.getBoolean("onboarding_completed", false),
             hasLocalBackupFolder = LocalBackupStorage.getSavedTreeUri(application.applicationContext) != null
         )
     )
@@ -974,6 +977,11 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(notificationMessage = null) }
     }
 
+    fun completeOnboarding() {
+        prefs.edit().putBoolean("onboarding_completed", true).apply()
+        _uiState.update { it.copy(hasCompletedOnboarding = true) }
+    }
+
     // Encrypted Backup & Restore (.avb)
     fun clearBackupMessages() {
         _uiState.update {
@@ -1175,8 +1183,9 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                     onNeedsResolution(auth.intentSender)
                 }
                 is DriveAuthResult.Error -> {
+                    val localizedMsg = formatDriveAuthErrorMessage(auth.statusCode, auth.message)
                     _uiState.update {
-                        it.copy(isBackupBusy = false, backupErrorMessage = auth.message)
+                        it.copy(isBackupBusy = false, backupErrorMessage = localizedMsg)
                     }
                 }
             }
@@ -1186,24 +1195,73 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     fun onDriveResolutionResult(
         resultCode: Int,
         data: Intent?,
-        onAuthorized: () -> Unit
+        onAuthorized: () -> Unit,
+        onNeedsResolution: (IntentSender) -> Unit = {}
     ) {
-        if (resultCode != Activity.RESULT_OK) {
-            _uiState.update {
-                it.copy(backupErrorMessage = strings().vmDriveAuthRequired)
-            }
-            return
-        }
         val ctx = getApplication<Application>().applicationContext
-        val token = driveBackupClient.extractAccessTokenFromIntent(ctx, data)
-        if (!token.isNullOrBlank()) {
-            transientDriveToken = token
-            _uiState.update { it.copy(backupErrorMessage = null) }
-            onAuthorized()
-        } else {
-            _uiState.update {
-                it.copy(backupErrorMessage = strings().vmDriveAuthRequired)
+        when (val outcome = driveBackupClient.extractAuthorizationOutcome(ctx, resultCode, data)) {
+            is DriveResolutionOutcome.Authorized -> {
+                transientDriveToken = outcome.accessToken
+                _uiState.update { it.copy(isBackupBusy = false, backupErrorMessage = null) }
+                onAuthorized()
             }
+            is DriveResolutionOutcome.NeedsResolution -> {
+                _uiState.update { it.copy(isBackupBusy = false, backupErrorMessage = null) }
+                onNeedsResolution(outcome.intentSender)
+            }
+            is DriveResolutionOutcome.Cancelled -> {
+                _uiState.update {
+                    it.copy(
+                        isBackupBusy = false,
+                        backupErrorMessage = strings().vmDriveAuthCancelled
+                    )
+                }
+            }
+            is DriveResolutionOutcome.Error -> {
+                if (resultCode == Activity.RESULT_OK && outcome.statusCode == null) {
+                    // Some Play Services versions grant scope without embedding the token inside the result intent;
+                    // performing one silent authorize() check fetches the newly minted token cleanly.
+                    viewModelScope.launch {
+                        _uiState.update { it.copy(isBackupBusy = true, backupErrorMessage = null) }
+                        when (val retry = driveBackupClient.authorizeDriveAccess(ctx)) {
+                            is DriveAuthResult.Authorized -> {
+                                transientDriveToken = retry.accessToken
+                                _uiState.update { it.copy(isBackupBusy = false, backupErrorMessage = null) }
+                                onAuthorized()
+                            }
+                            is DriveAuthResult.NeedsResolution -> {
+                                _uiState.update { it.copy(isBackupBusy = false) }
+                                onNeedsResolution(retry.intentSender)
+                            }
+                            is DriveAuthResult.Error -> {
+                                _uiState.update {
+                                    it.copy(
+                                        isBackupBusy = false,
+                                        backupErrorMessage = formatDriveAuthErrorMessage(retry.statusCode, retry.message)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isBackupBusy = false,
+                            backupErrorMessage = formatDriveAuthErrorMessage(outcome.statusCode, outcome.detail)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun formatDriveAuthErrorMessage(statusCode: Int?, fallback: String?): String {
+        val s = strings()
+        return when (statusCode) {
+            10 -> s.vmDriveAuthDevError
+            16, 12501 -> s.vmDriveAuthCancelled
+            null -> fallback?.takeIf { it.isNotBlank() } ?: s.vmDriveAuthRequired
+            else -> s.vmDriveAuthCodeError(statusCode)
         }
     }
 

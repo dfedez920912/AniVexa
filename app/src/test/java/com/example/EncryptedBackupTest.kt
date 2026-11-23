@@ -2,8 +2,10 @@ package com.example
 
 import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -21,7 +23,10 @@ import com.example.data.local.UserRatingEntity
 import com.example.data.local.WatchedEpisodeEntity
 import com.example.data.local.WatchlistEntity
 import com.example.data.local.WatchlistStatus
+import android.app.Activity
+import com.example.backup.DriveResolutionOutcome
 import com.example.model.AppThemeMode
+import com.example.ui.OnboardingScreen
 import com.example.ui.SplashScreen
 import com.example.ui.theme.AniVexaTheme
 import kotlinx.coroutines.runBlocking
@@ -293,25 +298,55 @@ class EncryptedBackupTest {
     }
 
     @Test
-    fun `SplashScreen displays backup announcement card and opens Restore dialog on tap`() {
+    fun `SplashScreen stays clean like main and auto advances while OnboardingScreen offers Restore`() {
+        var splashFinished = false
+        var onboardingFinished = false
+
         composeRule.setContent {
             AniVexaTheme {
-                SplashScreen(
-                    onSplashFinished = {}
-                )
+                if (!splashFinished) {
+                    SplashScreen(onSplashFinished = { splashFinished = true })
+                } else {
+                    OnboardingScreen(onOnboardingFinished = { onboardingFinished = true })
+                }
             }
         }
 
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("splash_backup_card").assertIsDisplayed()
-        composeRule.onNodeWithTag("splash_restore_backup_button").assertIsDisplayed()
-        composeRule.onNodeWithTag("splash_continue_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("splash_screen_root").assertIsDisplayed()
+        assertEquals(0, composeRule.onAllNodes(androidx.compose.ui.test.hasTestTag("splash_backup_card")).fetchSemanticsNodes().size)
 
-        composeRule.onNodeWithTag("splash_restore_backup_button").performClick()
+        composeRule.mainClock.advanceTimeBy(1000L)
+        composeRule.waitForIdle()
+        assertTrue(splashFinished)
+
+        composeRule.onNodeWithTag("onboarding_screen_root").assertIsDisplayed()
+        composeRule.onNodeWithTag("onboarding_backup_card").assertIsDisplayed()
+        composeRule.onNodeWithTag("onboarding_restore_backup_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("onboarding_continue_button").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("onboarding_restore_backup_button").performClick()
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("backup_dest_local").assertIsDisplayed()
         composeRule.onNodeWithTag("backup_dest_drive").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Cerrar").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("onboarding_continue_button").performClick()
+        composeRule.waitForIdle()
+        assertTrue(onboardingFinished)
+    }
+
+    @Test
+    fun `GoogleDriveBackupClient extractAuthorizationOutcome distinguishes Cancelled vs MissingToken`() {
+        val client = GoogleDriveBackupClient(OkHttpClient())
+        val cancelled = client.extractAuthorizationOutcome(context, Activity.RESULT_CANCELED, null)
+        assertEquals(DriveResolutionOutcome.Cancelled, cancelled)
+
+        val missingToken = client.extractAuthorizationOutcome(context, Activity.RESULT_OK, null)
+        assertTrue(missingToken is DriveResolutionOutcome.Error)
     }
 
     @Test

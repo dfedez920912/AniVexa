@@ -47,6 +47,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -89,7 +91,7 @@ fun BackupRestoreDialog(
     onLoadLocalBackups: () -> Unit,
     onRestoreLocalBackup: (Uri, String) -> Unit,
     onRequestDriveAccess: (onAuthorized: () -> Unit, onNeedsResolution: (IntentSender) -> Unit) -> Unit,
-    onDriveResolutionResult: (Int, android.content.Intent?, onAuthorized: () -> Unit) -> Unit,
+    onDriveResolutionResult: (Int, android.content.Intent?, onAuthorized: () -> Unit, onNeedsResolution: (IntentSender) -> Unit) -> Unit,
     onCreateDriveBackup: (String) -> Unit,
     onLoadDriveBackups: () -> Unit,
     onRestoreDriveBackup: (String, String) -> Unit,
@@ -97,13 +99,15 @@ fun BackupRestoreDialog(
     onCompletedContinue: (() -> Unit)? = null
 ) {
     val s = LocalAppStrings.current
-    var step by remember(mode) { mutableStateOf(BackupDialogStep.CHOOSE_DESTINATION) }
-    var selectedDestination by remember(mode) { mutableStateOf<BackupDestination?>(null) }
+    var step by rememberSaveable(mode) { mutableStateOf(BackupDialogStep.CHOOSE_DESTINATION) }
+    var selectedDestination by rememberSaveable(mode) { mutableStateOf<BackupDestination?>(null) }
     var selectedEntry by remember(mode) { mutableStateOf<BackupEntry?>(null) }
-    var passphrase by remember(mode) { mutableStateOf("") }
-    var confirmPassphrase by remember(mode) { mutableStateOf("") }
-    var showPassword by remember(mode) { mutableStateOf(false) }
+    var passphrase by rememberSaveable(mode) { mutableStateOf("") }
+    var confirmPassphrase by rememberSaveable(mode) { mutableStateOf("") }
+    var showPassword by rememberSaveable(mode) { mutableStateOf(false) }
     var localValidationError by remember(mode) { mutableStateOf<String?>(null) }
+    val currentOnLoadDriveBackups by rememberUpdatedState(onLoadDriveBackups)
+    val currentOnDriveResolutionResult by rememberUpdatedState(onDriveResolutionResult)
 
     LaunchedEffect(mode) {
         onClearMessages()
@@ -142,18 +146,29 @@ fun BackupRestoreDialog(
         }
     }
 
+    lateinit var launchDriveResolution: (IntentSender) -> Unit
     val driveResolutionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { activityResult ->
-        onDriveResolutionResult(activityResult.resultCode, activityResult.data) {
-            selectedDestination = BackupDestination.GOOGLE_DRIVE
-            if (mode == BackupOperationMode.BACKUP) {
-                step = BackupDialogStep.ENTER_BACKUP_PASSPHRASE
-            } else {
-                onLoadDriveBackups()
-                step = BackupDialogStep.PICK_RESTORE_FILE
+        currentOnDriveResolutionResult(
+            activityResult.resultCode,
+            activityResult.data,
+            {
+                selectedDestination = BackupDestination.GOOGLE_DRIVE
+                if (mode == BackupOperationMode.BACKUP) {
+                    step = BackupDialogStep.ENTER_BACKUP_PASSPHRASE
+                } else {
+                    currentOnLoadDriveBackups()
+                    step = BackupDialogStep.PICK_RESTORE_FILE
+                }
+            },
+            { nextIntentSender ->
+                launchDriveResolution(nextIntentSender)
             }
-        }
+        )
+    }
+    launchDriveResolution = { intentSender ->
+        driveResolutionLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
     }
 
     val dialogTitle = when {

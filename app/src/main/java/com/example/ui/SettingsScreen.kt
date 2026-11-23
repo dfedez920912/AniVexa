@@ -101,7 +101,7 @@ fun SettingsScreen(
     onLoadLocalBackups: () -> Unit = {},
     onRestoreLocalBackup: (Uri, String) -> Unit = { _, _ -> },
     onRequestDriveAccess: (() -> Unit, (IntentSender) -> Unit) -> Unit = { _, _ -> },
-    onDriveResolutionResult: (Int, Intent?, () -> Unit) -> Unit = { _, _, _ -> },
+    onDriveResolutionResult: (Int, Intent?, () -> Unit, (IntentSender) -> Unit) -> Unit = { _, _, _, _ -> },
     onCreateDriveBackup: (String) -> Unit = {},
     onLoadDriveBackups: () -> Unit = {},
     onRestoreDriveBackup: (String, String) -> Unit = { _, _ -> },

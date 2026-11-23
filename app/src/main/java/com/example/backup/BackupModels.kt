@@ -59,5 +59,12 @@ data class BackupSummaryStats(
 sealed interface DriveAuthResult {
     data class Authorized(val accessToken: String) : DriveAuthResult
     data class NeedsResolution(val intentSender: android.content.IntentSender) : DriveAuthResult
-    data class Error(val message: String) : DriveAuthResult
+    data class Error(val message: String, val statusCode: Int? = null) : DriveAuthResult
+}
+
+sealed interface DriveResolutionOutcome {
+    data class Authorized(val accessToken: String) : DriveResolutionOutcome
+    data class NeedsResolution(val intentSender: android.content.IntentSender) : DriveResolutionOutcome
+    data object Cancelled : DriveResolutionOutcome
+    data class Error(val statusCode: Int? = null, val detail: String? = null) : DriveResolutionOutcome
 }

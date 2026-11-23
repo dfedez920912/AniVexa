@@ -1,11 +1,13 @@
 package com.example.backup
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import com.example.util.AppLogger
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Scope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -55,25 +57,55 @@ class GoogleDriveBackupClient(
                 }
                 .addOnFailureListener { exc ->
                     if (!cont.isActive) return@addOnFailureListener
-                    AppLogger.w("GoogleDriveBackup", "Authorization failed: ${exc.message}")
+                    val statusCode = (exc as? ApiException)?.statusCode
+                    AppLogger.w("GoogleDriveBackup", "Authorization failed (code=$statusCode): ${exc.message}")
                     val friendly = if (exc is ApiException) {
-                        "Error al autorizar Google Drive (código ${exc.statusCode}). Verifica que los Servicios de Google Play estén actualizados y tu cuenta activa."
+                        "Error al autorizar Google Drive (código ${exc.statusCode})."
                     } else {
                         exc.message ?: "No se pudo autorizar el acceso a Google Drive."
                     }
-                    cont.resume(DriveAuthResult.Error(friendly))
+                    cont.resume(DriveAuthResult.Error(friendly, statusCode))
                 }
         }
 
-    fun extractAccessTokenFromIntent(context: Context, intent: Intent?): String? {
-        if (intent == null) return null
+    fun extractAuthorizationOutcome(
+        context: Context,
+        resultCode: Int,
+        intent: Intent?
+    ): DriveResolutionOutcome {
+        if (intent == null) {
+            return if (resultCode == Activity.RESULT_CANCELED) {
+                DriveResolutionOutcome.Cancelled
+            } else {
+                DriveResolutionOutcome.Error(detail = "No authorization intent returned (resultCode=$resultCode)")
+            }
+        }
         return try {
-            Identity.getAuthorizationClient(context)
+            val authResult = Identity.getAuthorizationClient(context)
                 .getAuthorizationResultFromIntent(intent)
-                .accessToken
+            val token = authResult.accessToken
+            val pendingIntent = authResult.pendingIntent
+            when {
+                !token.isNullOrBlank() -> DriveResolutionOutcome.Authorized(token)
+                authResult.hasResolution() && pendingIntent != null ->
+                    DriveResolutionOutcome.NeedsResolution(pendingIntent.intentSender)
+                resultCode == Activity.RESULT_CANCELED -> DriveResolutionOutcome.Cancelled
+                else -> DriveResolutionOutcome.Error(detail = "Empty access token returned by Google Play Services")
+            }
         } catch (e: ApiException) {
-            AppLogger.w("GoogleDriveBackup", "Failed extracting Drive token from result: ${e.statusCode}")
-            null
+            AppLogger.w("GoogleDriveBackup", "Failed extracting Drive token from result: statusCode=${e.statusCode}, msg=${e.message}")
+            if (e.statusCode == CommonStatusCodes.CANCELED || e.statusCode == SIGN_IN_CANCELLED_CODE) {
+                DriveResolutionOutcome.Cancelled
+            } else {
+                DriveResolutionOutcome.Error(statusCode = e.statusCode, detail = e.message)
+            }
+        }
+    }
+
+    fun extractAccessTokenFromIntent(context: Context, intent: Intent?): String? {
+        return when (val outcome = extractAuthorizationOutcome(context, Activity.RESULT_OK, intent)) {
+            is DriveResolutionOutcome.Authorized -> outcome.accessToken
+            else -> null
         }
     }
 
@@ -307,6 +339,7 @@ class GoogleDriveBackupClient(
     companion object {
         const val DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file"
         const val DRIVE_FOLDER_NAME = "AniVexa"
+        private const val SIGN_IN_CANCELLED_CODE = 12501
         private const val MAX_BACKUP_BYTES = 25 * 1024 * 1024 // 25 MB
         private val DRIVE_FILE_ID_REGEX = Regex("^[A-Za-z0-9_-]{1,256}$")
         private const val FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"

@@ -1,3 +1,3 @@
-- Nuevo selector desplegable de idioma global en Ajustes con soporte completo para Español, English, Français y 日本語.
-- Traducción instantánea de toda la interfaz: navegación, Inicio, Calendario, Mi Lista, Búsqueda, Detalles, diálogos .avb, notificaciones y widgets.
-- Mejoras de seguridad y cumplimiento de análisis estático sin hallazgos.
+- Pantalla de bienvenida limpia (main) y nuevo Onboarding interactivo con tarjeta para restaurar copias de seguridad cifradas (.avb) desde el primer inicio.
+- Corrección del flujo OAuth con Google Drive en Ajustes y Restauración (launchMode singleTop y reintento automático de token).
+- Corrección de cierre abrupto al iniciar la app (ClassFormatError en AppStrings) y cambio de idioma global (Español, English, Français, 日本語).

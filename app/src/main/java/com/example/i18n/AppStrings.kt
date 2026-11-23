@@ -16,354 +16,364 @@ import com.example.ui.MainNavScreen
 import com.example.ui.MyListFilterTab
 import com.example.ui.SeeAllMode
 
-data class AppStrings(
+interface AppStrings {
     // App & Nav
-    val appName: String,
-    val navHome: String,
-    val navCalendar: String,
-    val navMyList: String,
-    val navSearch: String,
-    val navSettings: String,
-    val backContentDesc: String,
+    val appName: String
+    val navHome: String
+    val navCalendar: String
+    val navMyList: String
+    val navSearch: String
+    val navSettings: String
+    val backContentDesc: String
 
-    // Splash
-    val splashSubtitle: String,
-    val splashNewBadge: String,
-    val splashBackupTitle: String,
-    val splashBackupDesc: String,
-    val splashRestoreBtn: String,
-    val splashContinueBtn: String,
+    // Splash & Onboarding
+    val splashSubtitle: String
+    val splashNewBadge: String
+    val splashBackupTitle: String
+    val splashBackupDesc: String
+    val splashRestoreBtn: String
+    val splashContinueBtn: String
+    val onboardingTitle: String
+    val onboardingSubtitle: String
+    val onboardingFeature1Title: String
+    val onboardingFeature1Desc: String
+    val onboardingFeature2Title: String
+    val onboardingFeature2Desc: String
+    val onboardingStartBtn: String
 
     // Home & Catalog
-    val offlineBadge: String,
-    val offlineContentDesc: String,
-    val refreshContentDesc: String,
-    val homeThisSeason: String,
-    val homePopularRanking: String,
-    val homeAiringToday: String,
-    val homeSeeAll: String,
-    val homeGoCalendar: String,
+    val offlineBadge: String
+    val offlineContentDesc: String
+    val refreshContentDesc: String
+    val homeThisSeason: String
+    val homePopularRanking: String
+    val homeAiringToday: String
+    val homeSeeAll: String
+    val homeGoCalendar: String
 
     // Seasons & Statuses & Formats
-    val seasonWinter: String,
-    val seasonSpring: String,
-    val seasonSummer: String,
-    val seasonFall: String,
-    val statusAll: String,
-    val statusReleasing: String,
-    val statusFinished: String,
-    val statusNotYetReleased: String,
-    val statusCancelled: String,
-    val statusHiatus: String,
-    val formatAll: String,
-    val formatTv: String,
-    val formatOna: String,
-    val formatOva: String,
-    val formatMovie: String,
-    val formatSpecial: String,
-    val badgeAiring: String,
-    val badgeSoon: String,
-    val badgePremiere: String,
-    val badgeOngoing: String,
-    val episodeShortPrefix: String,
-    val episodesUnitShort: String,
+    val seasonWinter: String
+    val seasonSpring: String
+    val seasonSummer: String
+    val seasonFall: String
+    val statusAll: String
+    val statusReleasing: String
+    val statusFinished: String
+    val statusNotYetReleased: String
+    val statusCancelled: String
+    val statusHiatus: String
+    val formatAll: String
+    val formatTv: String
+    val formatOna: String
+    val formatOva: String
+    val formatMovie: String
+    val formatSpecial: String
+    val badgeAiring: String
+    val badgeSoon: String
+    val badgePremiere: String
+    val badgeOngoing: String
+    val episodeShortPrefix: String
+    val episodesUnitShort: String
 
     // Countdown & Dates
-    val countdownNoSchedule: String,
-    val countdownAired: String,
-    val countdownAiringNow: String,
-    val countdownInMinutes: (Long) -> String,
-    val countdownInHoursMins: (Long, Long) -> String,
-    val countdownInDaysHours: (Long, Long) -> String,
-    val periodTba: String,
-    val noDateText: String,
+    val countdownNoSchedule: String
+    val countdownAired: String
+    val countdownAiringNow: String
+    val countdownInMinutes: (Long) -> String
+    val countdownInHoursMins: (Long, Long) -> String
+    val countdownInDaysHours: (Long, Long) -> String
+    val periodTba: String
+    val noDateText: String
 
     // Calendar
-    val calendarTitle: String,
-    val calendarTodayBtnDesc: String,
-    val calendarFilterBtnDesc: String,
-    val calendarMyListBtnDesc: String,
-    val calendarModeWeek: String,
-    val calendarModeMonth: String,
-    val calendarModeList: String,
-    val calendarGenreChipDefault: String,
-    val calendarAllGenres: String,
-    val calendarStudioChipDefault: String,
-    val calendarAllStudios: String,
-    val calendarPrevWeekDesc: String,
-    val calendarNextWeekDesc: String,
-    val calendarPrevMonthDesc: String,
-    val calendarNextMonthDesc: String,
-    val calendarReleasesForDay: (String) -> String,
-    val calendarTodayTag: String,
-    val calendarThisDay: String,
-    val calendarThisWeek: String,
-    val calendarEmptyDayTitle: (String) -> String,
-    val calendarEmptyDaySubtitle: String,
-    val calendarReminderDesc: String,
-    val calendarMarkWatchedDesc: String,
+    val calendarTitle: String
+    val calendarTodayBtnDesc: String
+    val calendarFilterBtnDesc: String
+    val calendarMyListBtnDesc: String
+    val calendarModeWeek: String
+    val calendarModeMonth: String
+    val calendarModeList: String
+    val calendarGenreChipDefault: String
+    val calendarAllGenres: String
+    val calendarStudioChipDefault: String
+    val calendarAllStudios: String
+    val calendarPrevWeekDesc: String
+    val calendarNextWeekDesc: String
+    val calendarPrevMonthDesc: String
+    val calendarNextMonthDesc: String
+    val calendarReleasesForDay: (String) -> String
+    val calendarTodayTag: String
+    val calendarThisDay: String
+    val calendarThisWeek: String
+    val calendarEmptyDayTitle: (String) -> String
+    val calendarEmptyDaySubtitle: String
+    val calendarReminderDesc: String
+    val calendarMarkWatchedDesc: String
 
     // My List
-    val myListTitle: String,
-    val myListSortDesc: String,
-    val myListRemoveDesc: String,
-    val myListTabAll: String,
-    val myListTabWatched: String,
-    val myListTabUnwatched: String,
-    val myListTabWatching: String,
-    val myListTabPlanToWatch: String,
-    val sortRecent: String,
-    val sortTitleAz: String,
-    val sortScore: String,
-    val sortProgress: String,
-    val statusPlanToWatch: String,
-    val statusWatching: String,
-    val statusCompleted: String,
-    val statusDropped: String,
-    val statusPillPaused: String,
-    val statusPillWatched: String,
-    val statusPillWatching: String,
-    val statusPillUnwatched: String,
-    val myListMarkAsWatched: String,
-    val myListPlusOneEp: String,
-    val myListEmptyTitle: String,
-    val myListEmptyCategoryTitle: String,
-    val myListEmptyBody: String,
-    val myListEmptyCategoryBody: String,
-    val myListExploreBtn: String,
+    val myListTitle: String
+    val myListSortDesc: String
+    val myListRemoveDesc: String
+    val myListTabAll: String
+    val myListTabWatched: String
+    val myListTabUnwatched: String
+    val myListTabWatching: String
+    val myListTabPlanToWatch: String
+    val sortRecent: String
+    val sortTitleAz: String
+    val sortScore: String
+    val sortProgress: String
+    val statusPlanToWatch: String
+    val statusWatching: String
+    val statusCompleted: String
+    val statusDropped: String
+    val statusPillPaused: String
+    val statusPillWatched: String
+    val statusPillWatching: String
+    val statusPillUnwatched: String
+    val myListMarkAsWatched: String
+    val myListPlusOneEp: String
+    val myListEmptyTitle: String
+    val myListEmptyCategoryTitle: String
+    val myListEmptyBody: String
+    val myListEmptyCategoryBody: String
+    val myListExploreBtn: String
 
     // Search
-    val searchPlaceholder: String,
-    val searchIconDesc: String,
-    val searchClearDesc: String,
-    val searchShowFilters: String,
-    val searchHideFilters: String,
-    val searchDiscoveryFilters: String,
-    val searchClearAll: String,
-    val searchLabelGenre: String,
-    val searchLabelSeasonYear: String,
-    val searchLabelStatusFormat: String,
-    val searchLabelStudio: String,
-    val searchAnyChip: String,
-    val searchAllChip: String,
-    val searchNoResultsTitle: String,
-    val searchNoResultsSubtitle: String,
+    val searchPlaceholder: String
+    val searchIconDesc: String
+    val searchClearDesc: String
+    val searchShowFilters: String
+    val searchHideFilters: String
+    val searchDiscoveryFilters: String
+    val searchClearAll: String
+    val searchLabelGenre: String
+    val searchLabelSeasonYear: String
+    val searchLabelStatusFormat: String
+    val searchLabelStudio: String
+    val searchAnyChip: String
+    val searchAllChip: String
+    val searchNoResultsTitle: String
+    val searchNoResultsSubtitle: String
 
     // Detail Screen
-    val detailAlertDesc: String,
-    val detailShareDesc: String,
-    val detailShareChooser: String,
-    val detailShareTemplate: (String, Int, String) -> String,
-    val detailFansSuffix: (String) -> String,
-    val detailSynopsisTitle: String,
-    val detailShowLess: String,
-    val detailReadMore: String,
-    val detailInMyListRemove: String,
-    val detailAddToMyList: String,
-    val detailReviewsBtn: String,
-    val detailCharactersBtn: String,
-    val detailBasicInfoTitle: String,
-    val detailTypeLabel: String,
-    val detailEpisodesLabel: String,
-    val detailEpisodesUnknown: String,
-    val detailBroadcastPeriodLabel: String,
-    val detailStudioPrefix: (String) -> String,
-    val detailEpisodeLabel: (Int) -> String,
-    val detailNoUpcomingSchedule: String,
-    val detailTestAlertBtn: String,
-    val detailEpisodeTrackerTitle: String,
-    val detailSwipeEpisodesHint: (Int) -> String,
-    val detailYourRatingTitle: String,
-    val detailRateStarsDesc: (Int) -> String,
-    val detailRelatedTitle: String,
-    val detailReviewsModalTitle: String,
-    val detailNoReviews: String,
-    val detailCharactersModalTitle: String,
-    val detailNoCharacters: String,
-    val detailRoleMain: String,
-    val detailRoleSupporting: String,
-    val relationPrequel: String,
-    val relationSequel: String,
-    val relationParent: String,
-    val relationSideStory: String,
-    val relationSpinOff: String,
-    val relationAlternative: String,
-    val relationSummary: String,
-    val relationCharacter: String,
-    val relationOther: String,
+    val detailAlertDesc: String
+    val detailShareDesc: String
+    val detailShareChooser: String
+    val detailShareTemplate: (String, Int, String) -> String
+    val detailFansSuffix: (String) -> String
+    val detailSynopsisTitle: String
+    val detailShowLess: String
+    val detailReadMore: String
+    val detailInMyListRemove: String
+    val detailAddToMyList: String
+    val detailReviewsBtn: String
+    val detailCharactersBtn: String
+    val detailBasicInfoTitle: String
+    val detailTypeLabel: String
+    val detailEpisodesLabel: String
+    val detailEpisodesUnknown: String
+    val detailBroadcastPeriodLabel: String
+    val detailStudioPrefix: (String) -> String
+    val detailEpisodeLabel: (Int) -> String
+    val detailNoUpcomingSchedule: String
+    val detailTestAlertBtn: String
+    val detailEpisodeTrackerTitle: String
+    val detailSwipeEpisodesHint: (Int) -> String
+    val detailYourRatingTitle: String
+    val detailRateStarsDesc: (Int) -> String
+    val detailRelatedTitle: String
+    val detailReviewsModalTitle: String
+    val detailNoReviews: String
+    val detailCharactersModalTitle: String
+    val detailNoCharacters: String
+    val detailRoleMain: String
+    val detailRoleSupporting: String
+    val relationPrequel: String
+    val relationSequel: String
+    val relationParent: String
+    val relationSideStory: String
+    val relationSpinOff: String
+    val relationAlternative: String
+    val relationSummary: String
+    val relationCharacter: String
+    val relationOther: String
 
     // Genres
-    val genreAction: String,
-    val genreAdventure: String,
-    val genreComedy: String,
-    val genreDrama: String,
-    val genreFantasy: String,
-    val genreMystery: String,
-    val genrePsychological: String,
-    val genreRomance: String,
-    val genreSciFi: String,
-    val genreSliceOfLife: String,
-    val genreSupernatural: String,
-    val genreSports: String,
-    val genreThriller: String,
-    val genreHorror: String,
-    val genreMecha: String,
-    val genreMusic: String,
+    val genreAction: String
+    val genreAdventure: String
+    val genreComedy: String
+    val genreDrama: String
+    val genreFantasy: String
+    val genreMystery: String
+    val genrePsychological: String
+    val genreRomance: String
+    val genreSciFi: String
+    val genreSliceOfLife: String
+    val genreSupernatural: String
+    val genreSports: String
+    val genreThriller: String
+    val genreHorror: String
+    val genreMecha: String
+    val genreMusic: String
 
     // Settings
-    val settingsTitle: String,
-    val settingsNotifSection: String,
-    val settingsAlertsTitle: String,
-    val settingsAlertsSubtitle: String,
-    val settingsDefaultLeadTime: String,
-    val settingsMinUnit: (Int) -> String,
-    val settingsHourUnit: String,
-    val settingsOnAiring: String,
-    val settingsOnAiringShort: String,
-    val settingsQuietHoursTitle: String,
-    val settingsQuietHoursSubtitle: String,
-    val settingsRegionLangSection: String,
-    val settingsJstTitle: String,
-    val settingsJstSubtitleOn: String,
-    val settingsJstSubtitleOff: String,
-    val settingsLanguageTitle: String,
-    val settingsLanguageSubtitle: String,
-    val settingsAppearanceSection: String,
-    val themeDarkLabel: String,
-    val themeDarkDesc: String,
-    val themeOledLabel: String,
-    val themeOledDesc: String,
-    val themeLightLabel: String,
-    val themeLightDesc: String,
-    val themeGlassLabel: String,
-    val themeGlassDesc: String,
-    val themeSystemLabel: String,
-    val themeSystemDesc: String,
-    val settingsOfflineSection: String,
-    val settingsCachedSeriesCount: (Int) -> String,
-    val settingsSyncNow: String,
-    val settingsClearCache: String,
-    val settingsBackupSection: String,
-    val settingsBackupDesc: (String, String) -> String,
-    val settingsBackupBtn: String,
-    val settingsRestoreBtn: String,
-    val settingsSecuritySection: String,
-    val settingsRootDetected: (String) -> String,
-    val settingsNoRootDetected: String,
-    val settingsPlayIntegrityLine: (String, String) -> String,
-    val settingsHardeningInfo: String,
-    val settingsVerifySecurityBtn: String,
-    val settingsAboutSection: String,
-    val settingsAboutTagline: String,
-    val settingsAboutDesc: String,
+    val settingsTitle: String
+    val settingsNotifSection: String
+    val settingsAlertsTitle: String
+    val settingsAlertsSubtitle: String
+    val settingsDefaultLeadTime: String
+    val settingsMinUnit: (Int) -> String
+    val settingsHourUnit: String
+    val settingsOnAiring: String
+    val settingsOnAiringShort: String
+    val settingsQuietHoursTitle: String
+    val settingsQuietHoursSubtitle: String
+    val settingsRegionLangSection: String
+    val settingsJstTitle: String
+    val settingsJstSubtitleOn: String
+    val settingsJstSubtitleOff: String
+    val settingsLanguageTitle: String
+    val settingsLanguageSubtitle: String
+    val settingsAppearanceSection: String
+    val themeDarkLabel: String
+    val themeDarkDesc: String
+    val themeOledLabel: String
+    val themeOledDesc: String
+    val themeLightLabel: String
+    val themeLightDesc: String
+    val themeGlassLabel: String
+    val themeGlassDesc: String
+    val themeSystemLabel: String
+    val themeSystemDesc: String
+    val settingsOfflineSection: String
+    val settingsCachedSeriesCount: (Int) -> String
+    val settingsSyncNow: String
+    val settingsClearCache: String
+    val settingsBackupSection: String
+    val settingsBackupDesc: (String, String) -> String
+    val settingsBackupBtn: String
+    val settingsRestoreBtn: String
+    val settingsSecuritySection: String
+    val settingsRootDetected: (String) -> String
+    val settingsNoRootDetected: String
+    val settingsPlayIntegrityLine: (String, String) -> String
+    val settingsHardeningInfo: String
+    val settingsVerifySecurityBtn: String
+    val settingsAboutSection: String
+    val settingsAboutTagline: String
+    val settingsAboutDesc: String
 
     // Security statuses
-    val integrityCheckingLabel: String,
-    val integrityCheckingDetail: String,
-    val integrityVerifiedLabel: String,
-    val integrityVerifiedDetail: String,
-    val integrityAvailableLabel: String,
-    val integrityAvailableDetail: String,
-    val integrityUnavailableLabel: String,
-    val integrityUnavailableDetail: String,
-    val integrityErrorLabel: String,
-    val integrityErrorDetail: String,
+    val integrityCheckingLabel: String
+    val integrityCheckingDetail: String
+    val integrityVerifiedLabel: String
+    val integrityVerifiedDetail: String
+    val integrityAvailableLabel: String
+    val integrityAvailableDetail: String
+    val integrityUnavailableLabel: String
+    val integrityUnavailableDetail: String
+    val integrityErrorLabel: String
+    val integrityErrorDetail: String
 
     // Backup & Restore Dialog
-    val backupDoneTitle: String,
-    val restoreDoneTitle: String,
-    val backupChooseDestTitle: String,
-    val restoreChooseDestTitle: String,
-    val backupLocalPermTitle: String,
-    val backupEncryptTitle: String,
-    val restorePickFileTitle: String,
-    val restoreDecryptTitle: String,
-    val backupBusyCreating: String,
-    val backupBusyRestoring: String,
-    val backupChooseDestPrompt: String,
-    val restoreChooseDestPrompt: String,
-    val backupLocalTitle: String,
-    val backupLocalSubtitle: (String) -> String,
-    val backupDriveTitle: String,
-    val backupDriveSubtitle: String,
-    val backupLocalPermBody: (String) -> String,
-    val backupGrantFolderBtn: String,
-    val restorePickManualBtn: String,
-    val backupTargetDrivePath: String,
-    val backupTargetLocalPath: (String) -> String,
-    val backupEnterPassPrompt: (String) -> String,
-    val backupPassLabel: String,
-    val backupConfirmPassLabel: String,
-    val restoreFolderHintDrive: String,
-    val restoreFolderHintLocal: (String) -> String,
-    val restoreRefreshListDesc: String,
-    val restoreNoFilesFound: String,
-    val restoreBrowseOtherBtn: String,
-    val restoreWarningBody: (String) -> String,
-    val restorePassLabel: String,
-    val backupEnterAppBtn: String,
-    val backupDoneBtn: String,
-    val backupCreateActionBtn: String,
-    val restoreActionBtn: String,
-    val dialogBackBtn: String,
-    val dialogCloseBtn: String,
-    val passHideDesc: String,
-    val passShowDesc: String,
-    val backupMetaFallback: String,
-    val backupMetaEncrypted: String,
-    val backupErrorMinLength: String,
-    val backupErrorMismatch: String,
-    val backupErrorEnterPassRestore: String,
+    val backupDoneTitle: String
+    val restoreDoneTitle: String
+    val backupChooseDestTitle: String
+    val restoreChooseDestTitle: String
+    val backupLocalPermTitle: String
+    val backupEncryptTitle: String
+    val restorePickFileTitle: String
+    val restoreDecryptTitle: String
+    val backupBusyCreating: String
+    val backupBusyRestoring: String
+    val backupChooseDestPrompt: String
+    val restoreChooseDestPrompt: String
+    val backupLocalTitle: String
+    val backupLocalSubtitle: (String) -> String
+    val backupDriveTitle: String
+    val backupDriveSubtitle: String
+    val backupLocalPermBody: (String) -> String
+    val backupGrantFolderBtn: String
+    val restorePickManualBtn: String
+    val backupTargetDrivePath: String
+    val backupTargetLocalPath: (String) -> String
+    val backupEnterPassPrompt: (String) -> String
+    val backupPassLabel: String
+    val backupConfirmPassLabel: String
+    val restoreFolderHintDrive: String
+    val restoreFolderHintLocal: (String) -> String
+    val restoreRefreshListDesc: String
+    val restoreNoFilesFound: String
+    val restoreBrowseOtherBtn: String
+    val restoreWarningBody: (String) -> String
+    val restorePassLabel: String
+    val backupEnterAppBtn: String
+    val backupDoneBtn: String
+    val backupCreateActionBtn: String
+    val restoreActionBtn: String
+    val dialogBackBtn: String
+    val dialogCloseBtn: String
+    val passHideDesc: String
+    val passShowDesc: String
+    val backupMetaFallback: String
+    val backupMetaEncrypted: String
+    val backupErrorMinLength: String
+    val backupErrorMismatch: String
+    val backupErrorEnterPassRestore: String
 
     // ViewModel Messages
-    val vmSecurityWarningNotifyRoot: String,
-    val vmSecurityCleanNotify: (String) -> String,
-    val vmSecurityWarningStartupRoot: String,
-    val vmWatchlistAdded: (String) -> String,
-    val vmWatchlistRemoved: (String) -> String,
-    val vmStatusUpdated: (String) -> String,
-    val vmEpisodeWatched: (Int) -> String,
-    val vmEpisodeUnwatched: (Int) -> String,
-    val vmReminderEnabled: (String, Int) -> String,
-    val vmReminderDisabled: (String) -> String,
-    val vmAlertScheduled: (Int, String) -> String,
-    val vmAlertDisabled: String,
-    val vmTestNotifSent: (String) -> String,
-    val vmRatingSaved: (Int) -> String,
-    val vmRatingRemoved: String,
-    val vmCacheCleared: String,
-    val vmLocalPermCancelled: String,
-    val vmLocalFolderPrepFailed: (String) -> String,
-    val vmLocalPermRequired: (String) -> String,
-    val vmLocalBackupSuccess: (String, String, Int, Int, Int) -> String,
-    val vmLocalBackupToast: String,
-    val vmLocalBackupError: String,
-    val vmLocalListError: String,
-    val vmRestoreSuccess: (Int, Int, Int, Int) -> String,
-    val vmRestoreToast: String,
-    val vmRestoreError: String,
-    val vmDriveAuthRequired: String,
-    val vmDriveBackupSuccess: (String, String, Int, Int) -> String,
-    val vmDriveBackupToast: String,
-    val vmDriveBackupError: String,
-    val vmDriveListError: String,
-    val vmDriveRestoreSuccess: (Int, Int, Int) -> String,
-    val vmDriveRestoreToast: String,
-    val vmDriveRestoreError: String,
+    val vmSecurityWarningNotifyRoot: String
+    val vmSecurityCleanNotify: (String) -> String
+    val vmSecurityWarningStartupRoot: String
+    val vmWatchlistAdded: (String) -> String
+    val vmWatchlistRemoved: (String) -> String
+    val vmStatusUpdated: (String) -> String
+    val vmEpisodeWatched: (Int) -> String
+    val vmEpisodeUnwatched: (Int) -> String
+    val vmReminderEnabled: (String, Int) -> String
+    val vmReminderDisabled: (String) -> String
+    val vmAlertScheduled: (Int, String) -> String
+    val vmAlertDisabled: String
+    val vmTestNotifSent: (String) -> String
+    val vmRatingSaved: (Int) -> String
+    val vmRatingRemoved: String
+    val vmCacheCleared: String
+    val vmLocalPermCancelled: String
+    val vmLocalFolderPrepFailed: (String) -> String
+    val vmLocalPermRequired: (String) -> String
+    val vmLocalBackupSuccess: (String, String, Int, Int, Int) -> String
+    val vmLocalBackupToast: String
+    val vmLocalBackupError: String
+    val vmLocalListError: String
+    val vmRestoreSuccess: (Int, Int, Int, Int) -> String
+    val vmRestoreToast: String
+    val vmRestoreError: String
+    val vmDriveAuthRequired: String
+    val vmDriveAuthCancelled: String
+    val vmDriveAuthDevError: String
+    val vmDriveAuthCodeError: (Int) -> String
+    val vmDriveBackupSuccess: (String, String, Int, Int) -> String
+    val vmDriveBackupToast: String
+    val vmDriveBackupError: String
+    val vmDriveListError: String
+    val vmDriveRestoreSuccess: (Int, Int, Int) -> String
+    val vmDriveRestoreToast: String
+    val vmDriveRestoreError: String
 
     // Notifications & Widgets
-    val notifChannelName: String,
-    val notifChannelDesc: String,
-    val notifTitleAiringNow: (String) -> String,
-    val notifTitleUpcoming: (String) -> String,
-    val notifBodyAiringNow: (Int, String, String) -> String,
-    val notifBodyUpcoming: (Int, String, Int) -> String,
-    val widgetCountLabel: String,
-    val widgetListHeader: String,
+    val notifChannelName: String
+    val notifChannelDesc: String
+    val notifTitleAiringNow: (String) -> String
+    val notifTitleUpcoming: (String) -> String
+    val notifBodyAiringNow: (Int, String, String) -> String
+    val notifBodyUpcoming: (Int, String, Int) -> String
+    val widgetCountLabel: String
+    val widgetListHeader: String
     val widgetListEmpty: String
-)
+}
 
-val LocalAppStrings = staticCompositionLocalOf { StringsEs }
+val LocalAppStrings = staticCompositionLocalOf<AppStrings> { StringsEs }
 val LocalAppLanguage = staticCompositionLocalOf { SynopsisLanguage.SPANISH }
 
 object AppLocalization {

@@ -25,8 +25,8 @@ import com.example.model.AnimeRelease
 import com.example.model.SynopsisLanguage
 import com.example.ui.AnimeUiState
 import com.example.ui.MainNavScreen
+import com.example.ui.OnboardingScreen
 import com.example.ui.SettingsScreen
-import com.example.ui.SplashScreen
 import com.example.ui.components.AniVexaBottomBar
 import com.example.ui.theme.AniVexaTheme
 import kotlinx.coroutines.runBlocking
@@ -61,7 +61,9 @@ class LocalizationTest {
             episode = 3,
             totalEpisodes = 12,
             airingAtSeconds = (System.currentTimeMillis() / 1000L) + 5400L,
-            genres = listOf("Acción", "Fantasía")
+            genres = listOf("Acción", "Fantasía"),
+            score = 8.4,
+            studio = "Madhouse"
         )
 
         val expectedNavHomes = mutableSetOf<String>()
@@ -72,7 +74,9 @@ class LocalizationTest {
             assertEquals(lang, SynopsisLanguage.fromCode(lang.code))
             assertTrue(s.navHome.isNotBlank())
             assertTrue(s.settingsTitle.isNotBlank())
+            assertTrue(s.onboardingTitle.isNotBlank())
             assertTrue(s.splashBackupTitle.isNotBlank())
+            assertTrue(s.vmDriveAuthDevError.isNotBlank())
             assertTrue(s.calendarEmptyDayTitle(s.calendarThisDay).isNotBlank())
             assertTrue(AppLocalization.genreLabel("Acción", s).isNotBlank())
             assertTrue(AppLocalization.countdown(sampleAnime, s).text.isNotBlank())
@@ -186,12 +190,12 @@ class LocalizationTest {
     }
 
     @Test
-    fun `SplashScreen backup announcement card reflects active global language`() {
+    fun `OnboardingScreen backup card reflects active global language`() {
         var currentLanguage by mutableStateOf(SynopsisLanguage.JAPANESE)
 
         composeRule.setContent {
             AniVexaTheme(appLanguage = currentLanguage) {
-                SplashScreen(onSplashFinished = {})
+                OnboardingScreen(onOnboardingFinished = {})
             }
         }
 
@@ -203,5 +207,13 @@ class LocalizationTest {
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Sauvegardes chiffrées (.avb)").assertIsDisplayed()
         composeRule.onNodeWithText("Restaurer").assertIsDisplayed()
+    }
+
+    @Test
+    fun `MainActivity launches cleanly without crashing across Splash and Onboarding`() {
+        val controller = org.robolectric.Robolectric.buildActivity(MainActivity::class.java).setup()
+        val activity = controller.get()
+        assertTrue(!activity.isFinishing)
+        controller.pause().stop().destroy()
     }
 }

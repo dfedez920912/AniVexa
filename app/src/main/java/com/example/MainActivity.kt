@@ -34,6 +34,7 @@ import com.example.ui.CalendarScreen
 import com.example.ui.HomeScreen
 import com.example.ui.MainNavScreen
 import com.example.ui.MyListScreen
+import com.example.ui.OnboardingScreen
 import com.example.ui.SearchScreen
 import com.example.ui.SeeAllCatalogScreen
 import com.example.ui.SeeAllMode
@@ -76,7 +77,11 @@ class MainActivity : ComponentActivity() {
                     GlassHostContainer(isGlass = isGlass) {
                         when {
                             showSplash -> {
-                                SplashScreen(
+                                SplashScreen(onSplashFinished = { showSplash = false })
+                            }
+
+                            !uiState.hasCompletedOnboarding -> {
+                                OnboardingScreen(
                                     uiState = uiState,
                                     onLocalTreeGranted = { viewModel.onLocalBackupTreeGranted(it) },
                                     onLoadLocalBackups = { viewModel.loadLocalBackups() },
@@ -86,15 +91,15 @@ class MainActivity : ComponentActivity() {
                                     onRequestDriveAccess = { onAuth, onNeedsRes ->
                                         viewModel.requestDriveAccess(onAuth, onNeedsRes)
                                     },
-                                    onDriveResolutionResult = { code, data, onAuth ->
-                                        viewModel.onDriveResolutionResult(code, data, onAuth)
+                                    onDriveResolutionResult = { code, data, onAuth, onNeedsRes ->
+                                        viewModel.onDriveResolutionResult(code, data, onAuth, onNeedsRes)
                                     },
                                     onLoadDriveBackups = { viewModel.loadDriveBackups() },
                                     onRestoreDriveBackup = { id, pass ->
                                         viewModel.restoreDriveBackup(id, pass)
                                     },
                                     onClearBackupMessages = { viewModel.clearBackupMessages() },
-                                    onSplashFinished = { showSplash = false }
+                                    onOnboardingFinished = { viewModel.completeOnboarding() }
                                 )
                             }
 
@@ -250,8 +255,8 @@ class MainActivity : ComponentActivity() {
                                                         onRequestDriveAccess = { onAuth, onNeedsRes ->
                                                             viewModel.requestDriveAccess(onAuth, onNeedsRes)
                                                         },
-                                                        onDriveResolutionResult = { code, data, onAuth ->
-                                                            viewModel.onDriveResolutionResult(code, data, onAuth)
+                                                        onDriveResolutionResult = { code, data, onAuth, onNeedsRes ->
+                                                            viewModel.onDriveResolutionResult(code, data, onAuth, onNeedsRes)
                                                         },
                                                         onCreateDriveBackup = { pass -> viewModel.createDriveBackup(pass) },
                                                         onLoadDriveBackups = { viewModel.loadDriveBackups() },

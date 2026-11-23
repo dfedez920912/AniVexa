@@ -1,3 +1,3 @@
-- New global language dropdown in Settings supporting Español, English, Français, and 日本語.
-- Instant full-app localization across navigation, Home, Calendar, My List, Search, Anime Details, encrypted .avb backup dialogs, notifications, and widgets.
-- Security cleanup and static analysis compliance improvements.
+- Clean main-branch Splash Screen plus a new interactive Onboarding screen featuring a highlighted encrypted (.avb) Backup & Restore card for personal database recovery.
+- Fixed Google Drive OAuth authorization error after consent in Settings and Restore (singleTop launchMode & automatic token retry).
+- Fixed startup crash (AppStrings ClassFormatError) and full-app global language switching (Español, English, Français, 日本語).
