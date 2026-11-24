@@ -1,4 +1,4 @@
-# AniVexa v0.1.7-beta.6
+# AniVexa v0.1.7
 
 ## Novedades y Correcciones de esta versión
 
