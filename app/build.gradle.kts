@@ -73,6 +73,8 @@ android {
     includeInApk = false
     includeInBundle = true
   }
+  ndkVersion = "28.2.13676358"
+  buildToolsVersion = "33.0.1"
 }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
