@@ -966,4 +966,49 @@ class ExampleRobolectricTest {
     assertTrue("Security check timestamp should be populated", report.checkedAtMillis > 0L)
     assertNotNull("Play Integrity status should be resolved safely", report.playIntegrityStatus)
   }
+
+  @Test
+  fun `test toggleEpisodeWithPriorWatched marks 1 to N and markAll clearAll toggle all episodes`(): Unit = runBlocking {
+    val animeId = 7777
+    val series = OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now()).first().copy(
+      id = animeId,
+      totalEpisodes = 12
+    )
+    repository.toggleWatchlist(series)
+
+    val marked10 = repository.toggleEpisodeWithPriorWatched(animeId, 10)
+    assertTrue("Selecting unwatched episode 10 should mark episodes 1..10", marked10)
+    var watchedKeys = repository.getWatchedEpisodeKeys()
+    (1..10).forEach { ep ->
+      assertTrue("Episode $ep should be marked watched", watchedKeys.contains("${animeId}_$ep"))
+    }
+    assertFalse("Episode 11 should remain unwatched", watchedKeys.contains("${animeId}_11"))
+    assertFalse("Episode 12 should remain unwatched", watchedKeys.contains("${animeId}_12"))
+
+    var saved = db.watchlistDao().getWatchlistItemById(animeId)!!
+    assertEquals(10, saved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, saved.statusEnum)
+
+    val unmarked10 = repository.toggleEpisodeWithPriorWatched(animeId, 10)
+    assertFalse("Re-tapping watched episode 10 should unmark episode 10", unmarked10)
+    watchedKeys = repository.getWatchedEpisodeKeys()
+    assertFalse(watchedKeys.contains("${animeId}_10"))
+    assertTrue(watchedKeys.contains("${animeId}_9"))
+    saved = db.watchlistDao().getWatchlistItemById(animeId)!!
+    assertEquals(9, saved.watchedEpisodes)
+
+    repository.markAllEpisodesWatched(animeId, 12)
+    watchedKeys = repository.getWatchedEpisodeKeys()
+    assertEquals(12, (1..12).count { ep -> watchedKeys.contains("${animeId}_$ep") })
+    saved = db.watchlistDao().getWatchlistItemById(animeId)!!
+    assertEquals(12, saved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.COMPLETED, saved.statusEnum)
+
+    repository.clearWatchedEpisodesForAnime(animeId)
+    watchedKeys = repository.getWatchedEpisodeKeys()
+    assertEquals(0, (1..12).count { ep -> watchedKeys.contains("${animeId}_$ep") })
+    saved = db.watchlistDao().getWatchlistItemById(animeId)!!
+    assertEquals(0, saved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.PLAN_TO_WATCH, saved.statusEnum)
+  }
 }

@@ -877,7 +877,17 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleWatchedEpisodeNum(animeId: Int, episodeNumber: Int) {
         viewModelScope.launch {
-            repository.toggleWatchedEpisode(animeId, episodeNumber)
+            repository.toggleEpisodeWithPriorWatched(animeId, episodeNumber)
+        }
+    }
+
+    fun setAllEpisodesWatched(animeId: Int, markAll: Boolean, totalEpisodes: Int) {
+        viewModelScope.launch {
+            if (markAll) {
+                repository.markAllEpisodesWatched(animeId, totalEpisodes)
+            } else {
+                repository.clearWatchedEpisodesForAnime(animeId)
+            }
         }
     }
 

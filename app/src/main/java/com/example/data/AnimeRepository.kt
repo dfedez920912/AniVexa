@@ -199,6 +199,28 @@ class AnimeRepository(
         result
     }
 
+    suspend fun toggleEpisodeWithPriorWatched(animeId: Int, episodeNumber: Int): Boolean = withContext(Dispatchers.IO) {
+        val targetEpisode = episodeNumber.coerceAtLeast(1)
+        val key = "${animeId}_${targetEpisode}"
+        val isAlreadyWatched = watchedEpisodeDao.isWatched(key)
+        val result = if (isAlreadyWatched) {
+            watchedEpisodeDao.unmarkWatched(key)
+            false
+        } else {
+            val entities = (1..targetEpisode).map { ep ->
+                WatchedEpisodeEntity(
+                    episodeKey = "${animeId}_$ep",
+                    animeId = animeId,
+                    episodeNumber = ep
+                )
+            }
+            watchedEpisodeDao.markAllWatched(entities)
+            true
+        }
+        syncWatchlistProgressWithWatchedEpisodes(animeId)
+        result
+    }
+
     private suspend fun syncWatchlistProgressWithWatchedEpisodes(animeId: Int) {
         watchlistDao.getWatchlistItemById(animeId)?.let { existing ->
             val watchedCount = watchedEpisodeDao.getWatchedCountForAnime(animeId)

@@ -129,6 +129,9 @@ class MainActivity : ComponentActivity() {
                                     onToggleWatchedEpisodeNum = { ep ->
                                         viewModel.toggleWatchedEpisodeNum(detailAnime.id, ep)
                                     },
+                                    onMarkAllEpisodes = { markAll, total ->
+                                        viewModel.setAllEpisodesWatched(detailAnime.id, markAll, total)
+                                    },
                                     onRatingChanged = { rating ->
                                         viewModel.setUserRating(detailAnime.id, rating)
                                     }

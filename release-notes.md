@@ -1,12 +1,11 @@
-# AniVexa v0.1.7
+# AniVexa v0.1.8-beta.1
 
-## Novedades y Correcciones de esta versión
+## Novedades de esta pre-release
 
-### Soporte Extendido de Java 8+ (Desugaring en Android 7.0+)
-- **Core Library Desugaring**: Habilitada la desazucaración de bibliotecas (`desugar_jdk_libs`) en Gradle para la API `java.time.*` (`LocalDate`, `YearMonth`, `DayOfWeek`, `ZoneId`), garantizando compatibilidad completa y eliminando errores de compilación/inspección en dispositivos con API < 26.
+### Seguimiento Rápido y Acumulativo de Episodios
+- **Botón "Marcar todos" / "Desmarcar todos"**: En la sección de seguimiento de episodios de la ficha del anime ahora dispones de un botón para marcar todos los capítulos como vistos de una sola vez (o desmarcarlos todos si ya están completos).
+- **Marcado acumulativo automático (`1..N`)**: Al pulsar sobre cualquier capítulo no visto (por ejemplo, el capítulo 10 de una serie de 12), se marcarán automáticamente como vistos todos los capítulos desde el 1 hasta ese capítulo seleccionado. Si pulsas sobre un capítulo ya marcado, se desmarca individualmente para permitir ajustes precisos.
+- **Sincronización con Mi Lista**: Tanto el marcado acumulativo como la acción de marcar/desmarcar todos actualizan automáticamente el contador de episodios vistos y el estado en tu Watchlist (`Viendo` / `Completado` / `Por ver`).
 
-### Corrección Visual del Splash Screen en Modo Claro
-- **Fondo Adaptativo del Splash Screen**: Corrección en `SplashScreen.kt` sustituyendo el degradado azul oscuro estático por `.screenBackdrop()`. Esto elimina la franja oscura en el centro de la pantalla en modo claro y asegura un contraste y legibilidad óptimos del texto.
-
-### Limpieza de Código y Optimizaciones
-- **Limpieza de Advertencias e Imports**: Removidos imports obsoletos y corregidas advertencias en `CalendarScreen`, `HomeScreen`, `SearchScreen`, `MyListScreen`, `AnimeDetailScreen`, `SettingsScreen`, `AnimePosterCard` y `AnimeViewModel`.
+### Mejoras Incluidas desde v0.1.7
+- **Adición automática a Watchlist con alertas**: Activar la campana de notificaciones desde cualquier tarjeta o desde la vista de detalle añade automáticamente el anime a tu Watchlist si aún no estaba guardado.

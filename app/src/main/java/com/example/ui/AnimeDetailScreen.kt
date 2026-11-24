@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,6 +47,8 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ClearAll
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsNone
@@ -140,6 +143,7 @@ fun AnimeDetailScreen(
     onToggleReminder: (Boolean, Int) -> Unit,
     onTestNotification: () -> Unit,
     onToggleWatchedEpisodeNum: (Int) -> Unit,
+    onMarkAllEpisodes: (Boolean, Int) -> Unit = { _, _ -> },
     onRatingChanged: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -749,7 +753,8 @@ fun AnimeDetailScreen(
                     totalEpisodes = anime.totalEpisodes,
                     effectiveEpisode = anime.effectiveEpisodeNumber(),
                     watchedEpisodeKeys = watchedEpisodeKeys,
-                    onToggleWatchedEpisodeNum = onToggleWatchedEpisodeNum
+                    onToggleWatchedEpisodeNum = onToggleWatchedEpisodeNum,
+                    onMarkAllEpisodes = onMarkAllEpisodes
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1059,7 +1064,8 @@ private fun EpisodeTrackerSection(
     totalEpisodes: Int?,
     effectiveEpisode: Int,
     watchedEpisodeKeys: Set<String>,
-    onToggleWatchedEpisodeNum: (Int) -> Unit
+    onToggleWatchedEpisodeNum: (Int) -> Unit,
+    onMarkAllEpisodes: (Boolean, Int) -> Unit
 ) {
     val s = LocalAppStrings.current
     val isGlass = LocalIsLiquidGlass.current
@@ -1074,6 +1080,7 @@ private fun EpisodeTrackerSection(
     val totalEpCount = metrics.displayEpisodeCount
     val watchedCount = metrics.watchedCount
     val progress = metrics.progress
+    val allWatched = totalEpCount > 0 && watchedCount >= totalEpCount
 
     Surface(
         shape = RoundedCornerShape(adaptiveCardCorner(14.dp, 20.dp)),
@@ -1113,6 +1120,42 @@ private fun EpisodeTrackerSection(
                     .clip(RoundedCornerShape(4.dp))
                     .testTag("detail_episode_progress_bar")
             )
+            Spacer(modifier = Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = { onMarkAllEpisodes(!allWatched, totalEpCount) },
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (allWatched) {
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                    } else {
+                        AniAiringGreenBright.copy(alpha = 0.7f)
+                    }
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (allWatched) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        AniAiringGreenBright
+                    }
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .testTag("detail_mark_all_episodes_btn")
+            ) {
+                Icon(
+                    imageVector = if (allWatched) Icons.Default.ClearAll else Icons.Default.DoneAll,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (allWatched) s.detailUnmarkAllEpisodesBtn else s.detailMarkAllEpisodesBtn,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
             Spacer(modifier = Modifier.height(10.dp))
 
             if (totalEpCount <= 18) {
