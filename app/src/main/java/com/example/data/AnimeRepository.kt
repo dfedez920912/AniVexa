@@ -83,22 +83,30 @@ class AnimeRepository(
             watchlistDao.deleteFromWatchlist(anime.id)
             false
         } else {
-            val watchedCount = watchedEpisodeDao.getWatchedCountForAnime(anime.id)
-            val total = anime.totalEpisodes
-            val resolvedStatus = when {
-                total != null && total > 0 && watchedCount >= total -> WatchlistStatus.COMPLETED
-                watchedCount > 0 -> WatchlistStatus.WATCHING
-                else -> status
-            }
-            watchlistDao.insertWatchlist(
-                WatchlistEntity.fromAnimeRelease(
-                    anime = anime,
-                    status = resolvedStatus,
-                    watchedEpisodes = watchedCount
-                )
-            )
+            ensureInWatchlist(anime, status)
             true
         }
+    }
+
+    private suspend fun ensureInWatchlist(
+        anime: AnimeRelease,
+        status: WatchlistStatus = WatchlistStatus.PLAN_TO_WATCH
+    ) {
+        if (watchlistDao.isInWatchlistDirect(anime.id)) return
+        val watchedCount = watchedEpisodeDao.getWatchedCountForAnime(anime.id)
+        val total = anime.totalEpisodes
+        val resolvedStatus = when {
+            total != null && total > 0 && watchedCount >= total -> WatchlistStatus.COMPLETED
+            watchedCount > 0 -> WatchlistStatus.WATCHING
+            else -> status
+        }
+        watchlistDao.insertWatchlist(
+            WatchlistEntity.fromAnimeRelease(
+                anime = anime,
+                status = resolvedStatus,
+                watchedEpisodes = watchedCount
+            )
+        )
     }
 
     suspend fun addOrUpdateWatchlistStatus(anime: AnimeRelease, status: WatchlistStatus) = withContext(Dispatchers.IO) {
@@ -227,6 +235,7 @@ class AnimeRepository(
                     minutesBefore = anime.reminderMinutesBefore
                 )
             )
+            ensureInWatchlist(anime)
             AnimeNotificationHelper.scheduleAnimeReminder(context, anime, anime.reminderMinutesBefore)
             true
         }
@@ -249,6 +258,7 @@ class AnimeRepository(
             favoriteAnimeDao.updateReminderMinutes(anime.id, minutesBefore)
         }
         if (enabled) {
+            ensureInWatchlist(anime)
             AnimeNotificationHelper.scheduleAnimeReminder(context, anime, minutesBefore)
         } else {
             AnimeNotificationHelper.cancelAnimeReminder(context, anime.id)
