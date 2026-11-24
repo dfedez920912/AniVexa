@@ -3,7 +3,6 @@ package com.example.ui
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -39,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.example.i18n.LocalAppStrings
 import com.example.ui.theme.LocalIsLiquidGlass
 import com.example.ui.theme.glassCardBorder
+import com.example.ui.theme.screenBackdrop
 import cu.daniel.anical.R
 import kotlinx.coroutines.delay
 
@@ -46,11 +45,11 @@ import kotlinx.coroutines.delay
 fun SplashScreen(onSplashFinished: () -> Unit) {
     val isGlass = LocalIsLiquidGlass.current
     val s = LocalAppStrings.current
-    var startAnimation by remember { mutableStateOf(false) }
+    var startAnimation by remember { mutableStateOf(value = false) }
     val alphaAnim by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
         animationSpec = tween(durationMillis = 550),
-        label = "splash_alpha"
+        label = "splash_alpha",
     )
 
     LaunchedEffect(Unit) {
@@ -64,15 +63,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
     } else {
         Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        Color(0xFF0E1525),
-                        MaterialTheme.colorScheme.background
-                    )
-                )
-            )
+            .screenBackdrop()
     }
 
     Box(

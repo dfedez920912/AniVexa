@@ -1,7 +1,6 @@
 package com.example.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -86,7 +85,7 @@ import com.example.ui.theme.glassCardBorder
 import com.example.ui.theme.screenBackdrop
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.TextStyle
 
 @Composable
@@ -104,10 +103,10 @@ fun CalendarScreen(
     onToggleWatched: (AnimeRelease) -> Unit,
     onToggleReminder: (AnimeRelease) -> Unit,
     onGoToMyList: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val s = LocalAppStrings.current
-    var showFilters by remember { mutableStateOf(false) }
+    var showFilters by remember { mutableStateOf(value = false) }
 
     Column(
         modifier = modifier
@@ -537,7 +536,7 @@ private fun WeekDayCell(
                 }
             )
             Text(
-                text = "${tab.dayOfMonth}",
+                text = tab.dayOfMonth.toString(),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
@@ -572,7 +571,7 @@ private fun MonthCalendarContent(
     val leadingBlanks = (firstDayOfMonth.dayOfWeek.value - 1).coerceIn(0, 6)
     val daysInMonth = month.lengthOfMonth()
 
-    val pool = if (uiState.monthReleases.isNotEmpty()) uiState.monthReleases else uiState.scheduleReleases
+    val pool = uiState.monthReleases.ifEmpty { uiState.scheduleReleases }
     val countsByDate = remember(pool, uiState.activeZoneId) {
         pool.groupBy { it.getAiringLocalDate(uiState.activeZoneId) }.mapValues { it.value.size }
     }
@@ -788,7 +787,7 @@ private fun ListCalendarContent(
 @Composable
 private fun ScheduleListRowCard(
     anime: AnimeRelease,
-    zoneId: java.time.ZoneId,
+    zoneId: ZoneId,
     onClick: () -> Unit,
     onToggleWatched: () -> Unit,
     onToggleReminder: () -> Unit,

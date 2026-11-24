@@ -1,10 +1,12 @@
-# AniVexa v0.1.7-beta.5
+# AniVexa v0.1.7-beta.6
 
 ## Novedades y Correcciones de esta versión
 
-### Gestión de Fondos de Pantalla por Tema (Portrait y Landscape)
-- **AniVexa Dark**: Aplicación correcta del fondo de pantalla oscuro en formato vertical (`drawable-night/bg_wallpaper.png`) y horizontal (`drawable-land-night/bg_wallpaper.png`).
-- **OLED Midnight**: Soporte completo para fondo oscuro en ambos modos de orientación (vertical y horizontal).
-- **Liquid Glass**: Integración del fondo de pantalla oscuro/nocturno correspondiente (`drawable-night` y `drawable-land-night`) manteniendo los efectos de cristal líquido y dock flotante.
-- **Claro Limpio**: Uso exclusivo del fondo de pantalla claro (`drawable/bg_wallpaper.png` en vertical y `drawable-land/bg_wallpaper.png` en horizontal).
-- **Sistema**: Detección dinámica y automática según las preferencias del sistema operativo.
+### Soporte Extendido de Java 8+ (Desugaring en Android 7.0+)
+- **Core Library Desugaring**: Habilitada la desazucaración de bibliotecas (`desugar_jdk_libs`) en Gradle para la API `java.time.*` (`LocalDate`, `YearMonth`, `DayOfWeek`, `ZoneId`), garantizando compatibilidad completa y eliminando errores de compilación/inspección en dispositivos con API < 26.
+
+### Corrección Visual del Splash Screen en Modo Claro
+- **Fondo Adaptativo del Splash Screen**: Corrección en `SplashScreen.kt` sustituyendo el degradado azul oscuro estático por `.screenBackdrop()`. Esto elimina la franja oscura en el centro de la pantalla en modo claro y asegura un contraste y legibilidad óptimos del texto.
+
+### Limpieza de Código y Optimizaciones
+- **Limpieza de Advertencias e Imports**: Removidos imports obsoletos y corregidas advertencias en `CalendarScreen`, `HomeScreen`, `SearchScreen`, `MyListScreen`, `AnimeDetailScreen`, `SettingsScreen`, `AnimePosterCard` y `AnimeViewModel`.

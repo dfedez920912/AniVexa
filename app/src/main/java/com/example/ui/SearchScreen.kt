@@ -1,8 +1,6 @@
 package com.example.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -78,7 +76,7 @@ fun SearchScreen(
     onClearFilters: () -> Unit,
     onAnimeClick: (AnimeRelease) -> Unit,
     onToggleReminder: (AnimeRelease) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
     val s = LocalAppStrings.current
@@ -223,7 +221,7 @@ fun SearchScreen(
                     ) {
                         item {
                             FilterChip(
-                                selected = uiState.searchSeason == null && uiState.searchYear == null,
+                                selected = (uiState.searchSeason == null) && (uiState.searchYear == null),
                                 onClick = {
                                     onSelectSeason(null)
                                     onSelectYear(null)
@@ -246,7 +244,7 @@ fun SearchScreen(
                             FilterChip(
                                 selected = uiState.searchYear == yr,
                                 onClick = { onSelectYear(if (uiState.searchYear == yr) null else yr) },
-                                label = { Text("$yr", fontSize = 11.sp) },
+                                label = { Text(yr.toString(), fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                     selectedLabelColor = MaterialTheme.colorScheme.primary

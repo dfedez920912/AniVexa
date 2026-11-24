@@ -1,6 +1,5 @@
 package com.example.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -221,7 +220,7 @@ fun AnimePosterCard(
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
-                            text = String.format("%.1f", anime.score),
+                            text = String.format(java.util.Locale.US, "%.1f", anime.score),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = AniGold

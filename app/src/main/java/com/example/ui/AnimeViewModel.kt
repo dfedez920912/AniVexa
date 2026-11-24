@@ -55,7 +55,6 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
-import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 enum class MainNavScreen(val title: String) {
