@@ -1,13 +1,10 @@
-# AniVexa v0.1.7-beta.4
+# AniVexa v0.1.7-beta.5
 
-## Novedades de esta versión
+## Novedades y Correcciones de esta versión
 
-### Pack de Iconos Ilustrados AniVexa V3 (Nuevos Gráficos)
-- **Iconografía temática de anime**: Integración del paquete oficial de 41 iconos ilustrados AniVexa V3.
-- **Barra de Navegación Inferior**: Reemplazo de los iconos estándar por ilustraciones detalladas en las pestañas de Inicio, Calendario, Mi Lista, Búsqueda y Ajustes.
-- **Pantalla de Ajustes**: Tarjetas de configuración (Notificaciones, Horario y Idioma, Apariencia, Almacenamiento, Respaldo, Seguridad y Acerca de) actualizadas con sus respectivos iconos ilustrados temáticos.
-
-### Optimizaciones previas
-- **Campana de notificaciones en tarjetas**: Acceso rápido directo en pósteres y lista de seguimiento.
-- **Idioma de sinopsis centralizado**: Gestión unificada desde Ajustes.
-- **Respaldo en Google Drive**: Autorización OAuth robusta y estable.
+### Gestión de Fondos de Pantalla por Tema (Portrait y Landscape)
+- **AniVexa Dark**: Aplicación correcta del fondo de pantalla oscuro en formato vertical (`drawable-night/bg_wallpaper.png`) y horizontal (`drawable-land-night/bg_wallpaper.png`).
+- **OLED Midnight**: Soporte completo para fondo oscuro en ambos modos de orientación (vertical y horizontal).
+- **Liquid Glass**: Integración del fondo de pantalla oscuro/nocturno correspondiente (`drawable-night` y `drawable-land-night`) manteniendo los efectos de cristal líquido y dock flotante.
+- **Claro Limpio**: Uso exclusivo del fondo de pantalla claro (`drawable/bg_wallpaper.png` en vertical y `drawable-land/bg_wallpaper.png` en horizontal).
+- **Sistema**: Detección dinámica y automática según las preferencias del sistema operativo.

@@ -1,5 +1,6 @@
 package com.example.ui.theme
 
+import android.content.res.Configuration
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -16,19 +17,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.model.AppThemeMode
 
 val LocalIsLiquidGlass = staticCompositionLocalOf { false }
+val LocalAppThemeMode = staticCompositionLocalOf { AppThemeMode.ANIVEXA_DARK }
 val LocalBottomDockPadding = staticCompositionLocalOf { 0.dp }
 
 /**
@@ -135,11 +143,44 @@ fun LiquidGlassBackdrop(
 
 /**
  * Transparent screen background in Liquid Glass mode so the global ambient prism mesh shows through;
- * standard MaterialTheme background otherwise.
+ * wallpaper background with automatic dark/light and portrait/landscape orientation support otherwise.
  */
 fun Modifier.screenBackdrop(): Modifier = composed {
-    if (LocalIsLiquidGlass.current) {
-        this.background(Color.Transparent)
+    val context = LocalContext.current
+    val themeMode = LocalAppThemeMode.current
+    val systemDark = isSystemInDarkTheme()
+
+    val forceDark = when (themeMode) {
+        AppThemeMode.ANIVEXA_DARK, AppThemeMode.OLED, AppThemeMode.LIQUID_GLASS -> true
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.SYSTEM -> systemDark
+    }
+
+    val themedContext = remember(context, forceDark) {
+        val config = Configuration(context.resources.configuration)
+        config.uiMode = if (forceDark) {
+            (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or Configuration.UI_MODE_NIGHT_YES
+        } else {
+            (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or Configuration.UI_MODE_NIGHT_NO
+        }
+        context.createConfigurationContext(config)
+    }
+
+    val resId = remember(themedContext) {
+        themedContext.resources.getIdentifier("bg_wallpaper", "drawable", themedContext.packageName)
+    }
+
+    if (resId != 0) {
+        val painter = coil.compose.rememberAsyncImagePainter(
+            model = coil.request.ImageRequest.Builder(themedContext)
+                .data(resId)
+                .crossfade(false)
+                .build()
+        )
+        this.paint(
+            painter = painter,
+            contentScale = ContentScale.Crop
+        )
     } else {
         this.background(MaterialTheme.colorScheme.background)
     }

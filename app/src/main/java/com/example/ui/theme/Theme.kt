@@ -128,6 +128,7 @@ fun AniVexaTheme(
     val strings = AppLocalization.stringsFor(appLanguage)
     CompositionLocalProvider(
         LocalIsLiquidGlass provides isLiquidGlass,
+        LocalAppThemeMode provides themeMode,
         LocalAppStrings provides strings,
         LocalAppLanguage provides appLanguage
     ) {
