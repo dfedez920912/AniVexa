@@ -87,6 +87,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -94,6 +95,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import cu.daniel.anical.R
 import com.example.i18n.AppLocalization
 import com.example.i18n.LocalAppLanguage
 import com.example.i18n.LocalAppStrings
@@ -138,6 +140,7 @@ fun AnimeDetailScreen(
     defaultReminderMinutes: Int,
     zoneId: ZoneId,
     onBack: () -> Unit,
+    onGoHome: () -> Unit = {},
     onRelatedAnimeClick: (RelatedAnimeItem) -> Unit = {},
     onToggleWatchlist: () -> Unit,
     onToggleReminder: (Boolean, Int) -> Unit,
@@ -269,23 +272,48 @@ fun AnimeDetailScreen(
                     val overlayCircleColor = if (isGlass) Color(0x70101D33) else Color.Black.copy(alpha = 0.55f)
                     val overlayCircleBorder = if (isGlass) glassCardBorder(highContrast = true) else null
 
-                    Surface(
-                        shape = CircleShape,
-                        color = overlayCircleColor,
-                        border = overlayCircleBorder,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = onBack)
-                            .testTag("detail_back_button")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = s.backContentDesc,
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
-                            )
+                        Surface(
+                            shape = CircleShape,
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onBack)
+                                .testTag("detail_back_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = s.backContentDesc,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = CircleShape,
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onGoHome)
+                                .testTag("detail_home_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_anime_home_filled),
+                                    contentDescription = s.navHome,
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
                     }
 

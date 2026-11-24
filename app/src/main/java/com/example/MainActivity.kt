@@ -120,6 +120,7 @@ class MainActivity : ComponentActivity() {
                                     defaultReminderMinutes = uiState.defaultReminderMinutes,
                                     zoneId = uiState.activeZoneId,
                                     onBack = { viewModel.closeDetail() },
+                                    onGoHome = { viewModel.navigateHomeFromDetail() },
                                     onRelatedAnimeClick = { viewModel.openRelatedDetail(it) },
                                     onToggleWatchlist = { viewModel.toggleWatchlist(detailAnime) },
                                     onToggleReminder = { enabled, mins ->
@@ -127,10 +128,10 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onTestNotification = { viewModel.testEpisodeNotification(detailAnime) },
                                     onToggleWatchedEpisodeNum = { ep ->
-                                        viewModel.toggleWatchedEpisodeNum(detailAnime.id, ep)
+                                        viewModel.toggleWatchedEpisodeNum(detailAnime.id, ep, detailAnime)
                                     },
                                     onMarkAllEpisodes = { markAll, total ->
-                                        viewModel.setAllEpisodesWatched(detailAnime.id, markAll, total)
+                                        viewModel.setAllEpisodesWatched(detailAnime.id, markAll, total, detailAnime)
                                     },
                                     onRatingChanged = { rating ->
                                         viewModel.setUserRating(detailAnime.id, rating)

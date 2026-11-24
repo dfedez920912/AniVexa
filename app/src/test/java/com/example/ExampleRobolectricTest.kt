@@ -1011,4 +1011,75 @@ class ExampleRobolectricTest {
     assertEquals(0, saved.watchedEpisodes)
     assertEquals(com.example.data.local.WatchlistStatus.PLAN_TO_WATCH, saved.statusEnum)
   }
+
+  @Test
+  fun `test marking episode or all episodes automatically adds anime to watchlist`(): Unit = runBlocking {
+    val base = OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now()).first()
+
+    // Case 1: Marking a single/cumulative episode from detail auto-adds to watchlist as WATCHING
+    val epAnime = base.copy(id = 8801, totalEpisodes = 12)
+    assertFalse(repository.isInWatchlist(epAnime.id))
+    repository.toggleEpisodeWithPriorWatched(epAnime.id, 5, anime = epAnime)
+    assertTrue("Anime should be auto-added to watchlist on episode mark", repository.isInWatchlist(epAnime.id))
+    val epSaved = db.watchlistDao().getWatchlistItemById(epAnime.id)!!
+    assertEquals(5, epSaved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, epSaved.statusEnum)
+
+    // Case 2: Pressing Mark All auto-adds to watchlist as COMPLETED
+    val allAnime = base.copy(id = 8802, totalEpisodes = 12)
+    assertFalse(repository.isInWatchlist(allAnime.id))
+    repository.markAllEpisodesWatched(allAnime.id, 12, anime = allAnime)
+    assertTrue("Anime should be auto-added to watchlist on mark all", repository.isInWatchlist(allAnime.id))
+    val allSaved = db.watchlistDao().getWatchlistItemById(allAnime.id)!!
+    assertEquals(12, allSaved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.COMPLETED, allSaved.statusEnum)
+
+    // Case 3: Card quick-watch toggle auto-adds to watchlist
+    val cardAnime = base.copy(id = 8803, episode = 2, totalEpisodes = 12)
+    assertFalse(repository.isInWatchlist(cardAnime.id))
+    repository.toggleWatchedEpisode(cardAnime.id, 2, anime = cardAnime)
+    assertTrue("Anime should be auto-added to watchlist on quick watch toggle", repository.isInWatchlist(cardAnime.id))
+    val cardSaved = db.watchlistDao().getWatchlistItemById(cardAnime.id)!!
+    assertEquals(1, cardSaved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, cardSaved.statusEnum)
+  }
+
+  @Test
+  fun `test navigateHomeFromDetail clears related stack and returns to Home`() {
+    val application = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val viewModel = com.example.ui.AnimeViewModel(application)
+    val firstAnime = OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now()).first()
+
+    viewModel.setNavScreen(com.example.ui.MainNavScreen.SEARCH)
+    viewModel.openDetail(firstAnime)
+    assertEquals(firstAnime.id, viewModel.uiState.value.selectedAnimeForDetail?.id)
+
+    val related = com.example.model.RelatedAnimeItem(
+      id = firstAnime.id + 500,
+      relationType = "SEQUEL",
+      relationLabelEs = "Secuela",
+      titleRomaji = "Related Sequel",
+      titleEnglish = "Related Sequel",
+      coverImageUrl = "https://example.com/rel.jpg",
+      format = "TV",
+      status = "RELEASING",
+      totalEpisodes = 12,
+      seasonYear = 2026,
+      score = 8.5
+    )
+    viewModel.openRelatedDetail(related)
+    assertEquals(related.id, viewModel.uiState.value.selectedAnimeForDetail?.id)
+
+    // Back pops one level to the previous detail card
+    viewModel.closeDetail()
+    assertEquals(firstAnime.id, viewModel.uiState.value.selectedAnimeForDetail?.id)
+
+    // Go to related again, then click Home to jump straight back to Home screen
+    viewModel.openRelatedDetail(related)
+    viewModel.navigateHomeFromDetail()
+
+    org.junit.Assert.assertNull(viewModel.uiState.value.selectedAnimeForDetail)
+    assertEquals(com.example.ui.MainNavScreen.HOME, viewModel.uiState.value.currentNavScreen)
+    assertEquals(com.example.ui.SeeAllMode.NONE, viewModel.uiState.value.seeAllMode)
+  }
 }

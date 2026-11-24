@@ -310,6 +310,7 @@ class LocalizationTest {
         )
         var watchedKeys by mutableStateOf(emptySet<String>())
         val markAllCalls = mutableListOf<Pair<Boolean, Int>>()
+        var goHomeCalls = 0
         val sEs = AppLocalization.stringsFor(SynopsisLanguage.SPANISH)
 
         composeRule.setContent {
@@ -323,6 +324,7 @@ class LocalizationTest {
                     defaultReminderMinutes = 15,
                     zoneId = java.time.ZoneId.of("UTC"),
                     onBack = {},
+                    onGoHome = { goHomeCalls++ },
                     onToggleWatchlist = {},
                     onToggleReminder = { _, _ -> },
                     onTestNotification = {},
@@ -347,6 +349,12 @@ class LocalizationTest {
         }
 
         composeRule.waitForIdle()
+        composeRule.onNodeWithTag("detail_back_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("detail_home_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("detail_home_button").performClick()
+        composeRule.waitForIdle()
+        assertEquals(1, goHomeCalls)
+
         composeRule.onNodeWithTag("detail_mark_all_episodes_btn").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(sEs.detailMarkAllEpisodesBtn, useUnmergedTree = true).assertIsDisplayed()
 
