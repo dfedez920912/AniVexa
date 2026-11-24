@@ -67,6 +67,7 @@ android {
   buildFeatures {
     compose = true
     buildConfig = true
+    viewBinding = false
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
   dependenciesInfo {
