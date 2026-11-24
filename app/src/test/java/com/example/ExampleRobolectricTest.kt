@@ -105,21 +105,24 @@ class ExampleRobolectricTest {
     val schedule = OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now())
     val targetAnime = schedule.first()
 
-    // Initially should not be favorite
+    // Initially should not be favorite or in watchlist
     assertFalse(repository.isFavorite(targetAnime.id))
+    assertFalse(repository.isInWatchlist(targetAnime.id))
 
-    // Toggle favorite -> should be added to Room
+    // Toggle favorite (card bell icon) -> should be added to favorites AND auto-added to watchlist
     val isAdded = repository.toggleFavorite(targetAnime)
     assertTrue(isAdded)
     assertTrue(repository.isFavorite(targetAnime.id))
+    assertTrue("Enabling reminder from card must auto-add to watchlist", repository.isInWatchlist(targetAnime.id))
 
     val favList = db.favoriteAnimeDao().getFavoriteIdsList()
     assertTrue(favList.contains(targetAnime.id))
 
-    // Toggle favorite again -> should be removed from Room
+    // Toggle favorite off -> removes reminder but keeps watchlist entry intact
     val isRemoved = repository.toggleFavorite(targetAnime)
     assertFalse(isRemoved)
     assertFalse(repository.isFavorite(targetAnime.id))
+    assertTrue("Disabling reminder must not delete watchlist entry", repository.isInWatchlist(targetAnime.id))
   }
 
   @Test
@@ -132,16 +135,18 @@ class ExampleRobolectricTest {
     val channel = notificationManager.getNotificationChannel(AnimeNotificationHelper.CHANNEL_ID)
     assertNotNull("Notification channel should be created", channel)
 
-    // Test reminder update
+    // Test reminder update directly from detail screen (not previously in favorites or watchlist)
     val schedule = OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now())
-    val anime = schedule.first()
-    repository.toggleFavorite(anime)
+    val anime = schedule[1]
+    assertFalse(repository.isFavorite(anime.id))
+    assertFalse(repository.isInWatchlist(anime.id))
 
     repository.updateReminder(anime, enabled = true, minutesBefore = 30)
     val saved = db.favoriteAnimeDao().getFavoriteById(anime.id)
     assertNotNull(saved)
     assertTrue(saved!!.hasReminder)
     assertEquals(30, saved.reminderMinutesBefore)
+    assertTrue("Enabling reminder from detail must auto-add to watchlist", repository.isInWatchlist(anime.id))
   }
 
   @Test
