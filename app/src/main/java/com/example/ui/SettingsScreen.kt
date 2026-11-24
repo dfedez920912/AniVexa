@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.res.painterResource
+import cu.daniel.anical.R
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -147,7 +149,7 @@ fun SettingsScreen(
 
         // Notifications Section
         item {
-            SettingsCard(title = s.settingsNotifSection, icon = Icons.Default.NotificationsActive) {
+            SettingsCard(title = s.settingsNotifSection, icon = R.drawable.ic_anime_notifications_active_filled) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -239,7 +241,7 @@ fun SettingsScreen(
 
         // Timezone & App Language Section
         item {
-            SettingsCard(title = s.settingsRegionLangSection, icon = Icons.Default.Public) {
+            SettingsCard(title = s.settingsRegionLangSection, icon = R.drawable.ic_anime_public_filled) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -353,7 +355,7 @@ fun SettingsScreen(
 
         // Appearance Section
         item {
-            SettingsCard(title = s.settingsAppearanceSection, icon = Icons.Default.Palette) {
+            SettingsCard(title = s.settingsAppearanceSection, icon = R.drawable.ic_anime_palette_filled) {
                 val isGlass = LocalIsLiquidGlass.current
                 AppThemeMode.entries.forEach { mode ->
                     val selected = uiState.appThemeMode == mode
@@ -385,7 +387,7 @@ fun SettingsScreen(
 
         // Offline Storage Section
         item {
-            SettingsCard(title = s.settingsOfflineSection, icon = Icons.Default.CloudDownload) {
+            SettingsCard(title = s.settingsOfflineSection, icon = R.drawable.ic_anime_cloud_download_filled) {
                 Text(
                     text = s.settingsCachedSeriesCount(uiState.cachedCount),
                     fontSize = 12.5.sp,
@@ -418,7 +420,7 @@ fun SettingsScreen(
 
         // Encrypted Backup & Restore Section (.avb)
         item {
-            SettingsCard(title = s.settingsBackupSection, icon = Icons.Default.Backup) {
+            SettingsCard(title = s.settingsBackupSection, icon = R.drawable.ic_anime_settings_filled) {
                 Text(
                     text = s.settingsBackupDesc(
                         LocalBackupStorage.BACKUP_FOLDER_NAME,
@@ -470,7 +472,7 @@ fun SettingsScreen(
         // Security & Device Integrity Section
         item {
             val sec = uiState.deviceSecurityReport
-            SettingsCard(title = s.settingsSecuritySection, icon = Icons.Default.Security) {
+            SettingsCard(title = s.settingsSecuritySection, icon = R.drawable.ic_anime_security_filled) {
                 Text(
                     text = if (sec.isRooted) {
                         s.settingsRootDetected(sec.rootIndicators.joinToString())
@@ -512,7 +514,7 @@ fun SettingsScreen(
 
         // About AniVexa
         item {
-            SettingsCard(title = s.settingsAboutSection, icon = Icons.Default.Info) {
+            SettingsCard(title = s.settingsAboutSection, icon = R.drawable.ic_anime_info_filled) {
                 Text(
                     text = s.settingsAboutTagline,
                     fontSize = 13.sp,
@@ -555,7 +557,7 @@ fun SettingsScreen(
 @Composable
 private fun SettingsCard(
     title: String,
-    icon: ImageVector,
+    icon: Int,
     content: @Composable () -> Unit
 ) {
     val corner = adaptiveCardCorner(standard = 16.dp, glass = 22.dp)
@@ -572,9 +574,9 @@ private fun SettingsCard(
                 modifier = Modifier.padding(bottom = 12.dp)
             ) {
                 Icon(
-                    imageVector = icon,
+                    painter = painterResource(id = icon),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = Color.Unspecified,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(

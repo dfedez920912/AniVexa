@@ -1,12 +1,13 @@
-# AniVexa v0.1.7-beta.3
+# AniVexa v0.1.7-beta.4
 
 ## Novedades de esta versión
 
-### Botón de campana de notificaciones en tarjetas (Home, Search, Calendar, My List)
-- **Recordatorios rápidos desde las tarjetas**: Añadido icono interactivo de campana directamente en las tarjetas de póster (Pantalla Principal, Búsqueda, Calendario) y en las tarjetas de la lista de seguimiento (Watchlist / Mi Lista), permitiendo activar o desactivar recordatorios de episodios sin necesidad de abrir la pantalla de detalles.
+### Pack de Iconos Ilustrados AniVexa V3 (Nuevos Gráficos)
+- **Iconografía temática de anime**: Integración del paquete oficial de 41 iconos ilustrados AniVexa V3.
+- **Barra de Navegación Inferior**: Reemplazo de los iconos estándar por ilustraciones detalladas en las pestañas de Inicio, Calendario, Mi Lista, Búsqueda y Ajustes.
+- **Pantalla de Ajustes**: Tarjetas de configuración (Notificaciones, Horario y Idioma, Apariencia, Almacenamiento, Respaldo, Seguridad y Acerca de) actualizadas con sus respectivos iconos ilustrados temáticos.
 
-### Selección de idioma de sinopsis centralizada
-- **Configuración exclusiva en Ajustes**: El idioma de las sinopsis se gestiona de forma unificada desde los Ajustes de la aplicación, eliminando los selectores locales en las tarjetas y manteniendo la coherencia visual en todo AniVexa.
-
-### Respaldo en Google Drive y estabilidad
-- **Autenticación OAuth robusta**: Estabilidad mejorada para respaldos y restauraciones cifradas `.avb` en Google Drive.
+### Optimizaciones previas
+- **Campana de notificaciones en tarjetas**: Acceso rápido directo en pósteres y lista de seguimiento.
+- **Idioma de sinopsis centralizado**: Gestión unificada desde Ajustes.
+- **Respaldo en Google Drive**: Autorización OAuth robusta y estable.

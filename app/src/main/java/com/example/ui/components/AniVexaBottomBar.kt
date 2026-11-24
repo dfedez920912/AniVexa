@@ -30,17 +30,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.ui.res.painterResource
+import cu.daniel.anical.R
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.HorizontalDivider
@@ -75,16 +66,16 @@ import com.example.ui.theme.LocalIsLiquidGlass
 
 private data class NavTabItem(
     val screen: MainNavScreen,
-    val filledIcon: ImageVector,
-    val outlinedIcon: ImageVector
+    val filledIcon: Int,
+    val outlinedIcon: Int
 )
 
 private val navTabItems = listOf(
-    NavTabItem(MainNavScreen.HOME, Icons.Filled.Home, Icons.Outlined.Home),
-    NavTabItem(MainNavScreen.CALENDAR, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
-    NavTabItem(MainNavScreen.MY_LIST, Icons.Filled.Bookmark, Icons.Outlined.BookmarkBorder),
-    NavTabItem(MainNavScreen.SEARCH, Icons.Filled.Search, Icons.Outlined.Search),
-    NavTabItem(MainNavScreen.SETTINGS, Icons.Filled.Settings, Icons.Outlined.Settings)
+    NavTabItem(MainNavScreen.HOME, R.drawable.ic_anime_home_filled, R.drawable.ic_anime_home_outlined),
+    NavTabItem(MainNavScreen.CALENDAR, R.drawable.ic_anime_calendar_month_filled, R.drawable.ic_anime_calendar_month_outlined),
+    NavTabItem(MainNavScreen.MY_LIST, R.drawable.ic_anime_bookmark_filled, R.drawable.ic_anime_bookmark_border_outlined),
+    NavTabItem(MainNavScreen.SEARCH, R.drawable.ic_anime_search_filled, R.drawable.ic_anime_search_outlined),
+    NavTabItem(MainNavScreen.SETTINGS, R.drawable.ic_anime_settings_filled, R.drawable.ic_anime_settings_outlined)
 )
 
 @Composable
@@ -404,7 +395,8 @@ private fun DockItemIcon(
     badgeContainerColor: Color,
     badgeContentColor: Color
 ) {
-    val iconVector = if (isSelected) item.filledIcon else item.outlinedIcon
+    val iconRes = if (isSelected) item.filledIcon else item.outlinedIcon
+    val painter = painterResource(id = iconRes)
     if (item.screen == MainNavScreen.MY_LIST && watchlistCount > 0) {
         BadgedBox(
             badge = {
@@ -421,18 +413,18 @@ private fun DockItemIcon(
             }
         ) {
             Icon(
-                imageVector = iconVector,
+                painter = painter,
                 contentDescription = label,
-                tint = tint,
-                modifier = Modifier.size(21.dp)
+                tint = Color.Unspecified,
+                modifier = Modifier.size(23.dp)
             )
         }
     } else {
         Icon(
-            imageVector = iconVector,
+            painter = painter,
             contentDescription = label,
-            tint = tint,
-            modifier = Modifier.size(21.dp)
+            tint = Color.Unspecified,
+            modifier = Modifier.size(23.dp)
         )
     }
 }

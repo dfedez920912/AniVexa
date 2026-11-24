@@ -1,0 +1,2 @@
+- Integración del paquete de iconos ilustrados AniVexa V3 en la barra de navegación inferior y en todas las tarjetas de la pantalla de Ajustes.
+- Mejoras de UI con ilustraciones temáticas de anime para una experiencia visual inmersiva.

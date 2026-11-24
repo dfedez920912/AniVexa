@@ -1,0 +1,2 @@
+- Integrated AniVexa V3 illustrated anime icon pack into the bottom navigation bar and settings screen cards.
+- Enhanced UI experience with themed illustrated icons across navigation and settings.
