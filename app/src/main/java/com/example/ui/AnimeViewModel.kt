@@ -704,6 +704,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                     bundle.anime.copy(
                         episode = if (anime.airingAtSeconds > 0L) anime.episode else bundle.anime.episode,
                         airingAtSeconds = if (anime.airingAtSeconds > 0L) anime.airingAtSeconds else bundle.anime.airingAtSeconds,
+                        bannerImageUrl = bundle.anime.bannerImageUrl ?: anime.bannerImageUrl,
                         synopsisEs = bundle.anime.synopsisEs.ifBlank { anime.synopsisEs },
                         synopsisFr = bundle.anime.synopsisFr.ifBlank { anime.synopsisFr },
                         synopsisJa = bundle.anime.synopsisJa.ifBlank { anime.synopsisJa },

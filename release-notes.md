@@ -1,13 +1,12 @@
-# AniVexa v0.1.8-beta.2
+# AniVexa v0.1.8-beta.4
 
-## Novedades de esta pre-release
+## Novedades y Correcciones de esta pre-release
 
-### Adición Automática a Watchlist desde Capítulos
-- **Sincronización al marcar episodios**: Seleccionar cualquier capítulo visto o pulsar el botón **"Marcar todos"** ahora añade automáticamente el anime a tu Watchlist (al igual que al activar notificaciones), manteniendo su estado actualizado (`Viendo` o `Completado`) y reflejando el progreso al instante.
+### Imagen de Fondo Superior en Detalles del Anime
+- **Fondo superior visible con arte distinto a la portada**: Se corrigió la cabecera de detalles para mostrar con claridad el banner del anime o, cuando no existe o falla, una imagen alternativa del mismo anime (miniaturas de episodios, tráiler oficial, obras relacionadas o personajes), con respaldo automático ante errores y manteniendo intactos los 4 botones superiores.
+- **Catálogo offline actualizado**: Se corrigieron los identificadores y URLs de portadas y banners en `OfflineAnimeData` para que coincidan con registros reales de AniList.
 
-### Acceso Directo a Inicio desde Detalles
-- **Botón de Inicio en la barra superior**: Junto al botón **Atrás** en la ficha del anime aparece un nuevo botón de **Inicio** con la iconografía de la página principal de la barra inferior. Permite volver directamente a la pantalla principal desde cualquier anime, incluso tras navegar entre varios animes relacionados.
-
-### Incluido desde v0.1.8-beta.1
-- **Botón "Marcar todos" / "Desmarcar todos"** y **marcado acumulativo (`1..N`)** en el seguimiento de episodios.
-- **Adición automática a Watchlist con alertas**: Activar la campana desde tarjetas o vista de detalle añade automáticamente el anime a tu Watchlist.
+### Incluido desde v0.1.8-beta.1, v0.1.8-beta.2 y v0.1.8-beta.3
+- **4 botones de acción en barra superior**: **Atrás** e **Inicio** a la izquierda, y **Notificaciones** y **Compartir** a la derecha con iconografía ilustrada V3.
+- **Adición automática a Watchlist** al marcar episodios vistos, pulsar **"Marcar todos"** o activar alertas de notificación.
+- **Marcado acumulativo (`1..N`)** y **botón "Marcar todos" / "Desmarcar todos"** en el seguimiento de episodios.

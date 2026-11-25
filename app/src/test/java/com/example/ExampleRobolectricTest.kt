@@ -1082,4 +1082,51 @@ class ExampleRobolectricTest {
     assertEquals(com.example.ui.MainNavScreen.HOME, viewModel.uiState.value.currentNavScreen)
     assertEquals(com.example.ui.SeeAllMode.NONE, viewModel.uiState.value.seeAllMode)
   }
+
+  @Test
+  fun `test AniListClient resolves bannerImage or falls back to streamingEpisodes or trailer thumbnail`() {
+    val client = com.example.data.AniListClient()
+
+    val withBanner = org.json.JSONObject("""
+      {
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21-wf37VakJmZqs.jpg",
+        "trailer": { "thumbnail": "https://i.ytimg.com/vi/abc/hqdefault.jpg" },
+        "streamingEpisodes": [{ "thumbnail": "https://img1.ak.crunchyroll.com/ep1.jpg" }]
+      }
+    """.trimIndent())
+    assertEquals(
+      "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21-wf37VakJmZqs.jpg",
+      client.resolveBannerImageUrl(withBanner)
+    )
+
+    val withEpisodeThumbOnly = org.json.JSONObject("""
+      {
+        "bannerImage": null,
+        "trailer": { "thumbnail": "https://i.ytimg.com/vi/abc/hqdefault.jpg" },
+        "streamingEpisodes": [{ "thumbnail": "https://img1.ak.crunchyroll.com/ep1.jpg" }]
+      }
+    """.trimIndent())
+    assertEquals(
+      "https://img1.ak.crunchyroll.com/ep1.jpg",
+      client.resolveBannerImageUrl(withEpisodeThumbOnly)
+    )
+
+    val withTrailerOnlyAndTab = org.json.JSONObject("""
+      {
+        "bannerImage": null,
+        "trailer": { "thumbnail": "http://i.ytimg.com/vi/LHtdKWJdif4\t/hqdefault.jpg" },
+        "streamingEpisodes": []
+      }
+    """.trimIndent())
+    assertEquals(
+      "https://i.ytimg.com/vi/LHtdKWJdif4/hqdefault.jpg",
+      client.resolveBannerImageUrl(withTrailerOnlyAndTab)
+    )
+
+    // Offline schedule items must all have distinct non-blank HTTPS cover and banner URLs
+    OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now()).forEach { item ->
+      assertTrue("Cover URL should be HTTPS for ${item.displayTitle}", item.coverImageUrl.startsWith("https://"))
+      assertTrue("Banner URL should be distinct HTTPS for ${item.displayTitle}", !item.bannerImageUrl.isNullOrBlank() && item.bannerImageUrl!!.startsWith("https://") && item.bannerImageUrl != item.coverImageUrl)
+    }
+  }
 }

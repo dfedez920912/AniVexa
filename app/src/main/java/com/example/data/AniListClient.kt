@@ -94,6 +94,9 @@ class AniListClient(
                       medium
                     }
                     bannerImage
+                    trailer {
+                      thumbnail
+                    }
                     description(asHtml: false)
                     genres
                     averageScore
@@ -188,6 +191,9 @@ class AniListClient(
                     medium
                   }
                   bannerImage
+                  trailer {
+                    thumbnail
+                  }
                   description(asHtml: false)
                   genres
                   averageScore
@@ -253,6 +259,9 @@ class AniListClient(
                     medium
                   }
                   bannerImage
+                  trailer {
+                    thumbnail
+                  }
                   description(asHtml: false)
                   genres
                   averageScore
@@ -343,6 +352,9 @@ class AniListClient(
                     medium
                   }
                   bannerImage
+                  trailer {
+                    thumbnail
+                  }
                   description(asHtml: false)
                   genres
                   averageScore
@@ -407,6 +419,12 @@ class AniListClient(
                   medium
                 }
                 bannerImage
+                trailer {
+                  thumbnail
+                }
+                streamingEpisodes {
+                  thumbnail
+                }
                 description(asHtml: false)
                 genres
                 averageScore
@@ -713,12 +731,12 @@ class AniListClient(
         val nativeTitle = titleObj?.optString("native")?.takeIf { it.isNotBlank() && it != "null" }
 
         val coverObj = media.optJSONObject("coverImage")
-        val coverUrl = coverObj?.optString("extraLarge")?.takeIf { it.isNotBlank() && it != "null" }
-            ?: coverObj?.optString("large")?.takeIf { it.isNotBlank() && it != "null" }
-            ?: coverObj?.optString("medium")?.takeIf { it.isNotBlank() && it != "null" }
+        val coverUrl = sanitizeImageUrl(coverObj?.optString("extraLarge"))
+            ?: sanitizeImageUrl(coverObj?.optString("large"))
+            ?: sanitizeImageUrl(coverObj?.optString("medium"))
             ?: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/default.jpg"
 
-        val bannerUrl = media.optString("bannerImage").takeIf { it.isNotBlank() && it != "null" }
+        val bannerUrl = resolveBannerImageUrl(media)
         val rawDescription = cleanDescription(media.optString("description", ""))
 
         val genresArray = media.optJSONArray("genres")
@@ -821,5 +839,30 @@ class AniListClient(
             .replace("&nbsp;", " ")
             .replace(Regex("\n{3,}"), "\n\n")
             .trim()
+    }
+
+    internal fun resolveBannerImageUrl(media: JSONObject): String? {
+        sanitizeImageUrl(media.optString("bannerImage"))?.let { return it }
+
+        val streamingEpisodes = media.optJSONArray("streamingEpisodes")
+        if (streamingEpisodes != null) {
+            for (i in 0 until streamingEpisodes.length()) {
+                val thumb = sanitizeImageUrl(streamingEpisodes.optJSONObject(i)?.optString("thumbnail"))
+                if (thumb != null) return thumb
+            }
+        }
+
+        return sanitizeImageUrl(media.optJSONObject("trailer")?.optString("thumbnail"))
+    }
+
+    private fun sanitizeImageUrl(raw: String?): String? {
+        val cleaned = raw?.replace(Regex("\\s+"), "")?.trim() ?: return null
+        if (cleaned.isBlank() || cleaned.equals("null", ignoreCase = true)) return null
+        val httpsUrl = if (cleaned.startsWith("http://", ignoreCase = true)) {
+            "https://" + cleaned.substring(7)
+        } else {
+            cleaned
+        }
+        return httpsUrl.takeIf { it.startsWith("https://", ignoreCase = true) }
     }
 }

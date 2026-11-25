@@ -76,6 +76,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -90,7 +91,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -205,42 +205,85 @@ fun AnimeDetailScreen(
                 .verticalScroll(scrollState)
                 .navigationBarsPadding()
         ) {
-            // Hero Poster/Banner matching Screenshot 1
+            // Hero Poster/Banner with distinct backdrop artwork & automatic fallback
+            val backdropCandidates = remember(
+                anime.id,
+                anime.bannerImageUrl,
+                anime.coverImageUrl,
+                relatedAnime,
+                characters
+            ) {
+                buildList {
+                    anime.bannerImageUrl
+                        ?.trim()
+                        ?.takeIf { it.isNotBlank() && it != "null" && it != anime.coverImageUrl }
+                        ?.let { add(it) }
+                    relatedAnime.firstOrNull {
+                        it.coverImageUrl.isNotBlank() && it.coverImageUrl != anime.coverImageUrl
+                    }?.coverImageUrl?.let { add(it) }
+                    characters.firstOrNull {
+                        !it.imageUrl.isNullOrBlank() && it.imageUrl != anime.coverImageUrl
+                    }?.imageUrl?.let { add(it) }
+                    if (anime.coverImageUrl.isNotBlank()) {
+                        add(anime.coverImageUrl)
+                    }
+                }.distinct()
+            }
+            var backdropCandidateIndex by remember(backdropCandidates) { mutableIntStateOf(0) }
+            val currentBackdropUrl = backdropCandidates.getOrNull(backdropCandidateIndex)
+            val isDistinctBackdrop = currentBackdropUrl != null && currentBackdropUrl != anime.coverImageUrl
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(310.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                // Backdrop image (parte trasera) - atmospheric blurred background
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(anime.bannerImageUrl ?: anime.coverImageUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(24.dp)
-                        .alpha(0.65f)
-                )
+                // Backdrop image (parte trasera) - muestra el banner u otra imagen del anime claramente
+                if (currentBackdropUrl != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(currentBackdropUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        onError = {
+                            if (backdropCandidateIndex < backdropCandidates.lastIndex) {
+                                backdropCandidateIndex++
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(
+                                if (isDistinctBackdrop) {
+                                    Modifier.alpha(0.92f)
+                                } else {
+                                    Modifier
+                                        .blur(8.dp)
+                                        .alpha(0.82f)
+                                }
+                            )
+                            .testTag("detail_backdrop_image")
+                    )
+                }
 
-                // Rich dark gradient scrim overlay
+                // Balanced gradient scrim for button & bottom-row legibility without hiding the artwork
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.Black.copy(alpha = 0.55f),
-                                    Color.Black.copy(alpha = 0.35f),
-                                    Color.Black.copy(alpha = 0.85f)
+                                    Color.Black.copy(alpha = 0.30f),
+                                    Color.Black.copy(alpha = 0.08f),
+                                    Color.Black.copy(alpha = 0.72f)
                                 )
                             )
                         )
                 )
 
-                // Top Overlay Controls (Back left, Close right)
+                // Top Overlay Controls (Back + Home left, Reminder + Share right)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -249,42 +292,122 @@ fun AnimeDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val overlayCircleColor = Color.Black.copy(alpha = 0.6f)
+                    val overlayCircleColor = if (isGlass) Color(0x70101D33) else Color.Black.copy(alpha = 0.6f)
+                    val overlayCircleBorder = if (isGlass) glassCardBorder(highContrast = true) else null
 
-                    Surface(
-                        shape = CircleShape,
-                        color = overlayCircleColor,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = onBack)
-                            .testTag("detail_back_button")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_anime_arrow_back_automirrored_filled),
-                                contentDescription = s.backContentDesc,
-                                modifier = Modifier.size(20.dp)
-                            )
+                        Surface(
+                            shape = CircleShape,
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onBack)
+                                .testTag("detail_back_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_arrow_back_automirrored_filled),
+                                    contentDescription = s.backContentDesc,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = CircleShape,
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onGoHome)
+                                .testTag("detail_home_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_home_filled),
+                                    contentDescription = s.navHome,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
                     }
 
-                    Surface(
-                        shape = CircleShape,
-                        color = overlayCircleColor,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = onBack)
-                            .testTag("detail_close_button")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "✕",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Surface(
+                            shape = CircleShape,
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    val next = !reminderEnabled
+                                    if (next) {
+                                        runWithNotificationPermission {
+                                            reminderEnabled = true
+                                            onToggleReminder(true, reminderMinutes)
+                                        }
+                                    } else {
+                                        reminderEnabled = false
+                                        onToggleReminder(false, reminderMinutes)
+                                    }
+                                }
+                                .testTag("detail_bell_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(
+                                        id = if (reminderEnabled) {
+                                            R.drawable.ic_anime_notifications_active_filled
+                                        } else {
+                                            R.drawable.ic_anime_notifications_none_filled
+                                        }
+                                    ),
+                                    contentDescription = s.detailAlertDesc,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = CircleShape,
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    val formattedDt = anime.getFormattedDateTimeShort(zoneId, s.noDateText)
+                                    val shareText = s.detailShareTemplate(
+                                        anime.displayTitle,
+                                        anime.effectiveEpisodeNumber(),
+                                        formattedDt
+                                    )
+                                    val sendIntent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                        type = "text/plain"
+                                    }
+                                    context.startActivity(Intent.createChooser(sendIntent, s.detailShareChooser))
+                                }
+                                .testTag("detail_share_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_share_filled),
+                                    contentDescription = s.detailShareDesc,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
                 }
