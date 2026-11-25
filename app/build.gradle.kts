@@ -15,8 +15,8 @@ android {
     applicationId = "com.aistudio.anical.sched"
     minSdk = 24
     targetSdk = 36
-    versionCode = 19
-    versionName = "0.1.8-beta.3"
+    versionCode = 20
+    versionName = "0.1.8-beta.4"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

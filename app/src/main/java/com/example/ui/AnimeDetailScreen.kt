@@ -76,6 +76,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -204,36 +205,79 @@ fun AnimeDetailScreen(
                 .verticalScroll(scrollState)
                 .navigationBarsPadding()
         ) {
-            // Hero Poster/Banner matching Screenshot 1
+            // Hero Poster/Banner with distinct backdrop artwork & automatic fallback
+            val backdropCandidates = remember(
+                anime.id,
+                anime.bannerImageUrl,
+                anime.coverImageUrl,
+                relatedAnime,
+                characters
+            ) {
+                buildList {
+                    anime.bannerImageUrl
+                        ?.trim()
+                        ?.takeIf { it.isNotBlank() && it != "null" && it != anime.coverImageUrl }
+                        ?.let { add(it) }
+                    relatedAnime.firstOrNull {
+                        it.coverImageUrl.isNotBlank() && it.coverImageUrl != anime.coverImageUrl
+                    }?.coverImageUrl?.let { add(it) }
+                    characters.firstOrNull {
+                        !it.imageUrl.isNullOrBlank() && it.imageUrl != anime.coverImageUrl
+                    }?.imageUrl?.let { add(it) }
+                    if (anime.coverImageUrl.isNotBlank()) {
+                        add(anime.coverImageUrl)
+                    }
+                }.distinct()
+            }
+            var backdropCandidateIndex by remember(backdropCandidates) { mutableIntStateOf(0) }
+            val currentBackdropUrl = backdropCandidates.getOrNull(backdropCandidateIndex)
+            val isDistinctBackdrop = currentBackdropUrl != null && currentBackdropUrl != anime.coverImageUrl
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(310.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                // Backdrop image (parte trasera) - atmospheric blurred background
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(anime.bannerImageUrl ?: anime.coverImageUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(24.dp)
-                        .alpha(0.65f)
-                )
+                // Backdrop image (parte trasera) - muestra el banner u otra imagen del anime claramente
+                if (currentBackdropUrl != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(currentBackdropUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        onError = {
+                            if (backdropCandidateIndex < backdropCandidates.lastIndex) {
+                                backdropCandidateIndex++
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(
+                                if (isDistinctBackdrop) {
+                                    Modifier.alpha(0.92f)
+                                } else {
+                                    Modifier
+                                        .blur(8.dp)
+                                        .alpha(0.82f)
+                                }
+                            )
+                            .testTag("detail_backdrop_image")
+                    )
+                }
 
-                // Rich dark gradient scrim overlay
+                // Balanced gradient scrim for button & bottom-row legibility without hiding the artwork
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.Black.copy(alpha = 0.55f),
-                                    Color.Black.copy(alpha = 0.35f),
-                                    Color.Black.copy(alpha = 0.85f)
+                                    Color.Black.copy(alpha = 0.30f),
+                                    Color.Black.copy(alpha = 0.08f),
+                                    Color.Black.copy(alpha = 0.72f)
                                 )
                             )
                         )
