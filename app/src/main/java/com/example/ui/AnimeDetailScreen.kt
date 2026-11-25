@@ -517,10 +517,9 @@ fun AnimeDetailScreen(
                         .height(48.dp)
                         .testTag("detail_add_mylist_btn")
                 ) {
-                    Icon(
+                    Image(
                         painter = painterResource(id = if (anime.isInWatchlist) R.drawable.ic_anime_check_filled else R.drawable.ic_anime_add_filled),
                         contentDescription = null,
-                        tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -557,10 +556,9 @@ fun AnimeDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(
+                            Image(
                                 painter = painterResource(id = R.drawable.ic_anime_chat_automirrored_filled),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(7.dp))
@@ -588,10 +586,9 @@ fun AnimeDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(
+                            Image(
                                 painter = painterResource(id = R.drawable.ic_anime_groups_filled),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(19.dp)
                             )
                             Spacer(modifier = Modifier.width(7.dp))
