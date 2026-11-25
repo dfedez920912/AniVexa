@@ -158,6 +158,8 @@ object StringsJa : AppStrings {
     override val detailNoUpcomingSchedule = "次回放送予定なし"
     override val detailTestAlertBtn = "通知をテスト"
     override val detailEpisodeTrackerTitle = "エピソード管理"
+    override val detailMarkAllEpisodesBtn = "すべて視聴済み"
+    override val detailUnmarkAllEpisodesBtn = "すべて解除"
     override val detailSwipeEpisodesHint: (Int) -> String = { total -> "全${total}話から視聴済みの話数を選択できます" }
     override val detailYourRatingTitle = "あなたの評価"
     override val detailRateStarsDesc: (Int) -> String = { stars -> "${stars}つ星で評価" }

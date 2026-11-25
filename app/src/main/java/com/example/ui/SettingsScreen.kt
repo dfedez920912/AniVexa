@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -274,10 +275,9 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Translate,
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_anime_translate_filled),
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
                         Column {
@@ -386,7 +386,7 @@ fun SettingsScreen(
 
         // Offline Storage Section
         item {
-            SettingsCard(title = s.settingsOfflineSection, icon = R.drawable.ic_anime_cloud_download_filled) {
+            SettingsCard(title = s.settingsOfflineSection, icon = R.drawable.ic_anime_cloud_off_filled) {
                 Text(
                     text = s.settingsCachedSeriesCount(uiState.cachedCount),
                     fontSize = 12.5.sp,
@@ -409,7 +409,11 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_anime_delete_sweep_filled),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.size(4.dp))
                         Text(s.settingsClearCache, fontSize = 12.sp)
                     }
@@ -419,7 +423,7 @@ fun SettingsScreen(
 
         // Encrypted Backup & Restore Section (.avb)
         item {
-            SettingsCard(title = s.settingsBackupSection, icon = R.drawable.ic_anime_settings_filled) {
+            SettingsCard(title = s.settingsBackupSection, icon = R.drawable.ic_anime_cloud_download_filled) {
                 Text(
                     text = s.settingsBackupDesc(
                         LocalBackupStorage.BACKUP_FOLDER_NAME,
@@ -445,7 +449,11 @@ fun SettingsScreen(
                             .heightIn(min = 48.dp)
                             .testTag("settings_create_backup_button")
                     ) {
-                        Icon(Icons.Default.Backup, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_anime_cloud_download_filled),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.size(6.dp))
                         Text(s.settingsBackupBtn, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                     }
@@ -460,7 +468,11 @@ fun SettingsScreen(
                             .heightIn(min = 48.dp)
                             .testTag("settings_restore_backup_button")
                     ) {
-                        Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_anime_refresh_filled),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.size(6.dp))
                         Text(s.settingsRestoreBtn, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                     }
@@ -572,10 +584,9 @@ private fun SettingsCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(bottom = 12.dp)
             ) {
-                Icon(
+                Image(
                     painter = painterResource(id = icon),
                     contentDescription = null,
-                    tint = Color.Unspecified,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(

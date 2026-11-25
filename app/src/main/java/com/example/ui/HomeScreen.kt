@@ -1,6 +1,7 @@
 package com.example.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.painterResource
+import cu.daniel.anical.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -126,10 +129,9 @@ fun HomeScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.CloudOff,
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_cloud_off_filled),
                                     contentDescription = s.offlineContentDesc,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Text(
@@ -153,10 +155,10 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                     } else {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_anime_refresh_filled),
                             contentDescription = s.refreshContentDesc,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -300,10 +302,9 @@ private fun SectionHeader(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            Image(
+                painter = painterResource(id = R.drawable.ic_anime_keyboard_arrow_right_automirrored_filled),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -346,10 +347,10 @@ fun SeeAllCatalogScreen(
             },
             navigationIcon = {
                 IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_anime_arrow_back_automirrored_filled),
                         contentDescription = s.backContentDesc,
-                        tint = MaterialTheme.colorScheme.onBackground
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             },

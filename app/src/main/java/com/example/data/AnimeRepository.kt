@@ -158,7 +158,11 @@ class AnimeRepository(
         syncWatchlistProgressWithWatchedEpisodes(animeId)
     }
 
-    suspend fun markAllEpisodesWatched(animeId: Int, totalEpisodes: Int?) = withContext(Dispatchers.IO) {
+    suspend fun markAllEpisodesWatched(
+        animeId: Int,
+        totalEpisodes: Int?,
+        anime: AnimeRelease? = null
+    ) = withContext(Dispatchers.IO) {
         if (totalEpisodes != null && totalEpisodes > 0) {
             val entities = (1..totalEpisodes).map { ep ->
                 WatchedEpisodeEntity(
@@ -168,7 +172,12 @@ class AnimeRepository(
                 )
             }
             watchedEpisodeDao.markAllWatched(entities)
+            if (anime != null) {
+                ensureInWatchlist(anime, WatchlistStatus.COMPLETED)
+            }
             watchlistDao.updateWatchedEpisodes(animeId, totalEpisodes)
+        } else if (anime != null) {
+            ensureInWatchlist(anime, WatchlistStatus.COMPLETED)
         }
         watchlistDao.updateStatus(animeId, WatchlistStatus.COMPLETED.name)
     }
@@ -179,7 +188,11 @@ class AnimeRepository(
         watchlistDao.updateStatus(animeId, WatchlistStatus.PLAN_TO_WATCH.name)
     }
 
-    suspend fun toggleWatchedEpisode(animeId: Int, episodeNumber: Int): Boolean = withContext(Dispatchers.IO) {
+    suspend fun toggleWatchedEpisode(
+        animeId: Int,
+        episodeNumber: Int,
+        anime: AnimeRelease? = null
+    ): Boolean = withContext(Dispatchers.IO) {
         val key = "${animeId}_${episodeNumber}"
         val isAlreadyWatched = watchedEpisodeDao.isWatched(key)
         val result = if (isAlreadyWatched) {
@@ -193,6 +206,38 @@ class AnimeRepository(
                     episodeNumber = episodeNumber
                 )
             )
+            if (anime != null) {
+                ensureInWatchlist(anime)
+            }
+            true
+        }
+        syncWatchlistProgressWithWatchedEpisodes(animeId)
+        result
+    }
+
+    suspend fun toggleEpisodeWithPriorWatched(
+        animeId: Int,
+        episodeNumber: Int,
+        anime: AnimeRelease? = null
+    ): Boolean = withContext(Dispatchers.IO) {
+        val targetEpisode = episodeNumber.coerceAtLeast(1)
+        val key = "${animeId}_${targetEpisode}"
+        val isAlreadyWatched = watchedEpisodeDao.isWatched(key)
+        val result = if (isAlreadyWatched) {
+            watchedEpisodeDao.unmarkWatched(key)
+            false
+        } else {
+            val entities = (1..targetEpisode).map { ep ->
+                WatchedEpisodeEntity(
+                    episodeKey = "${animeId}_$ep",
+                    animeId = animeId,
+                    episodeNumber = ep
+                )
+            }
+            watchedEpisodeDao.markAllWatched(entities)
+            if (anime != null) {
+                ensureInWatchlist(anime)
+            }
             true
         }
         syncWatchlistProgressWithWatchedEpisodes(animeId)

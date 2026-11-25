@@ -1,6 +1,7 @@
 package com.example.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,19 +14,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.painterResource
+import cu.daniel.anical.R
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -102,19 +101,19 @@ fun SearchScreen(
                 )
             },
             leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
+                Image(
+                    painter = painterResource(id = R.drawable.ic_anime_search_filled),
                     contentDescription = s.searchIconDesc,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    modifier = Modifier.size(20.dp)
                 )
             },
             trailingIcon = {
                 if (uiState.searchQuery.isNotEmpty()) {
                     IconButton(onClick = { onQueryChange("") }) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_anime_clear_filled),
                             contentDescription = s.searchClearDesc,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -145,17 +144,22 @@ fun SearchScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_anime_filter_list_filled),
+                contentDescription = null,
+                modifier = Modifier.size(16.dp).padding(end = 4.dp)
+            )
             Text(
                 text = if (uiState.showSearchFilters) s.searchHideFilters else s.searchShowFilters,
                 fontSize = 13.5.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
-            Icon(
-                imageVector = if (uiState.showSearchFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+            Spacer(modifier = Modifier.width(4.dp))
+            Image(
+                painter = painterResource(id = if (uiState.showSearchFilters) R.drawable.ic_anime_keyboard_arrow_up_filled else R.drawable.ic_anime_keyboard_arrow_down_filled),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
         }
 
@@ -322,7 +326,7 @@ fun SearchScreen(
             Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(
-                        imageVector = Icons.Default.Search,
+                        painter = painterResource(id = R.drawable.ic_anime_search_filled),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(42.dp)

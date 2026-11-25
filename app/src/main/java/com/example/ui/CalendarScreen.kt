@@ -1,6 +1,7 @@
 package com.example.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,16 +26,10 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
+import androidx.compose.ui.res.painterResource
+import cu.daniel.anical.R
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -136,36 +131,30 @@ fun CalendarScreen(
                     onClick = onJumpToToday,
                     modifier = Modifier.testTag("calendar_today_btn")
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Today,
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_anime_today_filled),
                         contentDescription = s.calendarTodayBtnDesc,
-                        tint = MaterialTheme.colorScheme.primary
+                        modifier = Modifier.size(22.dp)
                     )
                 }
                 IconButton(
                     onClick = { showFilters = !showFilters },
                     modifier = Modifier.testTag("calendar_filter_btn")
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.FilterList,
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_anime_filter_list_filled),
                         contentDescription = s.calendarFilterBtnDesc,
-                        tint = if (showFilters || uiState.calendarFormatFilter != MediaFormatFilter.ALL ||
-                            uiState.calendarGenreFilter != null || uiState.calendarStudioFilter != null
-                        ) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
+                        modifier = Modifier.size(22.dp)
                     )
                 }
                 IconButton(
                     onClick = onGoToMyList,
                     modifier = Modifier.testTag("calendar_mylist_btn")
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.BookmarkBorder,
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_anime_bookmark_border_outlined),
                         contentDescription = s.calendarMyListBtnDesc,
-                        tint = MaterialTheme.colorScheme.onBackground
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
@@ -400,10 +389,10 @@ private fun WeekCalendarContent(
                                 onClick = { onShiftWeek(-1) },
                                 modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_keyboard_arrow_left_automirrored_filled),
                                     contentDescription = s.calendarPrevWeekDesc,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                             val monthLabel = uiState.selectedDate.month
@@ -419,10 +408,10 @@ private fun WeekCalendarContent(
                                 onClick = { onShiftWeek(1) },
                                 modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_keyboard_arrow_right_automirrored_filled),
                                     contentDescription = s.calendarNextWeekDesc,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
@@ -605,7 +594,11 @@ private fun MonthCalendarContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = { onShiftMonth(-1) }) {
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = s.calendarPrevMonthDesc)
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_anime_keyboard_arrow_left_automirrored_filled),
+                                contentDescription = s.calendarPrevMonthDesc,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                         val monthTitle = month.month.getDisplayName(TextStyle.FULL, locale)
                             .replaceFirstChar { it.uppercase(locale) }
@@ -615,7 +608,11 @@ private fun MonthCalendarContent(
                             fontWeight = FontWeight.Bold
                         )
                         IconButton(onClick = { onShiftMonth(1) }) {
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = s.calendarNextMonthDesc)
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_anime_keyboard_arrow_right_automirrored_filled),
+                                contentDescription = s.calendarNextMonthDesc,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
 
@@ -873,14 +870,9 @@ private fun ScheduleListRowCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Schedule,
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_anime_schedule_filled),
                         contentDescription = null,
-                        tint = when (countdown.kind) {
-                            AppLocalization.CountdownKind.AIRING_NOW -> AniAiringGreenBright
-                            AppLocalization.CountdownKind.UPCOMING -> MaterialTheme.colorScheme.primary
-                            AppLocalization.CountdownKind.AIRED -> MaterialTheme.colorScheme.onSurfaceVariant
-                        },
                         modifier = Modifier.size(13.dp)
                     )
                     Text(
@@ -912,17 +904,17 @@ private fun ScheduleListRowCard(
             if (showQuickActions) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(onClick = onToggleReminder) {
-                        Icon(
-                            imageVector = if (anime.hasReminder) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
+                        Image(
+                            painter = painterResource(id = if (anime.hasReminder) R.drawable.ic_anime_notifications_active_filled else R.drawable.ic_anime_notifications_none_filled),
                             contentDescription = s.calendarReminderDesc,
-                            tint = if (anime.hasReminder) AniGold else MaterialTheme.colorScheme.onSurfaceVariant
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     IconButton(onClick = onToggleWatched) {
-                        Icon(
-                            imageVector = if (anime.isWatched) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                        Image(
+                            painter = painterResource(id = if (anime.isWatched) R.drawable.ic_anime_check_circle_filled else R.drawable.ic_anime_radio_button_unchecked_filled),
                             contentDescription = s.calendarMarkWatchedDesc,
-                            tint = if (anime.isWatched) AniAiringGreenBright else MaterialTheme.colorScheme.onSurfaceVariant
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -945,10 +937,9 @@ private fun EmptyDayCard(dayName: String) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Schedule,
+            Image(
+                painter = painterResource(id = R.drawable.ic_anime_schedule_filled),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(36.dp)
             )
             Text(
