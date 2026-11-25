@@ -1,12 +1,19 @@
-# AniVexa v0.1.8-beta.4
+# AniVexa v0.1.8 (Latest)
 
-## Novedades y Correcciones de esta pre-release
+Versión estable que recopila todas las mejoras, novedades y correcciones implementadas desde `v0.1.8-beta.1` hasta `v0.1.8-beta.4`.
 
-### Imagen de Fondo Superior en Detalles del Anime
-- **Fondo superior visible con arte distinto a la portada**: Se corrigió la cabecera de detalles para mostrar con claridad el banner del anime o, cuando no existe o falla, una imagen alternativa del mismo anime (miniaturas de episodios, tráiler oficial, obras relacionadas o personajes), con respaldo automático ante errores y manteniendo intactos los 4 botones superiores.
-- **Catálogo offline actualizado**: Se corrigieron los identificadores y URLs de portadas y banners en `OfflineAnimeData` para que coincidan con registros reales de AniList.
+## Novedades y Correcciones
 
-### Incluido desde v0.1.8-beta.1, v0.1.8-beta.2 y v0.1.8-beta.3
-- **4 botones de acción en barra superior**: **Atrás** e **Inicio** a la izquierda, y **Notificaciones** y **Compartir** a la derecha con iconografía ilustrada V3.
-- **Adición automática a Watchlist** al marcar episodios vistos, pulsar **"Marcar todos"** o activar alertas de notificación.
-- **Marcado acumulativo (`1..N`)** y **botón "Marcar todos" / "Desmarcar todos"** en el seguimiento de episodios.
+### Seguimiento de Episodios y Watchlist (`v0.1.8-beta.1` y `v0.1.8-beta.2`)
+- **Botón "Marcar todos" / "Desmarcar todos"**: Permite marcar o desmarcar todos los episodios de un anime con un solo toque en la vista de detalles.
+- **Marcado acumulativo (`1..N`)**: Al marcar un capítulo como visto, se marcan automáticamente todos los capítulos anteriores desde el episodio 1 hasta el seleccionado.
+- **Adición automática a Watchlist**: Marcar episodios vistos, usar el botón **"Marcar todos"** o activar alertas de notificación (tanto desde las tarjetas como desde la vista de detalles) añade automáticamente el anime a tu Watchlist.
+
+### Navegación y Vista de Detalles (`v0.1.8-beta.2`, `v0.1.8-beta.3` y `v0.1.8-beta.4`)
+- **Botón de Inicio directo**: Nuevo botón de inicio junto al botón atrás en la vista de detalles para regresar directamente a la página principal desde cualquier anime o serie relacionada.
+- **Barra superior de 4 acciones restaurada**: Conserva en la cabecera los 4 botones ilustrados (**Atrás** e **Inicio** a la izquierda; **Notificaciones** y **Compartir** a la derecha).
+- **Imagen de fondo superior mejorada**: La cabecera de detalles muestra con claridad el banner del anime o, si falta o falla, una imagen alternativa del mismo anime (miniaturas de episodios, tráiler oficial, obras relacionadas o personajes) con respaldo automático ante errores.
+- **Catálogo offline actualizado**: Se corrigieron los identificadores y URLs de portadas y banners en el catálogo sin conexión para que coincidan con registros reales de AniList.
+
+### Diseño e Iconografía (`v0.1.8-beta.2`)
+- **Paquete de iconos ilustrados V3**: Integración completa de iconografía ilustrada a todo color en tarjetas, barra de navegación, valoraciones con estrellas, reseñas, personajes, series relacionadas y ajustes, junto con mejoras visuales en la cabecera de detalles.
