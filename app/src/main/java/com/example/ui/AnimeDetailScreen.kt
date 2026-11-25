@@ -41,6 +41,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -288,9 +289,9 @@ fun AnimeDetailScreen(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    painter = painterResource(id = R.drawable.ic_anime_arrow_back_automirrored_filled),
                                     contentDescription = s.backContentDesc,
-                                    tint = Color.White,
+                                    tint = Color.Unspecified,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -341,9 +342,9 @@ fun AnimeDetailScreen(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = if (reminderEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
+                                    painter = painterResource(id = if (reminderEnabled) R.drawable.ic_anime_notifications_active_filled else R.drawable.ic_anime_notifications_none_filled),
                                     contentDescription = s.detailAlertDesc,
-                                    tint = if (reminderEnabled) AniGold else Color.White,
+                                    tint = Color.Unspecified,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -373,9 +374,9 @@ fun AnimeDetailScreen(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.Share,
+                                    painter = painterResource(id = R.drawable.ic_anime_share_filled),
                                     contentDescription = s.detailShareDesc,
-                                    tint = Color.White,
+                                    tint = Color.Unspecified,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -423,7 +424,7 @@ fun AnimeDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Star,
+                                painter = painterResource(id = R.drawable.ic_anime_star_filled),
                                 contentDescription = null,
                                 tint = AniGold,
                                 modifier = Modifier.size(15.dp)
@@ -516,8 +517,9 @@ fun AnimeDetailScreen(
                         .testTag("detail_add_mylist_btn")
                 ) {
                     Icon(
-                        imageVector = if (anime.isInWatchlist) Icons.Default.Check else Icons.Default.Add,
+                        painter = painterResource(id = if (anime.isInWatchlist) R.drawable.ic_anime_check_filled else R.drawable.ic_anime_add_filled),
                         contentDescription = null,
+                        tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -555,7 +557,7 @@ fun AnimeDetailScreen(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Chat,
+                                painter = painterResource(id = R.drawable.ic_anime_chat_automirrored_filled),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp)
@@ -586,7 +588,7 @@ fun AnimeDetailScreen(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Groups,
+                                painter = painterResource(id = R.drawable.ic_anime_groups_filled),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(19.dp)
@@ -697,7 +699,7 @@ fun AnimeDetailScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Schedule,
+                                    painter = painterResource(id = R.drawable.ic_anime_schedule_filled),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
@@ -765,7 +767,7 @@ fun AnimeDetailScreen(
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(painter = painterResource(id = R.drawable.ic_anime_notifications_active_filled), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(s.detailTestAlertBtn, fontSize = 12.sp)
                             }
@@ -811,7 +813,7 @@ fun AnimeDetailScreen(
                                     onClick = { onRatingChanged(if (anime.userRating == star) 0 else star) }
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Star,
+                                        painter = painterResource(id = R.drawable.ic_anime_star_filled),
                                         contentDescription = s.detailRateStarsDesc(star),
                                         tint = if (active) AniGold else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
                                         modifier = Modifier.size(28.dp)
@@ -1015,7 +1017,7 @@ private fun RelatedAnimeCard(
                 ) {
                     if (item.score != null) {
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            painter = painterResource(id = R.drawable.ic_anime_star_filled),
                             contentDescription = null,
                             tint = AniGold,
                             modifier = Modifier.size(12.dp)
@@ -1323,9 +1325,9 @@ private fun EpisodeGridChip(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Icon(
-                imageVector = if (isWatched) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                painter = painterResource(id = if (isWatched) R.drawable.ic_anime_check_circle_filled else R.drawable.ic_anime_radio_button_unchecked_filled),
                 contentDescription = null,
-                tint = if (isWatched) AniAiringGreenBright else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = Color.Unspecified,
                 modifier = Modifier.size(14.dp)
             )
             Text(

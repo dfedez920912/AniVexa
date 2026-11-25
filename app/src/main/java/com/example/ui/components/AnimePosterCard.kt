@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.painterResource
+import cu.daniel.anical.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsNone
@@ -173,9 +175,9 @@ fun AnimePosterCard(
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                             Icon(
-                                imageVector = if (anime.hasReminder) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
+                                painter = painterResource(id = if (anime.hasReminder) R.drawable.ic_anime_notifications_active_filled else R.drawable.ic_anime_notifications_none_filled),
                                 contentDescription = s.calendarReminderDesc,
-                                tint = if (anime.hasReminder) AniGold else Color.White,
+                                tint = Color.Unspecified,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -214,9 +216,9 @@ fun AnimePosterCard(
                 ) {
                     if (anime.score != null) {
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            painter = painterResource(id = R.drawable.ic_anime_star_filled),
                             contentDescription = null,
-                            tint = AniGold,
+                            tint = Color.Unspecified,
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
@@ -266,9 +268,9 @@ fun AnimePosterCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Schedule,
+                            painter = painterResource(id = R.drawable.ic_anime_schedule_filled),
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = Color.Unspecified,
                             modifier = Modifier.size(12.dp)
                         )
                         Text(

@@ -21,6 +21,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.painterResource
+import cu.daniel.anical.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -127,7 +129,7 @@ fun HomeScreen(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.CloudOff,
+                                    painter = painterResource(id = R.drawable.ic_anime_cloud_off_filled),
                                     contentDescription = s.offlineContentDesc,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(12.dp)
@@ -154,7 +156,7 @@ fun HomeScreen(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.Refresh,
+                            painter = painterResource(id = R.drawable.ic_anime_refresh_filled),
                             contentDescription = s.refreshContentDesc,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -301,7 +303,7 @@ private fun SectionHeader(
                 color = MaterialTheme.colorScheme.primary
             )
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                painter = painterResource(id = R.drawable.ic_anime_keyboard_arrow_right_automirrored_filled),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp)
@@ -347,7 +349,7 @@ fun SeeAllCatalogScreen(
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        painter = painterResource(id = R.drawable.ic_anime_arrow_back_automirrored_filled),
                         contentDescription = s.backContentDesc,
                         tint = MaterialTheme.colorScheme.onBackground
                     )

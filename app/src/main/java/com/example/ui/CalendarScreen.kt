@@ -25,6 +25,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.painterResource
+import cu.daniel.anical.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -137,7 +139,7 @@ fun CalendarScreen(
                     modifier = Modifier.testTag("calendar_today_btn")
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Today,
+                        painter = painterResource(id = R.drawable.ic_anime_today_filled),
                         contentDescription = s.calendarTodayBtnDesc,
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -147,7 +149,7 @@ fun CalendarScreen(
                     modifier = Modifier.testTag("calendar_filter_btn")
                 ) {
                     Icon(
-                        imageVector = Icons.Default.FilterList,
+                        painter = painterResource(id = R.drawable.ic_anime_filter_list_filled),
                         contentDescription = s.calendarFilterBtnDesc,
                         tint = if (showFilters || uiState.calendarFormatFilter != MediaFormatFilter.ALL ||
                             uiState.calendarGenreFilter != null || uiState.calendarStudioFilter != null
@@ -163,7 +165,7 @@ fun CalendarScreen(
                     modifier = Modifier.testTag("calendar_mylist_btn")
                 ) {
                     Icon(
-                        imageVector = Icons.Default.BookmarkBorder,
+                        painter = painterResource(id = R.drawable.ic_anime_bookmark_border_outlined),
                         contentDescription = s.calendarMyListBtnDesc,
                         tint = MaterialTheme.colorScheme.onBackground
                     )
@@ -401,7 +403,7 @@ private fun WeekCalendarContent(
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    painter = painterResource(id = R.drawable.ic_anime_keyboard_arrow_left_automirrored_filled),
                                     contentDescription = s.calendarPrevWeekDesc,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -420,7 +422,7 @@ private fun WeekCalendarContent(
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    painter = painterResource(id = R.drawable.ic_anime_keyboard_arrow_right_automirrored_filled),
                                     contentDescription = s.calendarNextWeekDesc,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -605,7 +607,7 @@ private fun MonthCalendarContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = { onShiftMonth(-1) }) {
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = s.calendarPrevMonthDesc)
+                            Icon(painter = painterResource(id = R.drawable.ic_anime_keyboard_arrow_left_automirrored_filled), contentDescription = s.calendarPrevMonthDesc)
                         }
                         val monthTitle = month.month.getDisplayName(TextStyle.FULL, locale)
                             .replaceFirstChar { it.uppercase(locale) }
@@ -615,7 +617,7 @@ private fun MonthCalendarContent(
                             fontWeight = FontWeight.Bold
                         )
                         IconButton(onClick = { onShiftMonth(1) }) {
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = s.calendarNextMonthDesc)
+                            Icon(painter = painterResource(id = R.drawable.ic_anime_keyboard_arrow_right_automirrored_filled), contentDescription = s.calendarNextMonthDesc)
                         }
                     }
 
@@ -874,7 +876,7 @@ private fun ScheduleListRowCard(
                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Schedule,
+                        painter = painterResource(id = R.drawable.ic_anime_schedule_filled),
                         contentDescription = null,
                         tint = when (countdown.kind) {
                             AppLocalization.CountdownKind.AIRING_NOW -> AniAiringGreenBright
@@ -913,16 +915,16 @@ private fun ScheduleListRowCard(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(onClick = onToggleReminder) {
                         Icon(
-                            imageVector = if (anime.hasReminder) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
+                            painter = painterResource(id = if (anime.hasReminder) R.drawable.ic_anime_notifications_active_filled else R.drawable.ic_anime_notifications_none_filled),
                             contentDescription = s.calendarReminderDesc,
-                            tint = if (anime.hasReminder) AniGold else MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = Color.Unspecified
                         )
                     }
                     IconButton(onClick = onToggleWatched) {
                         Icon(
-                            imageVector = if (anime.isWatched) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                            painter = painterResource(id = if (anime.isWatched) R.drawable.ic_anime_check_circle_filled else R.drawable.ic_anime_radio_button_unchecked_filled),
                             contentDescription = s.calendarMarkWatchedDesc,
-                            tint = if (anime.isWatched) AniAiringGreenBright else MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = Color.Unspecified
                         )
                     }
                 }
@@ -946,7 +948,7 @@ private fun EmptyDayCard(dayName: String) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.Schedule,
+                painter = painterResource(id = R.drawable.ic_anime_schedule_filled),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(36.dp)
