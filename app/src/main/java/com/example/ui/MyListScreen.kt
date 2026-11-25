@@ -21,16 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.res.painterResource
 import cu.daniel.anical.R
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material.icons.filled.PlayCircleOutline
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
