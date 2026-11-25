@@ -584,10 +584,9 @@ private fun SettingsCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(bottom = 12.dp)
             ) {
-                Icon(
+                Image(
                     painter = painterResource(id = icon),
                     contentDescription = null,
-                    tint = Color.Unspecified,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(

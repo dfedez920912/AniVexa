@@ -768,7 +768,7 @@ fun AnimeDetailScreen(
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(painter = painterResource(id = R.drawable.ic_anime_notifications_active_filled), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(16.dp))
+                                Image(painter = painterResource(id = R.drawable.ic_anime_notifications_active_filled), contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(s.detailTestAlertBtn, fontSize = 12.sp)
                             }
@@ -813,11 +813,11 @@ fun AnimeDetailScreen(
                                 IconButton(
                                     onClick = { onRatingChanged(if (anime.userRating == star) 0 else star) }
                                 ) {
-                                    Icon(
+                                    Image(
                                         painter = painterResource(id = R.drawable.ic_anime_star_filled),
                                         contentDescription = s.detailRateStarsDesc(star),
-                                        tint = if (active) AniGold else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-                                        modifier = Modifier.size(28.dp)
+                                        modifier = Modifier.size(28.dp),
+                                        alpha = if (active) 1.0f else 0.3f
                                     )
                                 }
                             }
@@ -1017,10 +1017,9 @@ private fun RelatedAnimeCard(
                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     if (item.score != null) {
-                        Icon(
+                        Image(
                             painter = painterResource(id = R.drawable.ic_anime_star_filled),
                             contentDescription = null,
-                            tint = AniGold,
                             modifier = Modifier.size(12.dp)
                         )
                         Text(
