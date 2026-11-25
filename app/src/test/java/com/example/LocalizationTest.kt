@@ -351,6 +351,8 @@ class LocalizationTest {
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("detail_back_button").assertIsDisplayed()
         composeRule.onNodeWithTag("detail_home_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("detail_bell_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("detail_share_button").assertIsDisplayed()
         composeRule.onNodeWithTag("detail_home_button").performClick()
         composeRule.waitForIdle()
         assertEquals(1, goHomeCalls)

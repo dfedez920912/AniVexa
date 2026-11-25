@@ -90,7 +90,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -240,7 +239,7 @@ fun AnimeDetailScreen(
                         )
                 )
 
-                // Top Overlay Controls (Back left, Close right)
+                // Top Overlay Controls (Back + Home left, Reminder + Share right)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -249,42 +248,122 @@ fun AnimeDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val overlayCircleColor = Color.Black.copy(alpha = 0.6f)
+                    val overlayCircleColor = if (isGlass) Color(0x70101D33) else Color.Black.copy(alpha = 0.6f)
+                    val overlayCircleBorder = if (isGlass) glassCardBorder(highContrast = true) else null
 
-                    Surface(
-                        shape = CircleShape,
-                        color = overlayCircleColor,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = onBack)
-                            .testTag("detail_back_button")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_anime_arrow_back_automirrored_filled),
-                                contentDescription = s.backContentDesc,
-                                modifier = Modifier.size(20.dp)
-                            )
+                        Surface(
+                            shape = CircleShape,
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onBack)
+                                .testTag("detail_back_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_arrow_back_automirrored_filled),
+                                    contentDescription = s.backContentDesc,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = CircleShape,
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onGoHome)
+                                .testTag("detail_home_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_home_filled),
+                                    contentDescription = s.navHome,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
                     }
 
-                    Surface(
-                        shape = CircleShape,
-                        color = overlayCircleColor,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = onBack)
-                            .testTag("detail_close_button")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "✕",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Surface(
+                            shape = CircleShape,
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    val next = !reminderEnabled
+                                    if (next) {
+                                        runWithNotificationPermission {
+                                            reminderEnabled = true
+                                            onToggleReminder(true, reminderMinutes)
+                                        }
+                                    } else {
+                                        reminderEnabled = false
+                                        onToggleReminder(false, reminderMinutes)
+                                    }
+                                }
+                                .testTag("detail_bell_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(
+                                        id = if (reminderEnabled) {
+                                            R.drawable.ic_anime_notifications_active_filled
+                                        } else {
+                                            R.drawable.ic_anime_notifications_none_filled
+                                        }
+                                    ),
+                                    contentDescription = s.detailAlertDesc,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = CircleShape,
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    val formattedDt = anime.getFormattedDateTimeShort(zoneId, s.noDateText)
+                                    val shareText = s.detailShareTemplate(
+                                        anime.displayTitle,
+                                        anime.effectiveEpisodeNumber(),
+                                        formattedDt
+                                    )
+                                    val sendIntent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                        type = "text/plain"
+                                    }
+                                    context.startActivity(Intent.createChooser(sendIntent, s.detailShareChooser))
+                                }
+                                .testTag("detail_share_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_share_filled),
+                                    contentDescription = s.detailShareDesc,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
                 }
