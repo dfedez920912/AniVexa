@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -174,10 +175,9 @@ fun AnimePosterCard(
                             .testTag("poster_card_reminder_bell_${anime.id}")
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(
+                            Image(
                                 painter = painterResource(id = if (anime.hasReminder) R.drawable.ic_anime_notifications_active_filled else R.drawable.ic_anime_notifications_none_filled),
                                 contentDescription = s.calendarReminderDesc,
-                                tint = Color.Unspecified,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -215,10 +215,9 @@ fun AnimePosterCard(
                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     if (anime.score != null) {
-                        Icon(
+                        Image(
                             painter = painterResource(id = R.drawable.ic_anime_star_filled),
                             contentDescription = null,
-                            tint = Color.Unspecified,
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
@@ -267,10 +266,9 @@ fun AnimePosterCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(
+                        Image(
                             painter = painterResource(id = R.drawable.ic_anime_schedule_filled),
                             contentDescription = null,
-                            tint = Color.Unspecified,
                             modifier = Modifier.size(12.dp)
                         )
                         Text(

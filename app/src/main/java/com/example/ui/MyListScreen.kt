@@ -1,6 +1,7 @@
 package com.example.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -117,10 +118,10 @@ fun MyListScreen(
                     onClick = { sortMenuOpen = true },
                     modifier = Modifier.testTag("mylist_sort_btn")
                 ) {
-                    Icon(
+                    Image(
                         painter = painterResource(id = R.drawable.ic_anime_sort_automirrored_filled),
                         contentDescription = s.myListSortDesc,
-                        tint = MaterialTheme.colorScheme.onBackground
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
@@ -140,10 +141,9 @@ fun MyListScreen(
                             },
                             leadingIcon = {
                                 if (uiState.myListSortOrder == order) {
-                                    Icon(
+                                    Image(
                                         painter = painterResource(id = R.drawable.ic_anime_check_filled),
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -205,10 +205,9 @@ fun MyListScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
+                        Image(
                             painter = painterResource(id = R.drawable.ic_anime_bookmark_border_outlined),
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(44.dp)
                         )
                         Text(
@@ -353,10 +352,9 @@ private fun MyListCard(
                                 .size(28.dp)
                                 .testTag("mylist_reminder_bell_${item.animeId}")
                         ) {
-                            Icon(
+                            Image(
                                 painter = painterResource(id = if (hasReminder) R.drawable.ic_anime_notifications_active_filled else R.drawable.ic_anime_notifications_none_filled),
                                 contentDescription = s.calendarReminderDesc,
-                                tint = Color.Unspecified,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -364,10 +362,9 @@ private fun MyListCard(
                             onClick = onRemove,
                             modifier = Modifier.size(28.dp)
                         ) {
-                            Icon(
+                            Image(
                                 painter = painterResource(id = R.drawable.ic_anime_delete_outline_filled),
                                 contentDescription = s.myListRemoveDesc,
-                                tint = Color.Unspecified,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -467,7 +464,7 @@ private fun MyListCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(
+                        Image(
                             painter = painterResource(
                                 id = when {
                                     isFullyWatched -> R.drawable.ic_anime_check_circle_filled
@@ -476,7 +473,6 @@ private fun MyListCard(
                                 }
                             ),
                             contentDescription = null,
-                            tint = Color.Unspecified,
                             modifier = Modifier.size(15.dp)
                         )
                         Text(

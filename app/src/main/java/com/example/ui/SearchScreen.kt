@@ -1,6 +1,7 @@
 package com.example.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -105,19 +106,19 @@ fun SearchScreen(
                 )
             },
             leadingIcon = {
-                Icon(
+                Image(
                     painter = painterResource(id = R.drawable.ic_anime_search_filled),
                     contentDescription = s.searchIconDesc,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    modifier = Modifier.size(20.dp)
                 )
             },
             trailingIcon = {
                 if (uiState.searchQuery.isNotEmpty()) {
                     IconButton(onClick = { onQueryChange("") }) {
-                        Icon(
+                        Image(
                             painter = painterResource(id = R.drawable.ic_anime_clear_filled),
                             contentDescription = s.searchClearDesc,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -148,11 +149,10 @@ fun SearchScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
+            Image(
                 painter = painterResource(id = R.drawable.ic_anime_filter_list_filled),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp).padding(end = 4.dp)
+                modifier = Modifier.size(16.dp).padding(end = 4.dp)
             )
             Text(
                 text = if (uiState.showSearchFilters) s.searchHideFilters else s.searchShowFilters,
@@ -161,11 +161,10 @@ fun SearchScreen(
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.width(4.dp))
-            Icon(
+            Image(
                 painter = painterResource(id = if (uiState.showSearchFilters) R.drawable.ic_anime_keyboard_arrow_up_filled else R.drawable.ic_anime_keyboard_arrow_down_filled),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
         }
 
