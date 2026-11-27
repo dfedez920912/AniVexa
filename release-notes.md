@@ -1,6 +1,6 @@
-# AniVexa v0.1.8 (Latest)
+# AniVexa v0.1.9 (Latest)
 
-Versión estable que recopila todas las mejoras, novedades y correcciones implementadas desde `v0.1.8-beta.1` hasta `v0.1.8-beta.4`.
+Versión estable y optimizada con cambio de namespace/applicationId a `com.github.dfedez920912.anivexa`, soporte completo para Xiaomi App Store (GetApps), política de privacidad y corrección de referencias de compilación.
 
 ## Novedades y Correcciones
 
