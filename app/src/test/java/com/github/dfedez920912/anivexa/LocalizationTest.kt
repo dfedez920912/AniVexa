@@ -315,7 +315,7 @@ class LocalizationTest {
 
         composeRule.setContent {
             AniVexaTheme(appLanguage = SynopsisLanguage.SPANISH) {
-                com.example.ui.AnimeDetailScreen(
+                com.github.dfedez920912.anivexa.ui.AnimeDetailScreen(
                     anime = sampleAnime,
                     reviews = emptyList(),
                     characters = emptyList(),

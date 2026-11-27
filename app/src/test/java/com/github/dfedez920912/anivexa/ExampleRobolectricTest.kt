@@ -967,7 +967,7 @@ class ExampleRobolectricTest {
 
     var saved = db.watchlistDao().getWatchlistItemById(animeId)!!
     assertEquals(10, saved.watchedEpisodes)
-    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, saved.statusEnum)
+    assertEquals(com.github.dfedez920912.anivexa.data.local.WatchlistStatus.WATCHING, saved.statusEnum)
 
     val unmarked10 = repository.toggleEpisodeWithPriorWatched(animeId, 10)
     assertFalse("Re-tapping watched episode 10 should unmark episode 10", unmarked10)
@@ -982,14 +982,14 @@ class ExampleRobolectricTest {
     assertEquals(12, (1..12).count { ep -> watchedKeys.contains("${animeId}_$ep") })
     saved = db.watchlistDao().getWatchlistItemById(animeId)!!
     assertEquals(12, saved.watchedEpisodes)
-    assertEquals(com.example.data.local.WatchlistStatus.COMPLETED, saved.statusEnum)
+    assertEquals(com.github.dfedez920912.anivexa.data.local.WatchlistStatus.COMPLETED, saved.statusEnum)
 
     repository.clearWatchedEpisodesForAnime(animeId)
     watchedKeys = repository.getWatchedEpisodeKeys()
     assertEquals(0, (1..12).count { ep -> watchedKeys.contains("${animeId}_$ep") })
     saved = db.watchlistDao().getWatchlistItemById(animeId)!!
     assertEquals(0, saved.watchedEpisodes)
-    assertEquals(com.example.data.local.WatchlistStatus.PLAN_TO_WATCH, saved.statusEnum)
+    assertEquals(com.github.dfedez920912.anivexa.data.local.WatchlistStatus.PLAN_TO_WATCH, saved.statusEnum)
   }
 
   @Test
@@ -1003,7 +1003,7 @@ class ExampleRobolectricTest {
     assertTrue("Anime should be auto-added to watchlist on episode mark", repository.isInWatchlist(epAnime.id))
     val epSaved = db.watchlistDao().getWatchlistItemById(epAnime.id)!!
     assertEquals(5, epSaved.watchedEpisodes)
-    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, epSaved.statusEnum)
+    assertEquals(com.github.dfedez920912.anivexa.data.local.WatchlistStatus.WATCHING, epSaved.statusEnum)
 
     // Case 2: Pressing Mark All auto-adds to watchlist as COMPLETED
     val allAnime = base.copy(id = 8802, totalEpisodes = 12)
@@ -1012,7 +1012,7 @@ class ExampleRobolectricTest {
     assertTrue("Anime should be auto-added to watchlist on mark all", repository.isInWatchlist(allAnime.id))
     val allSaved = db.watchlistDao().getWatchlistItemById(allAnime.id)!!
     assertEquals(12, allSaved.watchedEpisodes)
-    assertEquals(com.example.data.local.WatchlistStatus.COMPLETED, allSaved.statusEnum)
+    assertEquals(com.github.dfedez920912.anivexa.data.local.WatchlistStatus.COMPLETED, allSaved.statusEnum)
 
     // Case 3: Card quick-watch toggle auto-adds to watchlist
     val cardAnime = base.copy(id = 8803, episode = 2, totalEpisodes = 12)
@@ -1021,20 +1021,20 @@ class ExampleRobolectricTest {
     assertTrue("Anime should be auto-added to watchlist on quick watch toggle", repository.isInWatchlist(cardAnime.id))
     val cardSaved = db.watchlistDao().getWatchlistItemById(cardAnime.id)!!
     assertEquals(1, cardSaved.watchedEpisodes)
-    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, cardSaved.statusEnum)
+    assertEquals(com.github.dfedez920912.anivexa.data.local.WatchlistStatus.WATCHING, cardSaved.statusEnum)
   }
 
   @Test
   fun `test navigateHomeFromDetail clears related stack and returns to Home`() {
     val application = ApplicationProvider.getApplicationContext<android.app.Application>()
-    val viewModel = com.example.ui.AnimeViewModel(application)
+    val viewModel = com.github.dfedez920912.anivexa.ui.AnimeViewModel(application)
     val firstAnime = OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now()).first()
 
-    viewModel.setNavScreen(com.example.ui.MainNavScreen.SEARCH)
+    viewModel.setNavScreen(com.github.dfedez920912.anivexa.ui.MainNavScreen.SEARCH)
     viewModel.openDetail(firstAnime)
     assertEquals(firstAnime.id, viewModel.uiState.value.selectedAnimeForDetail?.id)
 
-    val related = com.example.model.RelatedAnimeItem(
+    val related = com.github.dfedez920912.anivexa.model.RelatedAnimeItem(
       id = firstAnime.id + 500,
       relationType = "SEQUEL",
       relationLabelEs = "Secuela",
@@ -1059,13 +1059,13 @@ class ExampleRobolectricTest {
     viewModel.navigateHomeFromDetail()
 
     org.junit.Assert.assertNull(viewModel.uiState.value.selectedAnimeForDetail)
-    assertEquals(com.example.ui.MainNavScreen.HOME, viewModel.uiState.value.currentNavScreen)
-    assertEquals(com.example.ui.SeeAllMode.NONE, viewModel.uiState.value.seeAllMode)
+    assertEquals(com.github.dfedez920912.anivexa.ui.MainNavScreen.HOME, viewModel.uiState.value.currentNavScreen)
+    assertEquals(com.github.dfedez920912.anivexa.ui.SeeAllMode.NONE, viewModel.uiState.value.seeAllMode)
   }
 
   @Test
   fun `test AniListClient resolves bannerImage or falls back to streamingEpisodes or trailer thumbnail`() {
-    val client = com.example.data.AniListClient()
+    val client = com.github.dfedez920912.anivexa.data.AniListClient()
 
     val withBanner = org.json.JSONObject("""
       {
