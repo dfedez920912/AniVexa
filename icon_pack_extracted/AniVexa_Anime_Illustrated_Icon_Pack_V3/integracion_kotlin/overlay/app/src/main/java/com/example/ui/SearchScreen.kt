@@ -1,6 +1,6 @@
-package com.example.ui
+﻿package com.github.dfedez920912.anivexa.ui
 
-import cu.daniel.anical.R
+import com.github.dfedez920912.anivexa.R
 import androidx.compose.ui.res.painterResource
 
 import androidx.compose.animation.AnimatedVisibility
@@ -51,18 +51,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.model.AnimeRelease
-import com.example.model.GenreHelper
-import com.example.model.MediaFormatFilter
-import com.example.model.MediaSeason
-import com.example.model.MediaStatusFilter
-import com.example.ui.components.AnimePosterCard
-import com.example.ui.theme.LocalBottomDockPadding
-import com.example.ui.theme.LocalIsLiquidGlass
-import com.example.ui.theme.adaptiveCardColor
-import com.example.ui.theme.adaptiveCardCorner
-import com.example.ui.theme.glassCardBorder
-import com.example.ui.theme.screenBackdrop
+import com.github.dfedez920912.anivexa.model.AnimeRelease
+import com.github.dfedez920912.anivexa.model.GenreHelper
+import com.github.dfedez920912.anivexa.model.MediaFormatFilter
+import com.github.dfedez920912.anivexa.model.MediaSeason
+import com.github.dfedez920912.anivexa.model.MediaStatusFilter
+import com.github.dfedez920912.anivexa.ui.components.AnimePosterCard
+import com.github.dfedez920912.anivexa.ui.theme.LocalBottomDockPadding
+import com.github.dfedez920912.anivexa.ui.theme.LocalIsLiquidGlass
+import com.github.dfedez920912.anivexa.ui.theme.adaptiveCardColor
+import com.github.dfedez920912.anivexa.ui.theme.adaptiveCardCorner
+import com.github.dfedez920912.anivexa.ui.theme.glassCardBorder
+import com.github.dfedez920912.anivexa.ui.theme.screenBackdrop
 import java.time.LocalDate
 
 @Composable

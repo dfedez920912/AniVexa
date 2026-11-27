@@ -1,6 +1,6 @@
-package com.example.ui.components
+﻿package com.github.dfedez920912.anivexa.ui.components
 
-import cu.daniel.anical.R
+import com.github.dfedez920912.anivexa.R
 import androidx.compose.ui.res.painterResource
 
 import androidx.compose.foundation.BorderStroke
@@ -43,13 +43,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.model.AnimeRelease
-import com.example.ui.theme.AniAzure
-import com.example.ui.theme.AniGold
-import com.example.ui.theme.LocalIsLiquidGlass
-import com.example.ui.theme.adaptiveCardColor
-import com.example.ui.theme.adaptiveCardCorner
-import com.example.ui.theme.glassCardBorder
+import com.github.dfedez920912.anivexa.model.AnimeRelease
+import com.github.dfedez920912.anivexa.ui.theme.AniAzure
+import com.github.dfedez920912.anivexa.ui.theme.AniGold
+import com.github.dfedez920912.anivexa.ui.theme.LocalIsLiquidGlass
+import com.github.dfedez920912.anivexa.ui.theme.adaptiveCardColor
+import com.github.dfedez920912.anivexa.ui.theme.adaptiveCardCorner
+import com.github.dfedez920912.anivexa.ui.theme.glassCardBorder
 import java.time.ZoneId
 
 @Composable

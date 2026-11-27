@@ -1,6 +1,6 @@
-package com.example.ui
+﻿package com.github.dfedez920912.anivexa.ui
 
-import cu.daniel.anical.R
+import com.github.dfedez920912.anivexa.R
 import androidx.compose.ui.res.painterResource
 
 import androidx.compose.animation.AnimatedVisibility
@@ -70,21 +70,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.model.AnimeRelease
-import com.example.model.CountdownStatus
-import com.example.model.DayScheduleTab
-import com.example.model.GenreHelper
-import com.example.model.MediaFormatFilter
-import com.example.ui.components.AnimePosterCard
-import com.example.ui.theme.AniAiringGreenBright
-import com.example.ui.theme.AniGlassSheetSurface
-import com.example.ui.theme.AniGold
-import com.example.ui.theme.LocalBottomDockPadding
-import com.example.ui.theme.LocalIsLiquidGlass
-import com.example.ui.theme.adaptiveCardColor
-import com.example.ui.theme.adaptiveCardCorner
-import com.example.ui.theme.glassCardBorder
-import com.example.ui.theme.screenBackdrop
+import com.github.dfedez920912.anivexa.model.AnimeRelease
+import com.github.dfedez920912.anivexa.model.CountdownStatus
+import com.github.dfedez920912.anivexa.model.DayScheduleTab
+import com.github.dfedez920912.anivexa.model.GenreHelper
+import com.github.dfedez920912.anivexa.model.MediaFormatFilter
+import com.github.dfedez920912.anivexa.ui.components.AnimePosterCard
+import com.github.dfedez920912.anivexa.ui.theme.AniAiringGreenBright
+import com.github.dfedez920912.anivexa.ui.theme.AniGlassSheetSurface
+import com.github.dfedez920912.anivexa.ui.theme.AniGold
+import com.github.dfedez920912.anivexa.ui.theme.LocalBottomDockPadding
+import com.github.dfedez920912.anivexa.ui.theme.LocalIsLiquidGlass
+import com.github.dfedez920912.anivexa.ui.theme.adaptiveCardColor
+import com.github.dfedez920912.anivexa.ui.theme.adaptiveCardCorner
+import com.github.dfedez920912.anivexa.ui.theme.glassCardBorder
+import com.github.dfedez920912.anivexa.ui.theme.screenBackdrop
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle

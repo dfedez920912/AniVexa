@@ -19,7 +19,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
-            android:name="com.example.MainActivity"
+            android:name="com.github.dfedez920912.anivexa.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:launchMode="singleTop"
@@ -33,12 +33,12 @@
 
         <!-- BroadcastReceiver for anime episode release alerts -->
         <receiver
-            android:name="com.example.notifications.AnimeReminderReceiver"
+            android:name="com.github.dfedez920912.anivexa.notifications.AnimeReminderReceiver"
             android:exported="false" />
 
         <!-- Scrollable List Anime Widget -->
         <receiver
-            android:name="com.example.widget.AnimeListWidgetProvider"
+            android:name="com.github.dfedez920912.anivexa.widget.AnimeListWidgetProvider"
             android:exported="true"
             android:label="AniVexa - Estrenos de Hoy">
             <intent-filter>
@@ -51,7 +51,7 @@
 
         <!-- Count Anime Widget -->
         <receiver
-            android:name="com.example.widget.AnimeCountWidgetProvider"
+            android:name="com.github.dfedez920912.anivexa.widget.AnimeCountWidgetProvider"
             android:exported="true"
             android:label="AniVexa - Contador de Estrenos">
             <intent-filter>
@@ -64,7 +64,7 @@
 
         <!-- RemoteViewsService for scrollable 3x2 list widget -->
         <service
-            android:name="com.example.widget.AnimeListWidgetService"
+            android:name="com.github.dfedez920912.anivexa.widget.AnimeListWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS"
             android:exported="false" />
 

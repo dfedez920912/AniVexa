@@ -1,6 +1,6 @@
-package com.example.ui
+﻿package com.github.dfedez920912.anivexa.ui
 
-import cu.daniel.anical.R
+import com.github.dfedez920912.anivexa.R
 import androidx.compose.ui.res.painterResource
 
 import androidx.compose.foundation.BorderStroke
@@ -57,19 +57,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.data.local.WatchlistEntity
-import com.example.data.local.WatchlistStatus
-import com.example.model.AnimeRelease
-import com.example.model.WatchlistSortOrder
-import com.example.ui.theme.AniAiringGreenBright
-import com.example.ui.theme.AniAzureSoft
-import com.example.ui.theme.AniGlassSheetSurface
-import com.example.ui.theme.LocalBottomDockPadding
-import com.example.ui.theme.LocalIsLiquidGlass
-import com.example.ui.theme.adaptiveCardColor
-import com.example.ui.theme.adaptiveCardCorner
-import com.example.ui.theme.glassCardBorder
-import com.example.ui.theme.screenBackdrop
+import com.github.dfedez920912.anivexa.data.local.WatchlistEntity
+import com.github.dfedez920912.anivexa.data.local.WatchlistStatus
+import com.github.dfedez920912.anivexa.model.AnimeRelease
+import com.github.dfedez920912.anivexa.model.WatchlistSortOrder
+import com.github.dfedez920912.anivexa.ui.theme.AniAiringGreenBright
+import com.github.dfedez920912.anivexa.ui.theme.AniAzureSoft
+import com.github.dfedez920912.anivexa.ui.theme.AniGlassSheetSurface
+import com.github.dfedez920912.anivexa.ui.theme.LocalBottomDockPadding
+import com.github.dfedez920912.anivexa.ui.theme.LocalIsLiquidGlass
+import com.github.dfedez920912.anivexa.ui.theme.adaptiveCardColor
+import com.github.dfedez920912.anivexa.ui.theme.adaptiveCardCorner
+import com.github.dfedez920912.anivexa.ui.theme.glassCardBorder
+import com.github.dfedez920912.anivexa.ui.theme.screenBackdrop
 
 @Composable
 fun MyListScreen(

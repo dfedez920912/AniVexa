@@ -1,6 +1,6 @@
-package com.example.ui
+﻿package com.github.dfedez920912.anivexa.ui
 
-import cu.daniel.anical.R
+import com.github.dfedez920912.anivexa.R
 import androidx.compose.ui.res.painterResource
 
 import android.Manifest
@@ -53,14 +53,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.example.model.AppThemeMode
-import com.example.model.SynopsisLanguage
-import com.example.ui.theme.LocalBottomDockPadding
-import com.example.ui.theme.LocalIsLiquidGlass
-import com.example.ui.theme.adaptiveCardColor
-import com.example.ui.theme.adaptiveCardCorner
-import com.example.ui.theme.glassCardBorder
-import com.example.ui.theme.screenBackdrop
+import com.github.dfedez920912.anivexa.model.AppThemeMode
+import com.github.dfedez920912.anivexa.model.SynopsisLanguage
+import com.github.dfedez920912.anivexa.ui.theme.LocalBottomDockPadding
+import com.github.dfedez920912.anivexa.ui.theme.LocalIsLiquidGlass
+import com.github.dfedez920912.anivexa.ui.theme.adaptiveCardColor
+import com.github.dfedez920912.anivexa.ui.theme.adaptiveCardCorner
+import com.github.dfedez920912.anivexa.ui.theme.glassCardBorder
+import com.github.dfedez920912.anivexa.ui.theme.screenBackdrop
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

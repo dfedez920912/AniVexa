@@ -1,6 +1,6 @@
-package com.example.ui.components
+﻿package com.github.dfedez920912.anivexa.ui.components
 
-import cu.daniel.anical.R
+import com.github.dfedez920912.anivexa.R
 import androidx.compose.ui.res.painterResource
 
 import android.os.Build
@@ -71,8 +71,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.MainNavScreen
-import com.example.ui.theme.LocalIsLiquidGlass
+import com.github.dfedez920912.anivexa.ui.MainNavScreen
+import com.github.dfedez920912.anivexa.ui.theme.LocalIsLiquidGlass
 
 private data class NavTabItem(
     val screen: MainNavScreen,

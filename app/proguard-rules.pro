@@ -1,21 +1,21 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ProGuard and R8 Rules for AniVexa (com.github.dfedez920912.anivexa)
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep Line Numbers and Source File Attributes for Production Crash Logs
+-keepattributes SourceFile,LineNumberTable,Signature,InnerClasses,EnclosingMethod,*Annotation*
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Keep Room Database Entities & DAOs
+-keep class com.github.dfedez920912.anivexa.data.local.** { *; }
+-keep interface com.github.dfedez920912.anivexa.data.local.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep Moshi JSON Serialized Data Models & Codegen Adapters
+-keep class com.github.dfedez920912.anivexa.model.** { *; }
+-keepclassmembers class * {
+    @com.squareup.moshi.Json *;
+}
+
+# Keep AppWidgets and Broadcast Receivers
+-keep class com.github.dfedez920912.anivexa.widget.** { *; }
+-keep class com.github.dfedez920912.anivexa.notifications.** { *; }
+
+# Keep Retrofit API Interface Methods
+-keep interface com.github.dfedez920912.anivexa.data.** { *; }

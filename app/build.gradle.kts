@@ -9,14 +9,14 @@ plugins {
 }
 
 android {
-  namespace = "cu.daniel.anical"
+  namespace = "com.github.dfedez920912.anivexa"
   compileSdk = 36
   defaultConfig {
-    applicationId = "com.aistudio.anical.sched"
+    applicationId = "com.github.dfedez920912.anivexa"
     minSdk = 24
     targetSdk = 36
-    versionCode = 16
-    versionName = "0.1.7"
+    versionCode = 17
+    versionName = "0.1.8"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
