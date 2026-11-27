@@ -9,10 +9,10 @@ plugins {
 }
 
 android {
-  namespace = "cu.daniel.anical"
+  namespace = "com.github.dfedez920912.anivexa"
   compileSdk = 36
   defaultConfig {
-    applicationId = "com.aistudio.anical.sched"
+    applicationId = "com.github.dfedez920912.anivexa"
     minSdk = 24
     targetSdk = 36
     versionCode = 21
