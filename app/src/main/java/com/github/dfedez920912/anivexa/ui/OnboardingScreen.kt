@@ -198,7 +198,7 @@ fun OnboardingScreen(
                     when (page) {
                         0 -> OnboardingFeatureSlide(
                             tag = "onboarding_slide_0",
-                            icon = Icons.Default.NotificationsActive,
+                            iconRes = R.drawable.ic_anime_notifications_active_filled,
                             headerTitle = s.onboardingTitle,
                             headerSubtitle = s.onboardingSubtitle,
                             featureTitle = s.onboardingFeature1Title,
@@ -208,7 +208,7 @@ fun OnboardingScreen(
 
                         1 -> OnboardingFeatureSlide(
                             tag = "onboarding_slide_1",
-                            icon = Icons.Default.BookmarkAdded,
+                            iconRes = R.drawable.ic_anime_bookmark_filled,
                             headerTitle = s.onboardingFeature2Title,
                             headerSubtitle = s.myListEmptyBody,
                             featureTitle = s.navMyList,
@@ -218,7 +218,7 @@ fun OnboardingScreen(
 
                         2 -> OnboardingFeatureSlide(
                             tag = "onboarding_slide_2",
-                            icon = Icons.Default.Translate,
+                            iconRes = R.drawable.ic_anime_translate_filled,
                             headerTitle = s.onboardingFeature3Title,
                             headerSubtitle = s.settingsLanguageSubtitle,
                             featureTitle = s.settingsAppearanceSection,
@@ -287,8 +287,9 @@ fun OnboardingScreen(
                             .testTag("onboarding_back_button")
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            painter = painterResource(id = R.drawable.ic_anime_arrow_back_automirrored_filled),
                             contentDescription = null,
+                            tint = Color.Unspecified,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -314,8 +315,9 @@ fun OnboardingScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            painter = painterResource(id = R.drawable.ic_anime_keyboard_arrow_right_automirrored_filled),
                             contentDescription = null,
+                            tint = Color.Unspecified,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -335,8 +337,9 @@ fun OnboardingScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            painter = painterResource(id = R.drawable.ic_anime_keyboard_arrow_right_automirrored_filled),
                             contentDescription = null,
+                            tint = Color.Unspecified,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -377,7 +380,7 @@ fun OnboardingScreen(
 @Composable
 private fun OnboardingFeatureSlide(
     tag: String,
-    icon: ImageVector,
+    iconRes: Int,
     headerTitle: String,
     headerSubtitle: String,
     featureTitle: String,
@@ -400,9 +403,9 @@ private fun OnboardingFeatureSlide(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = icon,
+                    painter = painterResource(id = iconRes),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = Color.Unspecified,
                     modifier = Modifier.size(42.dp)
                 )
             }

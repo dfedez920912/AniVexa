@@ -83,6 +83,9 @@ class LocalizationTest {
             assertTrue(s.onboardingNextBtn.isNotBlank())
             assertTrue(s.onboardingSkipBtn.isNotBlank())
             assertTrue(s.splashBackupTitle.isNotBlank())
+            assertTrue(s.detailMarkAllEpisodesBtn.isNotBlank())
+            assertTrue(s.detailUnmarkAllEpisodesBtn.isNotBlank())
+            assertTrue(s.detailMarkAllEpisodesBtn != s.detailUnmarkAllEpisodesBtn)
             assertTrue(s.vmDriveAuthDevError.isNotBlank())
             assertTrue(s.vmDriveAuthCode8Error.isNotBlank())
             assertTrue(s.calendarEmptyDayTitle(s.calendarThisDay).isNotBlank())
@@ -285,5 +288,89 @@ class LocalizationTest {
         val activity = controller.get()
         assertTrue(!activity.isFinishing)
         controller.pause().stop().destroy()
+    }
+
+    @Test
+    fun `AnimeDetailScreen episode tracker supports mark all unmark all and cumulative selection`() {
+        val sampleAnime = AnimeRelease(
+            id = 42,
+            airingId = 42,
+            titleRomaji = "Test Anime",
+            titleEnglish = "Test Anime",
+            coverImageUrl = "https://example.com/a.jpg",
+            bannerImageUrl = null,
+            synopsis = "English synopsis",
+            synopsisEs = "Sinopsis en español",
+            episode = 3,
+            totalEpisodes = 12,
+            airingAtSeconds = (System.currentTimeMillis() / 1000L) + 5400L,
+            genres = listOf("Acción"),
+            score = 8.4,
+            studio = "Madhouse"
+        )
+        var watchedKeys by mutableStateOf(emptySet<String>())
+        val markAllCalls = mutableListOf<Pair<Boolean, Int>>()
+        var goHomeCalls = 0
+        val sEs = AppLocalization.stringsFor(SynopsisLanguage.SPANISH)
+
+        composeRule.setContent {
+            AniVexaTheme(appLanguage = SynopsisLanguage.SPANISH) {
+                com.example.ui.AnimeDetailScreen(
+                    anime = sampleAnime,
+                    reviews = emptyList(),
+                    characters = emptyList(),
+                    isLoadingDetail = false,
+                    watchedEpisodeKeys = watchedKeys,
+                    defaultReminderMinutes = 15,
+                    zoneId = java.time.ZoneId.of("UTC"),
+                    onBack = {},
+                    onGoHome = { goHomeCalls++ },
+                    onToggleWatchlist = {},
+                    onToggleReminder = { _, _ -> },
+                    onTestNotification = {},
+                    onToggleWatchedEpisodeNum = { ep ->
+                        watchedKeys = if (watchedKeys.contains("42_$ep")) {
+                            watchedKeys - "42_$ep"
+                        } else {
+                            watchedKeys + (1..ep).map { "42_$it" }
+                        }
+                    },
+                    onMarkAllEpisodes = { markAll, total ->
+                        markAllCalls.add(markAll to total)
+                        watchedKeys = if (markAll) {
+                            (1..total).map { "42_$it" }.toSet()
+                        } else {
+                            emptySet()
+                        }
+                    },
+                    onRatingChanged = {}
+                )
+            }
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("detail_backdrop_image").assertIsDisplayed()
+        composeRule.onNodeWithTag("detail_back_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("detail_home_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("detail_bell_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("detail_share_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("detail_home_button").performClick()
+        composeRule.waitForIdle()
+        assertEquals(1, goHomeCalls)
+
+        composeRule.onNodeWithTag("detail_mark_all_episodes_btn").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(sEs.detailMarkAllEpisodesBtn, useUnmergedTree = true).assertIsDisplayed()
+
+        composeRule.onNodeWithTag("detail_mark_all_episodes_btn").performClick()
+        composeRule.waitForIdle()
+        assertEquals(listOf(true to 12), markAllCalls)
+        assertEquals(12, watchedKeys.size)
+        composeRule.onNodeWithText(sEs.detailUnmarkAllEpisodesBtn, useUnmergedTree = true).assertIsDisplayed()
+
+        composeRule.onNodeWithTag("detail_mark_all_episodes_btn").performClick()
+        composeRule.waitForIdle()
+        assertEquals(listOf(true to 12, false to 12), markAllCalls)
+        assertEquals(0, watchedKeys.size)
+        composeRule.onNodeWithText(sEs.detailMarkAllEpisodesBtn, useUnmergedTree = true).assertIsDisplayed()
     }
 }

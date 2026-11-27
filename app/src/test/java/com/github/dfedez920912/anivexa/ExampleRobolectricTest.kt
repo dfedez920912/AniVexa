@@ -946,4 +946,167 @@ class ExampleRobolectricTest {
     assertTrue("Security check timestamp should be populated", report.checkedAtMillis > 0L)
     assertNotNull("Play Integrity status should be resolved safely", report.playIntegrityStatus)
   }
+
+  @Test
+  fun `test toggleEpisodeWithPriorWatched marks 1 to N and markAll clearAll toggle all episodes`(): Unit = runBlocking {
+    val animeId = 7777
+    val series = OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now()).first().copy(
+      id = animeId,
+      totalEpisodes = 12
+    )
+    repository.toggleWatchlist(series)
+
+    val marked10 = repository.toggleEpisodeWithPriorWatched(animeId, 10)
+    assertTrue("Selecting unwatched episode 10 should mark episodes 1..10", marked10)
+    var watchedKeys = repository.getWatchedEpisodeKeys()
+    (1..10).forEach { ep ->
+      assertTrue("Episode $ep should be marked watched", watchedKeys.contains("${animeId}_$ep"))
+    }
+    assertFalse("Episode 11 should remain unwatched", watchedKeys.contains("${animeId}_11"))
+    assertFalse("Episode 12 should remain unwatched", watchedKeys.contains("${animeId}_12"))
+
+    var saved = db.watchlistDao().getWatchlistItemById(animeId)!!
+    assertEquals(10, saved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, saved.statusEnum)
+
+    val unmarked10 = repository.toggleEpisodeWithPriorWatched(animeId, 10)
+    assertFalse("Re-tapping watched episode 10 should unmark episode 10", unmarked10)
+    watchedKeys = repository.getWatchedEpisodeKeys()
+    assertFalse(watchedKeys.contains("${animeId}_10"))
+    assertTrue(watchedKeys.contains("${animeId}_9"))
+    saved = db.watchlistDao().getWatchlistItemById(animeId)!!
+    assertEquals(9, saved.watchedEpisodes)
+
+    repository.markAllEpisodesWatched(animeId, 12)
+    watchedKeys = repository.getWatchedEpisodeKeys()
+    assertEquals(12, (1..12).count { ep -> watchedKeys.contains("${animeId}_$ep") })
+    saved = db.watchlistDao().getWatchlistItemById(animeId)!!
+    assertEquals(12, saved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.COMPLETED, saved.statusEnum)
+
+    repository.clearWatchedEpisodesForAnime(animeId)
+    watchedKeys = repository.getWatchedEpisodeKeys()
+    assertEquals(0, (1..12).count { ep -> watchedKeys.contains("${animeId}_$ep") })
+    saved = db.watchlistDao().getWatchlistItemById(animeId)!!
+    assertEquals(0, saved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.PLAN_TO_WATCH, saved.statusEnum)
+  }
+
+  @Test
+  fun `test marking episode or all episodes automatically adds anime to watchlist`(): Unit = runBlocking {
+    val base = OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now()).first()
+
+    // Case 1: Marking a single/cumulative episode from detail auto-adds to watchlist as WATCHING
+    val epAnime = base.copy(id = 8801, totalEpisodes = 12)
+    assertFalse(repository.isInWatchlist(epAnime.id))
+    repository.toggleEpisodeWithPriorWatched(epAnime.id, 5, anime = epAnime)
+    assertTrue("Anime should be auto-added to watchlist on episode mark", repository.isInWatchlist(epAnime.id))
+    val epSaved = db.watchlistDao().getWatchlistItemById(epAnime.id)!!
+    assertEquals(5, epSaved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, epSaved.statusEnum)
+
+    // Case 2: Pressing Mark All auto-adds to watchlist as COMPLETED
+    val allAnime = base.copy(id = 8802, totalEpisodes = 12)
+    assertFalse(repository.isInWatchlist(allAnime.id))
+    repository.markAllEpisodesWatched(allAnime.id, 12, anime = allAnime)
+    assertTrue("Anime should be auto-added to watchlist on mark all", repository.isInWatchlist(allAnime.id))
+    val allSaved = db.watchlistDao().getWatchlistItemById(allAnime.id)!!
+    assertEquals(12, allSaved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.COMPLETED, allSaved.statusEnum)
+
+    // Case 3: Card quick-watch toggle auto-adds to watchlist
+    val cardAnime = base.copy(id = 8803, episode = 2, totalEpisodes = 12)
+    assertFalse(repository.isInWatchlist(cardAnime.id))
+    repository.toggleWatchedEpisode(cardAnime.id, 2, anime = cardAnime)
+    assertTrue("Anime should be auto-added to watchlist on quick watch toggle", repository.isInWatchlist(cardAnime.id))
+    val cardSaved = db.watchlistDao().getWatchlistItemById(cardAnime.id)!!
+    assertEquals(1, cardSaved.watchedEpisodes)
+    assertEquals(com.example.data.local.WatchlistStatus.WATCHING, cardSaved.statusEnum)
+  }
+
+  @Test
+  fun `test navigateHomeFromDetail clears related stack and returns to Home`() {
+    val application = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val viewModel = com.example.ui.AnimeViewModel(application)
+    val firstAnime = OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now()).first()
+
+    viewModel.setNavScreen(com.example.ui.MainNavScreen.SEARCH)
+    viewModel.openDetail(firstAnime)
+    assertEquals(firstAnime.id, viewModel.uiState.value.selectedAnimeForDetail?.id)
+
+    val related = com.example.model.RelatedAnimeItem(
+      id = firstAnime.id + 500,
+      relationType = "SEQUEL",
+      relationLabelEs = "Secuela",
+      titleRomaji = "Related Sequel",
+      titleEnglish = "Related Sequel",
+      coverImageUrl = "https://example.com/rel.jpg",
+      format = "TV",
+      status = "RELEASING",
+      totalEpisodes = 12,
+      seasonYear = 2026,
+      score = 8.5
+    )
+    viewModel.openRelatedDetail(related)
+    assertEquals(related.id, viewModel.uiState.value.selectedAnimeForDetail?.id)
+
+    // Back pops one level to the previous detail card
+    viewModel.closeDetail()
+    assertEquals(firstAnime.id, viewModel.uiState.value.selectedAnimeForDetail?.id)
+
+    // Go to related again, then click Home to jump straight back to Home screen
+    viewModel.openRelatedDetail(related)
+    viewModel.navigateHomeFromDetail()
+
+    org.junit.Assert.assertNull(viewModel.uiState.value.selectedAnimeForDetail)
+    assertEquals(com.example.ui.MainNavScreen.HOME, viewModel.uiState.value.currentNavScreen)
+    assertEquals(com.example.ui.SeeAllMode.NONE, viewModel.uiState.value.seeAllMode)
+  }
+
+  @Test
+  fun `test AniListClient resolves bannerImage or falls back to streamingEpisodes or trailer thumbnail`() {
+    val client = com.example.data.AniListClient()
+
+    val withBanner = org.json.JSONObject("""
+      {
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21-wf37VakJmZqs.jpg",
+        "trailer": { "thumbnail": "https://i.ytimg.com/vi/abc/hqdefault.jpg" },
+        "streamingEpisodes": [{ "thumbnail": "https://img1.ak.crunchyroll.com/ep1.jpg" }]
+      }
+    """.trimIndent())
+    assertEquals(
+      "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21-wf37VakJmZqs.jpg",
+      client.resolveBannerImageUrl(withBanner)
+    )
+
+    val withEpisodeThumbOnly = org.json.JSONObject("""
+      {
+        "bannerImage": null,
+        "trailer": { "thumbnail": "https://i.ytimg.com/vi/abc/hqdefault.jpg" },
+        "streamingEpisodes": [{ "thumbnail": "https://img1.ak.crunchyroll.com/ep1.jpg" }]
+      }
+    """.trimIndent())
+    assertEquals(
+      "https://img1.ak.crunchyroll.com/ep1.jpg",
+      client.resolveBannerImageUrl(withEpisodeThumbOnly)
+    )
+
+    val withTrailerOnlyAndTab = org.json.JSONObject("""
+      {
+        "bannerImage": null,
+        "trailer": { "thumbnail": "http://i.ytimg.com/vi/LHtdKWJdif4\t/hqdefault.jpg" },
+        "streamingEpisodes": []
+      }
+    """.trimIndent())
+    assertEquals(
+      "https://i.ytimg.com/vi/LHtdKWJdif4/hqdefault.jpg",
+      client.resolveBannerImageUrl(withTrailerOnlyAndTab)
+    )
+
+    // Offline schedule items must all have distinct non-blank HTTPS cover and banner URLs
+    OfflineAnimeData.getCuratedWeekSchedule(LocalDate.now()).forEach { item ->
+      assertTrue("Cover URL should be HTTPS for ${item.displayTitle}", item.coverImageUrl.startsWith("https://"))
+      assertTrue("Banner URL should be distinct HTTPS for ${item.displayTitle}", !item.bannerImageUrl.isNullOrBlank() && item.bannerImageUrl!!.startsWith("https://") && item.bannerImageUrl != item.coverImageUrl)
+    }
+  }
 }

@@ -1,6 +1,7 @@
 ﻿package com.github.dfedez920912.anivexa.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,16 +19,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
+import androidx.compose.ui.res.painterResource
+import cu.daniel.anical.R
 import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material.icons.filled.PlayCircleOutline
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -115,10 +109,10 @@ fun MyListScreen(
                     onClick = { sortMenuOpen = true },
                     modifier = Modifier.testTag("mylist_sort_btn")
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Sort,
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_anime_sort_automirrored_filled),
                         contentDescription = s.myListSortDesc,
-                        tint = MaterialTheme.colorScheme.onBackground
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
@@ -138,10 +132,9 @@ fun MyListScreen(
                             },
                             leadingIcon = {
                                 if (uiState.myListSortOrder == order) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_anime_check_filled),
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -203,10 +196,9 @@ fun MyListScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.BookmarkBorder,
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_anime_bookmark_border_outlined),
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(44.dp)
                         )
                         Text(
@@ -351,10 +343,9 @@ private fun MyListCard(
                                 .size(28.dp)
                                 .testTag("mylist_reminder_bell_${item.animeId}")
                         ) {
-                            Icon(
-                                imageVector = if (hasReminder) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
+                            Image(
+                                painter = painterResource(id = if (hasReminder) R.drawable.ic_anime_notifications_active_filled else R.drawable.ic_anime_notifications_none_filled),
                                 contentDescription = s.calendarReminderDesc,
-                                tint = if (hasReminder) AniGold else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -362,10 +353,9 @@ private fun MyListCard(
                             onClick = onRemove,
                             modifier = Modifier.size(28.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.DeleteOutline,
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_anime_delete_outline_filled),
                                 contentDescription = s.myListRemoveDesc,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -465,14 +455,15 @@ private fun MyListCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(
-                            imageVector = when {
-                                isFullyWatched -> Icons.Default.CheckCircle
-                                isInProgress -> Icons.Default.PlayCircleOutline
-                                else -> Icons.Default.RadioButtonUnchecked
-                            },
+                        Image(
+                            painter = painterResource(
+                                id = when {
+                                    isFullyWatched -> R.drawable.ic_anime_check_circle_filled
+                                    isInProgress -> R.drawable.ic_anime_play_circle_outline_filled
+                                    else -> R.drawable.ic_anime_radio_button_unchecked_filled
+                                }
+                            ),
                             contentDescription = null,
-                            tint = if (isFullyWatched) AniAiringGreenBright else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(15.dp)
                         )
                         Text(

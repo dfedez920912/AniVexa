@@ -704,6 +704,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
                     bundle.anime.copy(
                         episode = if (anime.airingAtSeconds > 0L) anime.episode else bundle.anime.episode,
                         airingAtSeconds = if (anime.airingAtSeconds > 0L) anime.airingAtSeconds else bundle.anime.airingAtSeconds,
+                        bannerImageUrl = bundle.anime.bannerImageUrl ?: anime.bannerImageUrl,
                         synopsisEs = bundle.anime.synopsisEs.ifBlank { anime.synopsisEs },
                         synopsisFr = bundle.anime.synopsisFr.ifBlank { anime.synopsisFr },
                         synopsisJa = bundle.anime.synopsisJa.ifBlank { anime.synopsisJa },
@@ -785,6 +786,24 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun navigateHomeFromDetail() {
+        detailJob?.cancel()
+        seeAllSeasonJob?.cancel()
+        detailBackStack.clear()
+        _uiState.update {
+            it.copy(
+                selectedAnimeForDetail = null,
+                detailReviews = emptyList(),
+                detailCharacters = emptyList(),
+                detailRelations = emptyList(),
+                isLoadingDetail = false,
+                currentNavScreen = MainNavScreen.HOME,
+                seeAllMode = SeeAllMode.NONE,
+                isLoadingSeeAll = false
+            )
+        }
+    }
+
     // Watchlist & Watched Actions
     fun setMyListFilterTab(tab: MyListFilterTab) {
         _uiState.update { state ->
@@ -861,7 +880,7 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleWatchedEpisode(anime: AnimeRelease) {
         viewModelScope.launch {
             val ep = anime.effectiveEpisodeNumber()
-            val nowWatched = repository.toggleWatchedEpisode(anime.id, ep)
+            val nowWatched = repository.toggleWatchedEpisode(anime.id, ep, anime = anime)
             val s = strings()
             _uiState.update {
                 it.copy(
@@ -875,9 +894,26 @@ class AnimeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun toggleWatchedEpisodeNum(animeId: Int, episodeNumber: Int) {
+    fun toggleWatchedEpisodeNum(animeId: Int, episodeNumber: Int, anime: AnimeRelease? = null) {
         viewModelScope.launch {
-            repository.toggleWatchedEpisode(animeId, episodeNumber)
+            val resolvedAnime = anime ?: _uiState.value.selectedAnimeForDetail?.takeIf { it.id == animeId }
+            repository.toggleEpisodeWithPriorWatched(animeId, episodeNumber, anime = resolvedAnime)
+        }
+    }
+
+    fun setAllEpisodesWatched(
+        animeId: Int,
+        markAll: Boolean,
+        totalEpisodes: Int,
+        anime: AnimeRelease? = null
+    ) {
+        viewModelScope.launch {
+            if (markAll) {
+                val resolvedAnime = anime ?: _uiState.value.selectedAnimeForDetail?.takeIf { it.id == animeId }
+                repository.markAllEpisodesWatched(animeId, totalEpisodes, anime = resolvedAnime)
+            } else {
+                repository.clearWatchedEpisodesForAnime(animeId)
+            }
         }
     }
 

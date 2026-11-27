@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,12 +42,14 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ClearAll
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsNone
@@ -72,12 +76,15 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -91,6 +98,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.github.dfedez920912.anivexa.R
 import com.github.dfedez920912.anivexa.i18n.AppLocalization
 import com.github.dfedez920912.anivexa.i18n.LocalAppLanguage
 import com.github.dfedez920912.anivexa.i18n.LocalAppStrings
@@ -135,11 +143,13 @@ fun AnimeDetailScreen(
     defaultReminderMinutes: Int,
     zoneId: ZoneId,
     onBack: () -> Unit,
+    onGoHome: () -> Unit = {},
     onRelatedAnimeClick: (RelatedAnimeItem) -> Unit = {},
     onToggleWatchlist: () -> Unit,
     onToggleReminder: (Boolean, Int) -> Unit,
     onTestNotification: () -> Unit,
     onToggleWatchedEpisodeNum: (Int) -> Unit,
+    onMarkAllEpisodes: (Boolean, Int) -> Unit = { _, _ -> },
     onRatingChanged: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -195,65 +205,85 @@ fun AnimeDetailScreen(
                 .verticalScroll(scrollState)
                 .navigationBarsPadding()
         ) {
-            // Hero Poster/Banner matching Screenshot 1
+            // Hero Poster/Banner with distinct backdrop artwork & automatic fallback
+            val backdropCandidates = remember(
+                anime.id,
+                anime.bannerImageUrl,
+                anime.coverImageUrl,
+                relatedAnime,
+                characters
+            ) {
+                buildList {
+                    anime.bannerImageUrl
+                        ?.trim()
+                        ?.takeIf { it.isNotBlank() && it != "null" && it != anime.coverImageUrl }
+                        ?.let { add(it) }
+                    relatedAnime.firstOrNull {
+                        it.coverImageUrl.isNotBlank() && it.coverImageUrl != anime.coverImageUrl
+                    }?.coverImageUrl?.let { add(it) }
+                    characters.firstOrNull {
+                        !it.imageUrl.isNullOrBlank() && it.imageUrl != anime.coverImageUrl
+                    }?.imageUrl?.let { add(it) }
+                    if (anime.coverImageUrl.isNotBlank()) {
+                        add(anime.coverImageUrl)
+                    }
+                }.distinct()
+            }
+            var backdropCandidateIndex by remember(backdropCandidates) { mutableIntStateOf(0) }
+            val currentBackdropUrl = backdropCandidates.getOrNull(backdropCandidateIndex)
+            val isDistinctBackdrop = currentBackdropUrl != null && currentBackdropUrl != anime.coverImageUrl
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(310.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(anime.coverImageUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = anime.displayTitle,
-                    contentScale = ContentScale.Crop,
-                    modifier = if (isGlass) {
-                        Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-                            .drawWithContent {
-                                drawContent()
-                                drawRect(
-                                    brush = Brush.verticalGradient(
-                                        0.0f to Color.Black,
-                                        0.58f to Color.Black,
-                                        1.0f to Color.Transparent
-                                    ),
-                                    blendMode = BlendMode.DstIn
-                                )
+                // Backdrop image (parte trasera) - muestra el banner u otra imagen del anime claramente
+                if (currentBackdropUrl != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(currentBackdropUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        onError = {
+                            if (backdropCandidateIndex < backdropCandidates.lastIndex) {
+                                backdropCandidateIndex++
                             }
-                    } else {
-                        Modifier.fillMaxSize()
-                    }
-                )
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(
+                                if (isDistinctBackdrop) {
+                                    Modifier.alpha(0.92f)
+                                } else {
+                                    Modifier
+                                        .blur(8.dp)
+                                        .alpha(0.82f)
+                                }
+                            )
+                            .testTag("detail_backdrop_image")
+                    )
+                }
 
-                // Top & bottom gradient scrim into background
+                // Balanced gradient scrim for button & bottom-row legibility without hiding the artwork
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
-                                colors = if (isGlass) {
-                                    listOf(
-                                        Color.Black.copy(alpha = 0.48f),
-                                        Color.Transparent,
-                                        Color.Transparent,
-                                        Color.Transparent
-                                    )
-                                } else {
-                                    listOf(
-                                        Color.Black.copy(alpha = 0.45f),
-                                        Color.Transparent,
-                                        MaterialTheme.colorScheme.background.copy(alpha = 0.72f),
-                                        MaterialTheme.colorScheme.background
-                                    )
-                                }
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.30f),
+                                    Color.Black.copy(alpha = 0.08f),
+                                    Color.Black.copy(alpha = 0.72f)
+                                )
                             )
                         )
                 )
 
-                // Top Overlay Controls (Back left, Reminder + Share right)
+                // Top Overlay Controls (Back + Home left, Reminder + Share right)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -262,30 +292,56 @@ fun AnimeDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val overlayCircleColor = if (isGlass) Color(0x70101D33) else Color.Black.copy(alpha = 0.55f)
+                    val overlayCircleColor = if (isGlass) Color(0x70101D33) else Color.Black.copy(alpha = 0.6f)
                     val overlayCircleBorder = if (isGlass) glassCardBorder(highContrast = true) else null
 
-                    Surface(
-                        shape = CircleShape,
-                        color = overlayCircleColor,
-                        border = overlayCircleBorder,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = onBack)
-                            .testTag("detail_back_button")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = s.backContentDesc,
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
-                            )
+                        Surface(
+                            shape = CircleShape,
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onBack)
+                                .testTag("detail_back_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_arrow_back_automirrored_filled),
+                                    contentDescription = s.backContentDesc,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = CircleShape,
+                            color = overlayCircleColor,
+                            border = overlayCircleBorder,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onGoHome)
+                                .testTag("detail_home_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_home_filled),
+                                    contentDescription = s.navHome,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Surface(
                             shape = CircleShape,
                             color = overlayCircleColor,
@@ -308,10 +364,15 @@ fun AnimeDetailScreen(
                                 .testTag("detail_bell_button")
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = if (reminderEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
+                                Image(
+                                    painter = painterResource(
+                                        id = if (reminderEnabled) {
+                                            R.drawable.ic_anime_notifications_active_filled
+                                        } else {
+                                            R.drawable.ic_anime_notifications_none_filled
+                                        }
+                                    ),
                                     contentDescription = s.detailAlertDesc,
-                                    tint = if (reminderEnabled) AniGold else Color.White,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -338,15 +399,71 @@ fun AnimeDetailScreen(
                                     }
                                     context.startActivity(Intent.createChooser(sendIntent, s.detailShareChooser))
                                 }
+                                .testTag("detail_share_button")
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Share,
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_share_filled),
                                     contentDescription = s.detailShareDesc,
-                                    tint = Color.White,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
+                        }
+                    }
+                }
+
+                // Bottom Foreground content (Small cover poster on left, Episode pill + air time on right)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomStart)
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shadowElevation = 8.dp,
+                        modifier = Modifier
+                            .width(96.dp)
+                            .aspectRatio(0.72f)
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(anime.coverImageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = anime.displayTitle,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF8B5CF6) // Purple pill matching reference image
+                        ) {
+                            Text(
+                                text = s.detailEpisodeLabel(anime.effectiveEpisodeNumber()).uppercase(),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+
+                        val formattedAirTime = anime.getFormattedDateTimeShort(zoneId, s.noDateText)
+                        if (formattedAirTime.isNotBlank()) {
+                            Text(
+                                text = formattedAirTime,
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
                         }
                     }
                 }
@@ -391,7 +508,7 @@ fun AnimeDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Star,
+                                painter = painterResource(id = R.drawable.ic_anime_star_filled),
                                 contentDescription = null,
                                 tint = AniGold,
                                 modifier = Modifier.size(15.dp)
@@ -483,8 +600,8 @@ fun AnimeDetailScreen(
                         .height(48.dp)
                         .testTag("detail_add_mylist_btn")
                 ) {
-                    Icon(
-                        imageVector = if (anime.isInWatchlist) Icons.Default.Check else Icons.Default.Add,
+                    Image(
+                        painter = painterResource(id = if (anime.isInWatchlist) R.drawable.ic_anime_check_filled else R.drawable.ic_anime_add_filled),
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
                     )
@@ -522,10 +639,9 @@ fun AnimeDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Chat,
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_anime_chat_automirrored_filled),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(7.dp))
@@ -553,10 +669,9 @@ fun AnimeDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Groups,
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_anime_groups_filled),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(19.dp)
                             )
                             Spacer(modifier = Modifier.width(7.dp))
@@ -664,10 +779,9 @@ fun AnimeDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Schedule,
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_anime_schedule_filled),
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Column {
@@ -733,7 +847,7 @@ fun AnimeDetailScreen(
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Image(painter = painterResource(id = R.drawable.ic_anime_notifications_active_filled), contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(s.detailTestAlertBtn, fontSize = 12.sp)
                             }
@@ -749,7 +863,8 @@ fun AnimeDetailScreen(
                     totalEpisodes = anime.totalEpisodes,
                     effectiveEpisode = anime.effectiveEpisodeNumber(),
                     watchedEpisodeKeys = watchedEpisodeKeys,
-                    onToggleWatchedEpisodeNum = onToggleWatchedEpisodeNum
+                    onToggleWatchedEpisodeNum = onToggleWatchedEpisodeNum,
+                    onMarkAllEpisodes = onMarkAllEpisodes
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -777,11 +892,11 @@ fun AnimeDetailScreen(
                                 IconButton(
                                     onClick = { onRatingChanged(if (anime.userRating == star) 0 else star) }
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Star,
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_anime_star_filled),
                                         contentDescription = s.detailRateStarsDesc(star),
-                                        tint = if (active) AniGold else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-                                        modifier = Modifier.size(28.dp)
+                                        modifier = Modifier.size(28.dp),
+                                        alpha = if (active) 1.0f else 0.3f
                                     )
                                 }
                             }
@@ -981,10 +1096,9 @@ private fun RelatedAnimeCard(
                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     if (item.score != null) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_anime_star_filled),
                             contentDescription = null,
-                            tint = AniGold,
                             modifier = Modifier.size(12.dp)
                         )
                         Text(
@@ -1059,7 +1173,8 @@ private fun EpisodeTrackerSection(
     totalEpisodes: Int?,
     effectiveEpisode: Int,
     watchedEpisodeKeys: Set<String>,
-    onToggleWatchedEpisodeNum: (Int) -> Unit
+    onToggleWatchedEpisodeNum: (Int) -> Unit,
+    onMarkAllEpisodes: (Boolean, Int) -> Unit
 ) {
     val s = LocalAppStrings.current
     val isGlass = LocalIsLiquidGlass.current
@@ -1074,6 +1189,7 @@ private fun EpisodeTrackerSection(
     val totalEpCount = metrics.displayEpisodeCount
     val watchedCount = metrics.watchedCount
     val progress = metrics.progress
+    val allWatched = totalEpCount > 0 && watchedCount >= totalEpCount
 
     Surface(
         shape = RoundedCornerShape(adaptiveCardCorner(14.dp, 20.dp)),
@@ -1113,6 +1229,42 @@ private fun EpisodeTrackerSection(
                     .clip(RoundedCornerShape(4.dp))
                     .testTag("detail_episode_progress_bar")
             )
+            Spacer(modifier = Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = { onMarkAllEpisodes(!allWatched, totalEpCount) },
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (allWatched) {
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                    } else {
+                        AniAiringGreenBright.copy(alpha = 0.7f)
+                    }
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (allWatched) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        AniAiringGreenBright
+                    }
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .testTag("detail_mark_all_episodes_btn")
+            ) {
+                Icon(
+                    imageVector = if (allWatched) Icons.Default.ClearAll else Icons.Default.DoneAll,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (allWatched) s.detailUnmarkAllEpisodesBtn else s.detailMarkAllEpisodesBtn,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
             Spacer(modifier = Modifier.height(10.dp))
 
             if (totalEpCount <= 18) {
@@ -1252,9 +1404,9 @@ private fun EpisodeGridChip(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Icon(
-                imageVector = if (isWatched) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                painter = painterResource(id = if (isWatched) R.drawable.ic_anime_check_circle_filled else R.drawable.ic_anime_radio_button_unchecked_filled),
                 contentDescription = null,
-                tint = if (isWatched) AniAiringGreenBright else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = Color.Unspecified,
                 modifier = Modifier.size(14.dp)
             )
             Text(
@@ -1348,13 +1500,23 @@ private fun ReviewsSheetContent(
                                         shape = RoundedCornerShape(6.dp),
                                         color = AniGoldBg
                                     ) {
-                                        Text(
-                                            text = "★ ${rev.score}/100",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = AniGold,
-                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-                                        )
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Image(
+                                                painter = painterResource(id = R.drawable.ic_anime_star_filled),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                            Text(
+                                                text = "${rev.score}/100",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = AniGold
+                                            )
+                                        }
                                     }
                                 }
                                 if (rev.summary.isNotBlank()) {

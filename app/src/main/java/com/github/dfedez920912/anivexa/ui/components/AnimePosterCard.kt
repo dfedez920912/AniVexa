@@ -1,6 +1,7 @@
 ﻿package com.github.dfedez920912.anivexa.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.painterResource
+import cu.daniel.anical.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsNone
@@ -172,10 +175,9 @@ fun AnimePosterCard(
                             .testTag("poster_card_reminder_bell_${anime.id}")
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(
-                                imageVector = if (anime.hasReminder) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
+                            Image(
+                                painter = painterResource(id = if (anime.hasReminder) R.drawable.ic_anime_notifications_active_filled else R.drawable.ic_anime_notifications_none_filled),
                                 contentDescription = s.calendarReminderDesc,
-                                tint = if (anime.hasReminder) AniGold else Color.White,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -213,10 +215,9 @@ fun AnimePosterCard(
                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     if (anime.score != null) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_anime_star_filled),
                             contentDescription = null,
-                            tint = AniGold,
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
@@ -265,10 +266,9 @@ fun AnimePosterCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_anime_schedule_filled),
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(12.dp)
                         )
                         Text(

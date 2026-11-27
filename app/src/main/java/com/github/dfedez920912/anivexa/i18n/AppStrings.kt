@@ -183,6 +183,8 @@ interface AppStrings {
     val detailNoUpcomingSchedule: String
     val detailTestAlertBtn: String
     val detailEpisodeTrackerTitle: String
+    val detailMarkAllEpisodesBtn: String
+    val detailUnmarkAllEpisodesBtn: String
     val detailSwipeEpisodesHint: (Int) -> String
     val detailYourRatingTitle: String
     val detailRateStarsDesc: (Int) -> String

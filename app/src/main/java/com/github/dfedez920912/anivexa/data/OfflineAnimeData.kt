@@ -27,12 +27,12 @@ object OfflineAnimeData {
         // Episodio del día en emisión: Solo Leveling (Ep 8)
         list.add(
             AnimeRelease(
-                id = 16498,
+                id = 176496,
                 airingId = 1001,
                 titleRomaji = "Solo Leveling: Arise from the Shadow",
                 titleEnglish = "Solo Leveling Season 2",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx176496-eB1C33tC8JmU.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/176496-XfSsmP6K0y7Z.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx176496-9BDMjAZGEbq4.png",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/176496-5oY4k2NRqlYs.jpg",
                 synopsis = "Tras despertar poderes inauditos en las mazmorras subterráneas, Sung Jinwoo continúa su ascenso como el Cazador de Rango S más temido y respetado. Ahora debe proteger a su familia y enfrentar las amenazas de monarcas que planean destruir la humanidad.",
                 synopsisEs = "Tras despertar poderes inauditos en las mazmorras subterráneas, Sung Jinwoo continúa su ascenso como el Cazador de Rango S más temido y respetado. Ahora debe proteger a su familia y enfrentar las amenazas de monarcas que planean destruir la humanidad.",
                 synopsisEn = "After awakening unprecedented powers in mysterious underground dungeons, Sung Jinwoo continues his legendary rise as humanity's strongest S-Rank Hunter, facing monarch threats and protecting the world.",
@@ -54,8 +54,8 @@ object OfflineAnimeData {
                 airingId = 1002,
                 titleRomaji = "Dandadan",
                 titleEnglish = "DAN DA DAN",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx171018-bT1fK8D2mS5f.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/171018-8YF5fQ5f2n0G.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx171018-60q1B6GK2Ghb.jpg",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/171018-SpwPNAduszXl.jpg",
                 synopsis = "Momo Ayase cree en fantasmas y Okarun cree en extraterrestres. Para probar quién tiene razón visitan lugares ocultos, desatando una caótica aventura repleta de poderes y humor.",
                 synopsisEs = "Momo Ayase cree en fantasmas y Okarun cree en extraterrestres. Para probar quién tiene razón visitan lugares ocultos, desatando una caótica aventura repleta de poderes y humor.",
                 synopsisEn = "High school girl Momo believes in ghosts but not aliens, while UFO-fanatic Okarun believes in aliens but not ghosts. Together they stumble into occult chaos and wild supernatural battles.",
@@ -77,8 +77,8 @@ object OfflineAnimeData {
                 airingId = 1003,
                 titleRomaji = "One Piece",
                 titleEnglish = "One Piece: Egghead Arc",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx21-tXfaAljA2PUE.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21-wf37VakJReke.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21-ELSYx3yMPcKM.jpg",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21-wf37VakJmZqs.jpg",
                 synopsis = "Luffy y los Sombrero de Paja desembarcan en la Isla Egghead, laboratorio central del científico más brillante del mundo, el Dr. Vegapunk, desvelando verdades cruciales sobre el mundo.",
                 synopsisEs = "Luffy y los Sombrero de Paja desembarcan en la Isla Egghead, laboratorio central del científico más brillante del mundo, el Dr. Vegapunk, desvelando verdades cruciales sobre el mundo.",
                 synopsisEn = "Luffy and the Straw Hats arrive at the futuristic island of Egghead, the research sanctuary of Dr. Vegapunk, uncovering forbidden world history and facing cipher pol threats.",
@@ -96,12 +96,12 @@ object OfflineAnimeData {
         // Nuevo Estreno de Temporada: Sakamoto Days (Ep 1)
         list.add(
             AnimeRelease(
-                id = 177937,
+                id = 177709,
                 airingId = 1004,
                 titleRomaji = "Sakamoto Days",
                 titleEnglish = "SAKAMOTO DAYS",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx177937-sakamoto.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/177937-sakamotob.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx177709-e5Qx6RlsBgD5.png",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/177709-yeZ7ciQULJRx.jpg",
                 synopsis = "Taro Sakamoto fue el asesino a sueldo más temido de los bajos fondos hasta que se enamoró, se retiró y abrió una tienda de ultramarinos. Ahora debe defender su vida pacífica familiar de antiguos colegas asesinos.",
                 synopsisEs = "Taro Sakamoto fue el asesino a sueldo más temido de los bajos fondos hasta que se enamoró, se retiró y abrió una tienda de ultramarinos. Ahora debe defender su vida pacífica familiar de antiguos colegas asesinos.",
                 synopsisEn = "Taro Sakamoto was the ultimate hitman revered by all assassins until he fell in love and retired to run a neighborhood convenience store. Now hitmen are after him!",
@@ -124,12 +124,12 @@ object OfflineAnimeData {
         // Episodio en emisión: Bleach TYBW Part 3 (Ep 7)
         list.add(
             AnimeRelease(
-                id = 163134,
+                id = 169755,
                 airingId = 1005,
                 titleRomaji = "Bleach: Sennen Kessen-hen - Soukoku-tan",
                 titleEnglish = "Bleach: Thousand-Year Blood War Part 3",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx163134-rFh3H0q5j3G2.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/163134-vA9r5C5r0T8m.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx169755-Rqb7MjnzdTc6.jpg",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/169755-hCWjp9ajjMYV.jpg",
                 synopsis = "La batalla decisiva entre los Shinigami de la Sociedad de Almas y los Quincy de Yhwach alcanza el Palacio Real. Ichigo Kurosaki encara su destino definitivo.",
                 synopsisEs = "La batalla decisiva entre los Shinigami de la Sociedad de Almas y los Quincy de Yhwach alcanza el Palacio Real. Ichigo Kurosaki encara su destino definitivo.",
                 synopsisEn = "The bloody conflict between Soul Reapers and Quincies escalates in the Royal Palace as Ichigo reaches the summit to confront Yhwach.",
@@ -146,12 +146,12 @@ object OfflineAnimeData {
         // Episodio en emisión: Re:Zero Season 3 (Ep 6)
         list.add(
             AnimeRelease(
-                id = 166700,
+                id = 163134,
                 airingId = 1006,
                 titleRomaji = "Re:Zero kara Hajimeru Isekai Seikatsu 3rd Season",
                 titleEnglish = "Re:ZERO -Starting Life in Another World- Season 3",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx163134-xK1mQ8N5p0Rt.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/163134-re0banner.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx163134-yieRFbvUOH9a.jpg",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/163134-CqaXjXVivwJ5.jpg",
                 synopsis = "En la ciudad de las compuertas de Priestella, Subaru y Emilia son sorprendidos por un asalto coordinado de los Arzobispos del Culto de la Bruja.",
                 synopsisEs = "En la ciudad de las compuertas de Priestella, Subaru y Emilia son sorprendidos por un asalto coordinado de los Arzobispos del Culto de la Bruja.",
                 synopsisEn = "A year after the Sanctuary crisis, Subaru and the Emilia camp travel to the water city Priestella, only to find the Sin Archbishops laying siege.",
@@ -168,12 +168,12 @@ object OfflineAnimeData {
         // Nuevo Estreno: Gachiakuta (Ep 1)
         list.add(
             AnimeRelease(
-                id = 177938,
+                id = 178025,
                 airingId = 1007,
                 titleRomaji = "Gachiakuta",
                 titleEnglish = "Gachiakuta",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx177938-gachiakuta.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/177938-gachiakutab.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx178025-cWJKEsZynkil.jpg",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/178025-WvcXi1J2SGRa.jpg",
                 synopsis = "Rudo, un joven de los suburbios acusado falsamente de asesinato, es arrojado al Abismo de la basura. Allí descubre misteriosos artefactos con alma y poderes letales para clamar venganza.",
                 synopsisEs = "Rudo, un joven de los suburbios acusado falsamente de asesinato, es arrojado al Abismo de la basura. Allí descubre misteriosos artefactos con alma y poderes letales para clamar venganza.",
                 synopsisEn = "Framed for a murder he did not commit, Rudo is thrown into the Abyss where all of society's garbage is dumped. There, he discovers vital soul weapons called Jinki.",
@@ -193,12 +193,12 @@ object OfflineAnimeData {
         val day2 = today.plusDays(2)
         list.add(
             AnimeRelease(
-                id = 145139,
+                id = 163146,
                 airingId = 1008,
                 titleRomaji = "Blue Lock vs. U-20 JAPAN",
                 titleEnglish = "BLUE LOCK Season 2",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx163134-bluelock.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/163134-bluelockb.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx163146-BVZPgyzkqi82.png",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/163146-HIz04v1Or7He.jpg",
                 synopsis = "Los delanteros egocéntricos de Blue Lock saltan al terreno contra el equipo nacional Sub-20 en un duelo decisivo.",
                 synopsisEs = "Los delanteros egocéntricos de Blue Lock saltan al terreno contra el equipo nacional Sub-20 en un duelo decisivo.",
                 synopsisEn = "The Blue Lock striker project must prove its worth against Japan's national U-20 team in a high-stakes football clash.",
@@ -213,12 +213,12 @@ object OfflineAnimeData {
         )
         list.add(
             AnimeRelease(
-                id = 171019,
+                id = 170083,
                 airingId = 1009,
                 titleRomaji = "Dragon Ball DAIMA",
                 titleEnglish = "Dragon Ball DAIMA",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx171019-daima.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/171019-daimab.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx170083-GTwRrhTApcLR.png",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/170083-SYCCWWlq3hqF.jpg",
                 synopsis = "Goku y sus amigos son convertidos en niños por una conspiración y se adentran en el enigmático Reino Demoníaco.",
                 synopsisEs = "Goku y sus amigos son convertidos en niños por una conspiración y se adentran en el enigmático Reino Demoníaco.",
                 synopsisEn = "Due to a conspiracy, Goku and his friends are turned into kids, embarking on an epic adventure into the mysterious Demon Realm.",
@@ -238,12 +238,12 @@ object OfflineAnimeData {
         val day3 = today.plusDays(3)
         list.add(
             AnimeRelease(
-                id = 173599,
+                id = 177937,
                 airingId = 1011,
                 titleRomaji = "SPY x FAMILY Season 3",
                 titleEnglish = "SPY x FAMILY Season 3",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx173599-spy.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/173599-spyb.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx177937-Tzgg6rAdhCoH.jpg",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/177937-jty4x7qBWG5n.jpg",
                 synopsis = "Anya, Loid y Yor continúan sus misiones secretas combinando comedia familiar y espionaje de alto riesgo.",
                 synopsisEs = "Anya, Loid y Yor continúan sus misiones secretas combinando comedia familiar y espionaje de alto riesgo.",
                 synopsisEn = "The fake Forger family balances domestic bliss with top-secret spy, assassin, and telepathic school adventures.",
@@ -259,12 +259,12 @@ object OfflineAnimeData {
         // Gran estreno de película: Chainsaw Man Reze
         list.add(
             AnimeRelease(
-                id = 166701,
+                id = 171627,
                 airingId = 1012,
                 titleRomaji = "Chainsaw Man: Reze-hen",
                 titleEnglish = "Chainsaw Man: The Movie - Reze Arc",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx166701-csm.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/166701-csmb.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx171627-ZN9D7P46yHnw.png",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/171627-7esVHhgw69rn.jpg",
                 synopsis = "Denji conoce a Reze en un café. Un romance explosivo que desata los planes de un letal demonio bombardero.",
                 synopsisEs = "Denji conoce a Reze en un café. Un romance explosivo que desata los planes de un letal demonio bombardero.",
                 synopsisEn = "Denji falls head over heels for an enigmatic cafe waitress named Reze, only to face an explosive romantic trap.",
@@ -284,12 +284,12 @@ object OfflineAnimeData {
         val day4 = today.plusDays(4)
         list.add(
             AnimeRelease(
-                id = 154588,
+                id = 178788,
                 airingId = 1013,
                 titleRomaji = "Kimetsu no Yaiba: Mugen Jou-hen",
                 titleEnglish = "Demon Slayer: Kimetsu no Yaiba - Infinity Castle",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154588-kny.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/154588-knyb.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx178788-zm3gtpB9TpRt.jpg",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/178788-tSHb5MiaNBNL.jpg",
                 synopsis = "Tanjiro y los Pilares caen en el laberinto infinito de Muzan para librar la batalla definitiva de la humanidad.",
                 synopsisEs = "Tanjiro y los Pilares caen en el laberinto infinito de Muzan para librar la batalla definitiva de la humanidad.",
                 synopsisEn = "Tanjiro and the Hashira fall deep into Muzan's shifting Infinity Castle for the final war against the Upper Ranks.",
@@ -304,12 +304,12 @@ object OfflineAnimeData {
         )
         list.add(
             AnimeRelease(
-                id = 176498,
+                id = 172463,
                 airingId = 1014,
                 titleRomaji = "Jujutsu Kaisen: Shimetsukai-hen",
                 titleEnglish = "Jujutsu Kaisen: Culling Game",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx176498-jjk.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/176498-jjkb.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx172463-LnXqHzt74SJL.jpg",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/172463-3J2o3qQZadFJ.jpg",
                 synopsis = "Kenjaku da inicio al 'Juego del Sacrificio'. Yuji y Megumi deben entrar a las colonias para salvar a los hechiceros.",
                 synopsisEs = "Kenjaku da inicio al 'Juego del Sacrificio'. Yuji y Megumi deben entrar a las colonias para salvar a los hechiceros.",
                 synopsisEn = "In the wake of Shibuya, Kenjaku initiates the Culling Game battle royale, forcing Yuji and friends into lethal colonies.",
@@ -329,12 +329,12 @@ object OfflineAnimeData {
         val day5 = today.plusDays(5)
         list.add(
             AnimeRelease(
-                id = 163135,
+                id = 176301,
                 airingId = 1015,
                 titleRomaji = "Kusuriya no Hitorigoto 2nd Season",
                 titleEnglish = "The Apothecary Diaries Season 2",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx163135-apoth.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/163135-apothb.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx176301-TIGmldLffQGX.jpg",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/176301-GkuTF1YTT6b2.jpg",
                 synopsis = "Maomao investiga nuevos misterios y venenos en la corte imperial con la ayuda de Jinshi.",
                 synopsisEs = "Maomao investiga nuevos misterios y venenos en la corte imperial con la ayuda de Jinshi.",
                 synopsisEn = "Apothecary prodigy Maomao returns to solve intricate poisonings and palace intrigue with Jinshi.",
@@ -349,12 +349,12 @@ object OfflineAnimeData {
         )
         list.add(
             AnimeRelease(
-                id = 171020,
+                id = 182587,
                 airingId = 1016,
                 titleRomaji = "Oshi no Ko 3rd Season",
                 titleEnglish = "[Oshi No Ko] Season 3",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx171020-onk.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/171020-onkb.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx182587-fsU8LOjmd7oj.jpg",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/182587-SLNmuinewbUF.jpg",
                 synopsis = "Aqua avanza en su venganza en el mundo del espectáculo mientras Ruby se consolida como ídolo.",
                 synopsisEs = "Aqua avanza en su venganza en el mundo del espectáculo mientras Ruby se consolida como ídolo.",
                 synopsisEn = "Aqua delves deeper into the entertainment industry's shadows as Ruby aims for super-stardom.",
@@ -374,12 +374,12 @@ object OfflineAnimeData {
         val day6 = today.plusDays(6)
         list.add(
             AnimeRelease(
-                id = 176499,
+                id = 182896,
                 airingId = 1017,
                 titleRomaji = "Boku no Hero Academia: Final Season",
                 titleEnglish = "My Hero Academia: The Final Battle",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx176499-mha.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/176499-mhab.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx182896-mvxTVHGdDB4q.jpg",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/182896-iJt79hYTpv8w.jpg",
                 synopsis = "Deku enfrenta a Shigaraki y All For One en el clímax que decidirá la sociedad de héroes.",
                 synopsisEs = "Deku enfrenta a Shigaraki y All For One en el clímax que decidirá la sociedad de héroes.",
                 synopsisEn = "Izuku Midoriya clashes against Tomura Shigaraki and All For One in the final stand of hero society.",
@@ -394,12 +394,12 @@ object OfflineAnimeData {
         )
         list.add(
             AnimeRelease(
-                id = 176500,
+                id = 178789,
                 airingId = 1018,
                 titleRomaji = "Mushoku Tensei: Isekai Ittara Honki Dasu 3rd Season",
                 titleEnglish = "Mushoku Tensei: Jobless Reincarnation Season 3",
-                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx176500-mt.jpg",
-                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/176500-mtb.jpg",
+                coverImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx178789-hNXjKFzUq7mk.jpg",
+                bannerImageUrl = "https://s4.anilist.co/file/anilistcdn/media/anime/banner/178789-9nHWmoRLlcLu.jpg",
                 synopsis = "Rudeus Greyrat asume los mayores desafíos como mago de élite y cabeza de familia al adentrarse en los secretos del Dios Hombre.",
                 synopsisEs = "Rudeus Greyrat asume los mayores desafíos como mago de élite y cabeza de familia al adentrarse en los secretos del Dios Hombre.",
                 synopsisEn = "Rudeus Greyrat balances marriage, fatherhood, and escalating battles against the Man-God's manipulations.",

@@ -158,6 +158,8 @@ object StringsEs : AppStrings {
     override val detailNoUpcomingSchedule = "Sin próximo horario programado"
     override val detailTestAlertBtn = "Probar alerta ahora"
     override val detailEpisodeTrackerTitle = "Seguimiento de Episodios"
+    override val detailMarkAllEpisodesBtn = "Marcar todos"
+    override val detailUnmarkAllEpisodesBtn = "Desmarcar todos"
     override val detailSwipeEpisodesHint: (Int) -> String = { total -> "Desliza la lista para seleccionar entre los $total episodios" }
     override val detailYourRatingTitle = "Tu Puntuación"
     override val detailRateStarsDesc: (Int) -> String = { stars -> "Calificar $stars estrellas" }
